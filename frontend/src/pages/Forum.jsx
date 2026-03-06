@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import api from '../lib/api.js'
-import { useAuth } from '../hooks/useAuth.js'
+import { useAuth } from '../hooks/useAuth.jsx'
 import { useSocket } from '../hooks/useSocket.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import RoleTag from '../components/RoleTag.jsx'

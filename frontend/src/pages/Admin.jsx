@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../hooks/useAuth.js'
+import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import RoleTag from '../components/RoleTag.jsx'
