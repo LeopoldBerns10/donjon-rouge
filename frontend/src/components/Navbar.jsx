@@ -5,9 +5,9 @@ import AuthModal from './AuthModal.jsx'
 
 const NAV_LINKS = [
   { to: '/', label: 'Accueil' },
+  { to: '/guilde', label: 'Guilde' },
   { to: '/tracker', label: 'Tracker' },
   { to: '/forum', label: 'Forum' },
-  { to: '/annonces', label: 'Annonces' },
   { to: '/vitrine', label: 'Vitrine' },
 ]
 

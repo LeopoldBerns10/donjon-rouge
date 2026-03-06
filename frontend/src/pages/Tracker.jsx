@@ -2,15 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCocMembers } from '../hooks/useCocApi.js'
 import SectionHeader from '../components/SectionHeader.jsx'
-import RoleTag from '../components/RoleTag.jsx'
 import { LEAGUE_INFO } from '../lib/constants.js'
-
-const ROLE_LABELS = {
-  leader: 'Chef',
-  coLeader: 'Co-chef',
-  elder: 'Ancien',
-  member: 'Membre'
-}
+import { translateRole, getRoleBadgeClass, getTownHallImageUrl } from '../utils/cocHelpers.js'
 
 function medalForRank(rank) {
   if (rank === 1) return '🥇'
@@ -74,7 +67,6 @@ export default function Tracker() {
               {members.map((member, i) => {
                 const league = member.league?.name
                 const leagueInfo = LEAGUE_INFO[league]
-                const role = ROLE_LABELS[member.role] || member.role
 
                 return (
                   <tr
@@ -86,10 +78,20 @@ export default function Tracker() {
                       <span className="text-lg">{medalForRank(i + 1)}</span>
                     </td>
                     <td className="py-3 px-3">
-                      <div className="font-semibold text-bone group-hover:text-gold-light transition-colors">
-                        {member.name}
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={getTownHallImageUrl(member.townHallLevel)}
+                          alt={`HDV${member.townHallLevel}`}
+                          className="w-8 h-8 object-contain flex-shrink-0"
+                          onError={(e) => { e.target.style.display = 'none' }}
+                        />
+                        <div>
+                          <div className="font-semibold text-bone group-hover:text-gold-light transition-colors">
+                            {member.name}
+                          </div>
+                          <div className="text-xs text-ash">{member.tag}</div>
+                        </div>
                       </div>
-                      <div className="text-xs text-ash">{member.tag}</div>
                     </td>
                     <td className="py-3 px-3 text-center">
                       <span className="px-2 py-0.5 rounded text-xs font-bold text-white"
@@ -104,13 +106,17 @@ export default function Tracker() {
                       {member.donations?.toLocaleString()}
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <RoleTag role={role} />
+                      <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(member.role)}`}>
+                        {translateRole(member.role)}
+                      </span>
                     </td>
                     <td className="py-3 px-3 text-center">
                       {leagueInfo ? (
                         <span style={{ color: leagueInfo.color }} className="text-sm">
                           {leagueInfo.icon} {league?.replace(' League', '')}
                         </span>
+                      ) : member.league?.iconUrls?.small ? (
+                        <img src={member.league.iconUrls.small} alt={league} className="w-5 h-5 mx-auto" />
                       ) : (
                         <span className="text-ash text-xs">—</span>
                       )}

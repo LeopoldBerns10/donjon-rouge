@@ -9,6 +9,7 @@ import Forum from './pages/Forum.jsx'
 import Announcements from './pages/Announcements.jsx'
 import Vitrine from './pages/Vitrine.jsx'
 import Admin from './pages/Admin.jsx'
+import Guilde from './pages/Guilde.jsx'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
               <Route path="/forum" element={<Forum />} />
               <Route path="/annonces" element={<Announcements />} />
               <Route path="/vitrine" element={<Vitrine />} />
+              <Route path="/guilde" element={<Guilde />} />
               <Route path="/admin" element={<Admin />} />
             </Routes>
           </main>

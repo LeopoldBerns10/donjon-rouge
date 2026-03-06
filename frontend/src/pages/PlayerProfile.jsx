@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useCocPlayer } from '../hooks/useCocApi.js'
-import { TROOP_ICONS, LEAGUE_INFO, ASSETS_BASE } from '../lib/constants.js'
+import { LEAGUE_INFO } from '../lib/constants.js'
+import { translateRole, getTroopImageUrl, getTownHallImageUrl } from '../utils/cocHelpers.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 
 const TABS = [
@@ -18,28 +19,23 @@ const TABS = [
   'Succès'
 ]
 
-function TroopIcon({ name, level, maxLevel }) {
-  const url = TROOP_ICONS[name]
+function TroopIcon({ name, level, maxLevel, category = 'troops' }) {
+  const url = getTroopImageUrl(name, category)
   const pct = maxLevel ? Math.round((level / maxLevel) * 100) : 100
   const isMax = level >= maxLevel
 
   return (
-    <div className="flex flex-col items-center gap-1 w-16">
-      <div className="relative w-12 h-12">
-        {url ? (
-          <img
-            src={url}
-            alt={name}
-            className={`w-12 h-12 object-contain rounded ${isMax ? 'ring-2 ring-gold-light' : ''}`}
-            onError={(e) => {
-              e.target.outerHTML = `<div class="w-12 h-12 bg-fog rounded flex items-center justify-center text-xs text-ash text-center leading-tight p-1">${name.slice(0, 4)}</div>`
-            }}
-          />
-        ) : (
-          <div className="w-12 h-12 bg-fog rounded flex items-center justify-center text-xs text-ash text-center leading-tight p-1">
-            {name.slice(0, 4)}
-          </div>
-        )}
+    <div className="flex flex-col items-center gap-1 w-16" title={name}>
+      <div className="relative w-12 h-12 rounded border border-fog/50"
+        style={{ background: '#1a1a1a' }}>
+        <img
+          src={url}
+          alt={name}
+          className={`w-12 h-12 object-contain rounded ${isMax ? 'ring-2 ring-gold-light' : ''}`}
+          onError={(e) => {
+            e.target.outerHTML = `<div class="w-12 h-12 flex items-center justify-center text-xs text-ash text-center leading-tight p-1" style="background:#2a2a2a;border-radius:4px">${level}</div>`
+          }}
+        />
         <span className="absolute -bottom-1 -right-1 text-xs font-bold px-1 rounded"
           style={{ background: isMax ? '#B8860B' : '#181818', color: isMax ? '#0e0e0e' : '#d4c5a9', border: '1px solid #333' }}>
           {level}
@@ -67,7 +63,7 @@ function ProgressBar({ label, current, max }) {
   )
 }
 
-function TroopsGrid({ title, items }) {
+function TroopsGrid({ title, items, category = 'troops' }) {
   if (!items || items.length === 0) return null
   const current = items.reduce((s, t) => s + (t.level || 0), 0)
   const max = items.reduce((s, t) => s + (t.maxLevel || 0), 0)
@@ -81,7 +77,7 @@ function TroopsGrid({ title, items }) {
       </div>
       <div className="flex flex-wrap gap-4">
         {items.map((t) => (
-          <TroopIcon key={t.name} name={t.name} level={t.level} maxLevel={t.maxLevel} />
+          <TroopIcon key={t.name} name={t.name} level={t.level} maxLevel={t.maxLevel} category={category} />
         ))}
       </div>
     </div>
@@ -141,12 +137,16 @@ export default function PlayerProfile() {
       <div className="card-stone p-6 mb-6">
         <div className="flex flex-col md:flex-row gap-6 items-start">
           {/* Town Hall avatar */}
-          <div className="flex-shrink-0">
-            <div className="w-24 h-24 rounded flex items-center justify-center text-4xl font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)' }}>
-              {player.townHallLevel}
-            </div>
-            <p className="text-center text-xs text-ash font-cinzel mt-1 uppercase">HDV</p>
+          <div className="flex-shrink-0 text-center">
+            <img
+              src={getTownHallImageUrl(player.townHallLevel)}
+              alt={`HDV${player.townHallLevel}`}
+              className="w-24 h-24 object-contain mx-auto"
+              onError={(e) => {
+                e.target.outerHTML = `<div class="w-24 h-24 rounded flex items-center justify-center text-4xl font-bold text-white" style="background:linear-gradient(135deg,#6B0000,#C41E3A)">${player.townHallLevel}</div>`
+              }}
+            />
+            <p className="text-center text-xs text-ash font-cinzel mt-1 uppercase">HDV {player.townHallLevel}</p>
           </div>
 
           {/* Info */}
@@ -162,7 +162,7 @@ export default function PlayerProfile() {
             <p className="text-ash text-sm font-cinzel">{player.tag}</p>
             {player.clan && (
               <p className="text-gold text-sm mt-1 font-cinzel">
-                {player.clan.name} · {player.role}
+                {player.clan.name} · {translateRole(player.role)}
               </p>
             )}
 
@@ -243,36 +243,19 @@ export default function PlayerProfile() {
               <ProgressBar label="Progression totale" current={totalCurrent} max={totalMax} />
             )}
 
-            <TroopsGrid
-              title="Héros"
-              items={heroes}
-            />
-            <TroopsGrid
-              title="Équipement de héros"
-              items={heroEquipment}
-            />
-            <TroopsGrid
-              title="Familiers"
-              items={pets}
-            />
-            <TroopsGrid
-              title="Machines de siège"
-              items={siegeMachines}
-            />
+            <TroopsGrid title="Héros" items={heroes} category="heroes" />
+            <TroopsGrid title="Équipement de héros" items={heroEquipment} category="equipment" />
+            <TroopsGrid title="Familiers" items={pets} category="pets" />
+            <TroopsGrid title="Machines de siège" items={siegeMachines} category="siege" />
             <TroopsGrid
               title="Troupes"
               items={homeTroops.filter((t) => !superTroops.find((s) => s.name === t.name))}
+              category="troops"
             />
-            <TroopsGrid
-              title="Troupes noires"
-              items={darkTroops}
-            />
-            <TroopsGrid
-              title="Sorts"
-              items={spells}
-            />
+            <TroopsGrid title="Troupes noires" items={darkTroops} category="troops" />
+            <TroopsGrid title="Sorts" items={spells} category="spells" />
             {superTroops.length > 0 && (
-              <TroopsGrid title="Super Troupes" items={superTroops} />
+              <TroopsGrid title="Super Troupes" items={superTroops} category="troops" />
             )}
           </div>
         )}
@@ -312,8 +295,90 @@ export default function PlayerProfile() {
           </div>
         )}
 
+        {/* Ranked */}
+        {activeTab === 1 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Ranked &amp; Ligues</h3>
+
+            {/* Ligue principale */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-stone p-4 rounded border border-fog">
+                <p className="text-xs font-cinzel uppercase text-ash mb-3">Ligue principale</p>
+                <div className="flex items-center gap-3">
+                  {player.league?.iconUrls?.medium && (
+                    <img src={player.league.iconUrls.medium} alt={player.league.name} className="w-14 h-14 object-contain" />
+                  )}
+                  <div>
+                    <p className="font-bold text-bone font-cinzel">{player.league?.name || 'Sans ligue'}</p>
+                    <p className="text-2xl font-bold text-gold-light mt-1">{player.trophies?.toLocaleString()} 🏆</p>
+                    <p className="text-xs text-ash">Meilleur : {player.bestTrophies?.toLocaleString()} 🏆</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-stone p-4 rounded border border-fog">
+                <p className="text-xs font-cinzel uppercase text-ash mb-3">Base du Constructeur</p>
+                <div className="flex items-center gap-3">
+                  {player.builderBaseLeague?.iconUrls?.medium && (
+                    <img src={player.builderBaseLeague.iconUrls.medium} alt={player.builderBaseLeague.name} className="w-14 h-14 object-contain" />
+                  )}
+                  <div>
+                    <p className="font-bold text-bone font-cinzel">{player.builderBaseLeague?.name || 'Sans ligue'}</p>
+                    <p className="text-2xl font-bold text-gold-light mt-1">{(player.builderBaseTrophies || 0).toLocaleString()} 🏆</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ligue Légende */}
+            {player.legendStatistics ? (
+              <div>
+                <p className="text-xs font-cinzel uppercase text-ash mb-3 flex items-center gap-2">
+                  <span>❄️</span> Ligue Légende
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {player.legendStatistics.currentSeason && (
+                    <div className="bg-stone p-4 rounded border border-purple-800">
+                      <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Saison en cours</p>
+                      <p className="text-2xl font-bold text-gold-light">{player.legendStatistics.currentSeason.trophies?.toLocaleString()} 🏆</p>
+                      {player.legendStatistics.currentSeason.rank && (
+                        <p className="text-xs text-ash mt-1">Rang #{player.legendStatistics.currentSeason.rank}</p>
+                      )}
+                    </div>
+                  )}
+                  {player.legendStatistics.previousSeason && (
+                    <div className="bg-stone p-4 rounded border border-fog">
+                      <p className="text-xs text-ash font-cinzel uppercase mb-2">Saison précédente</p>
+                      <p className="text-2xl font-bold text-bone">{player.legendStatistics.previousSeason.trophies?.toLocaleString()} 🏆</p>
+                      {player.legendStatistics.previousSeason.rank && (
+                        <p className="text-xs text-ash mt-1">Rang #{player.legendStatistics.previousSeason.rank}</p>
+                      )}
+                    </div>
+                  )}
+                  {player.legendStatistics.bestSeason && (
+                    <div className="bg-stone p-4 rounded border border-gold/40">
+                      <p className="text-xs text-gold font-cinzel uppercase mb-2">Meilleure saison</p>
+                      <p className="text-2xl font-bold text-gold-light">{player.legendStatistics.bestSeason.trophies?.toLocaleString()} 🏆</p>
+                      {player.legendStatistics.bestSeason.rank && (
+                        <p className="text-xs text-ash mt-1">Rang #{player.legendStatistics.bestSeason.rank}</p>
+                      )}
+                      {player.legendStatistics.bestSeason.id && (
+                        <p className="text-xs text-ash">{player.legendStatistics.bestSeason.id}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-ash text-sm font-cinzel text-center py-6">
+                Ce joueur n'a pas de données de ligue Légende disponibles.
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Autres onglets — placeholder */}
-        {![0, 9, 10].includes(activeTab) && (
+        {![0, 1, 9, 10].includes(activeTab) && (
           <div className="text-center py-12 text-ash font-cinzel">
             <p className="text-4xl mb-4">⚔️</p>
             <p className="uppercase tracking-widest text-sm">{TABS[activeTab]}</p>
