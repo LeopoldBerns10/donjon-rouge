@@ -1,0 +1,35 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { AuthProvider } from './hooks/useAuth.js'
+import Navbar from './components/Navbar.jsx'
+import Footer from './components/Footer.jsx'
+import Home from './pages/Home.jsx'
+import Tracker from './pages/Tracker.jsx'
+import PlayerProfile from './pages/PlayerProfile.jsx'
+import Forum from './pages/Forum.jsx'
+import Announcements from './pages/Announcements.jsx'
+import Vitrine from './pages/Vitrine.jsx'
+import Admin from './pages/Admin.jsx'
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="min-h-screen flex flex-col" style={{ background: '#0e0e0e' }}>
+          <Navbar />
+          <main className="flex-1">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/tracker" element={<Tracker />} />
+              <Route path="/tracker/:tag" element={<PlayerProfile />} />
+              <Route path="/forum" element={<Forum />} />
+              <Route path="/annonces" element={<Announcements />} />
+              <Route path="/vitrine" element={<Vitrine />} />
+              <Route path="/admin" element={<Admin />} />
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
+  )
+}
