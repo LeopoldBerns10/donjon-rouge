@@ -16,6 +16,7 @@ import chatRoutes from './routes/chat.js'
 import announcementsRoutes from './routes/announcements.js'
 
 const app = express()
+app.set('trust proxy', 1)
 const httpServer = createServer(app)
 
 const io = new Server(httpServer, {
