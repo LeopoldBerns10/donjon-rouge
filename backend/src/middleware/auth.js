@@ -14,3 +14,26 @@ export default function authMiddleware(req, res, next) {
     return res.status(401).json({ error: 'Token invalide' })
   }
 }
+
+export function requireAuth(req, res, next) {
+  return authMiddleware(req, res, next)
+}
+
+export function requireAdmin(req, res, next) {
+  authMiddleware(req, res, () => {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ error: 'Accès réservé aux administrateurs' })
+    }
+    next()
+  })
+}
+
+export function requireChief(req, res, next) {
+  authMiddleware(req, res, () => {
+    const { cocRole, isAdmin } = req.user || {}
+    if (!isAdmin && cocRole !== 'leader' && cocRole !== 'coLeader') {
+      return res.status(403).json({ error: 'Accès réservé aux chefs de clan' })
+    }
+    next()
+  })
+}

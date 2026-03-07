@@ -3,8 +3,10 @@ import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import cors from 'cors'
+import bcrypt from 'bcryptjs'
 import supabase from './lib/supabase.js'
 import { apiLimiter } from './middleware/rateLimiter.js'
+import { syncMembers } from './services/syncMembers.js'
 
 import authRoutes from './routes/auth.js'
 import playersRoutes from './routes/players.js'
@@ -89,7 +91,28 @@ function countInChannel(channel) {
   return count
 }
 
+async function initAdminAccount() {
+  const { count } = await supabase
+    .from('admin_account')
+    .select('*', { count: 'exact', head: true })
+
+  if (count === 0) {
+    const email = process.env.ADMIN_EMAIL
+    const password = process.env.ADMIN_INITIAL_PASSWORD
+    if (!email || !password) {
+      console.warn('⚠️  ADMIN_EMAIL ou ADMIN_INITIAL_PASSWORD manquant — compte admin non créé')
+      return
+    }
+    const password_hash = await bcrypt.hash(password, 10)
+    await supabase.from('admin_account').insert({ email, password_hash })
+    console.log('✅ Compte admin créé')
+  }
+}
+
 const PORT = process.env.PORT || 3000
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   console.log(`Donjon Rouge backend en écoute sur le port ${PORT}`)
+  await initAdminAccount()
+  await syncMembers()
+  setInterval(syncMembers, 10 * 60 * 1000)
 })

@@ -2,93 +2,133 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import supabase from '../lib/supabase.js'
 
-export async function register(req, res) {
-  const { username, password, coc_tag } = req.body
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username et password requis' })
+export async function login(req, res) {
+  const { email, password, coc_name, coc_tag } = req.body
+
+  // Admin login
+  if (email) {
+    if (!password) return res.status(400).json({ error: 'Email et mot de passe requis' })
+
+    const { data: admin } = await supabase
+      .from('admin_account')
+      .select('*')
+      .eq('email', email)
+      .single()
+
+    if (!admin) return res.status(401).json({ error: 'Identifiants incorrects' })
+
+    const valid = await bcrypt.compare(password, admin.password_hash)
+    if (!valid) return res.status(401).json({ error: 'Identifiants incorrects' })
+
+    const token = jwt.sign(
+      { userId: admin.id, isAdmin: true },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRY || '7d' }
+    )
+
+    return res.json({
+      token,
+      user: { id: admin.id, email: admin.email, isAdmin: true },
+    })
   }
 
-  const { data: existing } = await supabase
-    .from('players')
-    .select('id')
-    .eq('username', username)
+  // Member login
+  if (!coc_name || !coc_tag) {
+    return res.status(400).json({ error: 'Pseudo CoC et tag CoC requis' })
+  }
+
+  const { data: user } = await supabase
+    .from('users')
+    .select('*')
+    .eq('coc_name', coc_name)
     .single()
 
-  if (existing) {
-    return res.status(409).json({ error: 'Ce nom d\'utilisateur est déjà pris' })
-  }
+  if (!user) return res.status(401).json({ error: 'Identifiants incorrects' })
 
-  const password_hash = await bcrypt.hash(password, 10)
-
-  const { data: player, error } = await supabase
-    .from('players')
-    .insert({ username, password_hash, coc_tag: coc_tag || null, role: 'Membre', is_admin: false })
-    .select()
-    .single()
-
-  if (error) {
-    return res.status(500).json({ error: 'Erreur lors de la création du compte' })
-  }
+  const valid = await bcrypt.compare(coc_tag, user.password_hash)
+  if (!valid) return res.status(401).json({ error: 'Identifiants incorrects' })
 
   const token = jwt.sign(
-    { id: player.id, username: player.username, is_admin: player.is_admin, role: player.role },
+    {
+      userId: user.id,
+      cocTag: user.coc_tag,
+      cocName: user.coc_name,
+      cocRole: user.coc_role,
+      isAdmin: false,
+    },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRY }
+    { expiresIn: process.env.JWT_EXPIRY || '7d' }
   )
 
-  res.status(201).json({ token, player: sanitize(player) })
+  if (user.is_first_login) {
+    return res.json({ requirePasswordChange: true, token })
+  }
+
+  return res.json({
+    token,
+    user: {
+      id: user.id,
+      cocTag: user.coc_tag,
+      cocName: user.coc_name,
+      cocRole: user.coc_role,
+      isAdmin: false,
+    },
+  })
 }
 
-export async function login(req, res) {
-  const { username, password } = req.body
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username et password requis' })
-  }
+export async function changePassword(req, res) {
+  const { newPassword } = req.body
+  if (!newPassword) return res.status(400).json({ error: 'Nouveau mot de passe requis' })
 
-  const { data: player } = await supabase
-    .from('players')
-    .select('*')
-    .eq('username', username)
-    .single()
+  const { userId } = req.user
+  const password_hash = await bcrypt.hash(newPassword, 10)
 
-  if (!player) {
-    return res.status(401).json({ error: 'Identifiants incorrects' })
-  }
+  const { error } = await supabase
+    .from('users')
+    .update({ password_hash, is_first_login: false, updated_at: new Date().toISOString() })
+    .eq('id', userId)
 
-  const valid = await bcrypt.compare(password, player.password_hash)
-  if (!valid) {
-    return res.status(401).json({ error: 'Identifiants incorrects' })
-  }
+  if (error) return res.status(500).json({ error: 'Erreur lors du changement de mot de passe' })
 
-  await supabase
-    .from('players')
-    .update({ last_seen: new Date().toISOString() })
-    .eq('id', player.id)
+  const { data: user } = await supabase.from('users').select('*').eq('id', userId).single()
 
-  const token = jwt.sign(
-    { id: player.id, username: player.username, is_admin: player.is_admin, role: player.role },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRY }
-  )
+  return res.json({
+    user: {
+      id: user.id,
+      cocTag: user.coc_tag,
+      cocName: user.coc_name,
+      cocRole: user.coc_role,
+      isAdmin: false,
+    },
+  })
+}
 
-  res.json({ token, player: sanitize(player) })
+export async function logout(req, res) {
+  res.json({ ok: true })
 }
 
 export async function me(req, res) {
-  const { data: player } = await supabase
-    .from('players')
-    .select('*')
-    .eq('id', req.user.id)
-    .single()
+  const { userId, isAdmin } = req.user
 
-  if (!player) {
-    return res.status(404).json({ error: 'Joueur introuvable' })
+  if (isAdmin) {
+    const { data: admin } = await supabase
+      .from('admin_account')
+      .select('id, email, created_at')
+      .eq('id', userId)
+      .single()
+    if (!admin) return res.status(404).json({ error: 'Compte introuvable' })
+    return res.json({ id: admin.id, email: admin.email, isAdmin: true })
   }
 
-  res.json(sanitize(player))
-}
+  const { data: user } = await supabase.from('users').select('*').eq('id', userId).single()
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' })
 
-function sanitize(p) {
-  const { password_hash, ...rest } = p
-  return rest
+  return res.json({
+    id: user.id,
+    cocTag: user.coc_tag,
+    cocName: user.coc_name,
+    cocRole: user.coc_role,
+    isAdmin: false,
+    isFirstLogin: user.is_first_login,
+  })
 }

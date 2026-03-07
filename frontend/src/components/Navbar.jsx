@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
-import AuthModal from './AuthModal.jsx'
 
 const NAV_LINKS = [
   { to: '/', label: 'Accueil' },
@@ -14,7 +13,6 @@ const NAV_LINKS = [
 export default function Navbar() {
   const { user, logout } = useAuth()
   const location = useLocation()
-  const [showAuth, setShowAuth] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
   return (
@@ -54,7 +52,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {user?.is_admin && (
+            {user?.isAdmin && (
               <Link
                 to="/admin"
                 className={`font-cinzel text-sm uppercase tracking-widest transition-colors ${
@@ -70,13 +68,17 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {user ? (
               <div className="flex items-center gap-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm cursor-pointer"
-                  style={{ background: '#C41E3A', color: '#d4c5a9' }}
-                  title={user.username}
-                >
-                  {user.username.slice(0, 2).toUpperCase()}
-                </div>
+                {user.isAdmin && (
+                  <span
+                    className="hidden md:inline text-xs font-cinzel uppercase tracking-wider px-2 py-1 rounded font-bold text-bone"
+                    style={{ background: '#C41E3A' }}
+                  >
+                    Admin
+                  </span>
+                )}
+                <span className="hidden md:inline text-sm font-cinzel text-bone">
+                  {user.cocName || user.email}
+                </span>
                 <button
                   onClick={logout}
                   className="hidden md:block text-xs text-ash hover:text-crimson font-cinzel uppercase tracking-wider transition-colors"
@@ -85,12 +87,12 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <button
-                onClick={() => setShowAuth(true)}
+              <Link
+                to="/login"
                 className="px-4 py-2 text-sm font-cinzel uppercase tracking-wider border border-crimson text-crimson hover:bg-crimson hover:text-bone transition-all rounded"
               >
                 Connexion
-              </button>
+              </Link>
             )}
 
             {/* Mobile menu toggle */}
@@ -120,7 +122,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {user?.is_admin && (
+            {user?.isAdmin && (
               <Link to="/admin" onClick={() => setMenuOpen(false)} className="font-cinzel text-sm uppercase text-gold">
                 Admin
               </Link>
@@ -134,7 +136,6 @@ export default function Navbar() {
         )}
       </nav>
 
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} />}
     </>
   )
 }

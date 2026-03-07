@@ -33,20 +33,28 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  async function login(username, password) {
-    const res = await api.post('/api/auth/login', { username, password })
-    localStorage.setItem('dr_token', res.data.token)
-    localStorage.setItem('dr_user', JSON.stringify(res.data.player))
-    setUser(res.data.player)
-    return res.data.player
+  // credentials: { coc_name, coc_tag } pour membre, { email, password } pour admin
+  async function login(credentials) {
+    const res = await api.post('/api/auth/login', credentials)
+    const { token, user: userData, requirePasswordChange } = res.data
+
+    localStorage.setItem('dr_token', token)
+
+    if (requirePasswordChange) {
+      return { requirePasswordChange: true }
+    }
+
+    localStorage.setItem('dr_user', JSON.stringify(userData))
+    setUser(userData)
+    return userData
   }
 
-  async function register(username, password, coc_tag) {
-    const res = await api.post('/api/auth/register', { username, password, coc_tag })
-    localStorage.setItem('dr_token', res.data.token)
-    localStorage.setItem('dr_user', JSON.stringify(res.data.player))
-    setUser(res.data.player)
-    return res.data.player
+  async function changePassword(newPassword) {
+    const res = await api.post('/api/auth/change-password', { newPassword })
+    const { user: userData } = res.data
+    localStorage.setItem('dr_user', JSON.stringify(userData))
+    setUser(userData)
+    return userData
   }
 
   function logout() {
@@ -55,8 +63,11 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const isAdmin = user?.isAdmin === true
+  const isChief = isAdmin || user?.cocRole === 'leader' || user?.cocRole === 'coLeader'
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, changePassword, logout, isAdmin, isChief }}>
       {children}
     </AuthContext.Provider>
   )
