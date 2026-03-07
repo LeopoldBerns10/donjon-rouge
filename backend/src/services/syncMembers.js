@@ -22,20 +22,28 @@ export async function syncMembers() {
 
       if (!existing) {
         const password_hash = await bcrypt.hash(tag, 10)
-        await supabase.from('users').insert({
+        const { error: insertErr } = await supabase.from('users').insert({
           coc_tag: tag,
           coc_name: name,
           coc_role: role,
           password_hash,
           is_first_login: true,
         })
-        created++
+        if (insertErr) {
+          console.error(`❌ Insert échoué pour ${name} (${tag}):`, insertErr.message)
+        } else {
+          created++
+        }
       } else {
-        await supabase
+        const { error: updateErr } = await supabase
           .from('users')
           .update({ coc_name: name, coc_role: role, updated_at: new Date().toISOString() })
           .eq('coc_tag', tag)
-        updated++
+        if (updateErr) {
+          console.error(`❌ Update échoué pour ${name} (${tag}):`, updateErr.message)
+        } else {
+          updated++
+        }
       }
     }
 
