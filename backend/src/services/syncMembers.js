@@ -48,7 +48,9 @@ export async function syncMembers() {
     }
 
     console.log(`✅ Sync membres CoC : ${members.length} membres (${created} créés, ${updated} mis à jour)`)
+    return { ok: true, total: members.length, created, updated }
   } catch (err) {
     console.error('❌ Erreur syncMembers:', err.message)
+    return { ok: false, error: err.message }
   }
 }

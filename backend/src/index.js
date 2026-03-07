@@ -41,6 +41,11 @@ app.use('/api/forum', forumRoutes)
 app.use('/api/chat', chatRoutes)
 app.use('/api/announcements', announcementsRoutes)
 
+app.get('/api/debug/sync', async (req, res) => {
+  const result = await syncMembers()
+  res.json(result)
+})
+
 // Socket.io
 const connectedUsers = new Map()
 
