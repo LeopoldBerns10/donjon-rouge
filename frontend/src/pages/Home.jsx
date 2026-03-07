@@ -34,8 +34,43 @@ export default function Home() {
       <FireIntro />
       <DragonBackground />
 
+      {/* Dragon image — bas droite fixe */}
+      <img
+        src="/assets/dragon-blazon.png"
+        alt=""
+        style={{
+          position: 'fixed',
+          bottom: '-20px',
+          right: '-40px',
+          width: '420px',
+          opacity: 0.55,
+          zIndex: 1,
+          pointerEvents: 'none',
+          userSelect: 'none',
+          filter: 'drop-shadow(0 0 20px rgba(220, 38, 38, 0.4))',
+          animation: 'dragonFloat 6s ease-in-out infinite',
+        }}
+      />
+
       {/* Hero */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-[85vh] px-4 text-center">
+        {/* Dragon watermark */}
+        <img
+          src="/assets/dragon-blazon.png"
+          alt=""
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '70%',
+            maxWidth: '600px',
+            opacity: 0.18,
+            zIndex: 0,
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        />
         {/* Logo */}
         <div className="animate-float mb-8">
           <img

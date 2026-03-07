@@ -64,6 +64,12 @@ body {
   100% { transform: translateY(-120vh) translateX(var(--dx, 20px)) scale(0.3); opacity: 0; }
 }
 
+@keyframes dragonFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-8px) rotate(0.5deg); }
+  66%       { transform: translateY(-4px) rotate(-0.3deg); }
+}
+
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 20px rgba(196, 30, 58, 0.4); }
   50%       { box-shadow: 0 0 40px rgba(196, 30, 58, 0.8); }
