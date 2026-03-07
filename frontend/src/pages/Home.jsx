@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import DragonBackground from '../components/DragonBackground.jsx'
 import StatCard from '../components/StatCard.jsx'
 import { useCocClan } from '../hooks/useCocApi.js'
+import FireIntro from '../components/FireIntro.jsx'
+import DragonBlazon from '../components/DragonBlazon.jsx'
+import DragonScene from '../components/DragonScene.jsx'
 
 function useCountUp(target, duration = 1500) {
   const [count, setCount] = useState(0)
@@ -30,10 +33,16 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
+      <FireIntro />
+      <DragonScene />
       <DragonBackground />
 
       {/* Hero */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-[85vh] px-4 text-center">
+        {/* Blazon watermark behind content */}
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.15, zIndex: 0, pointerEvents: 'none' }}>
+          <DragonBlazon size="large" />
+        </div>
         {/* Logo */}
         <div className="animate-float mb-8">
           <img
