@@ -8,7 +8,7 @@ router.get('/messages/:channel', async (req, res) => {
   const { channel } = req.params
   const { data, error } = await supabase
     .from('chat_messages')
-    .select('*, author:players(id, username, role, avatar_url)')
+    .select('*, author:users(id, coc_name, coc_role)')
     .eq('channel', channel)
     .order('created_at', { ascending: false })
     .limit(100)
@@ -23,8 +23,8 @@ router.post('/messages', authMiddleware, async (req, res) => {
 
   const { data, error } = await supabase
     .from('chat_messages')
-    .insert({ author_id: req.user.id, channel, content })
-    .select('*, author:players(id, username, role, avatar_url)')
+    .insert({ author_id: req.user.userId, channel, content })
+    .select('*, author:users(id, coc_name, coc_role)')
     .single()
 
   if (error) return res.status(500).json({ error: error.message })

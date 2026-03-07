@@ -60,12 +60,20 @@ io.on('connection', (socket) => {
   })
 
   socket.on('send_message', async ({ channel, content, user }) => {
-    if (!channel || !content || !user) return
+    if (!channel || !content || !user?.id) return
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('coc_name, coc_role')
+      .eq('id', user.id)
+      .single()
+
+    if (!userData) return
 
     const message = {
       id: Date.now(),
-      author: user.username,
-      role: user.role,
+      author: userData.coc_name,
+      role: userData.coc_role,
       content,
       time: new Date().toISOString()
     }
