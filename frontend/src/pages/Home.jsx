@@ -34,24 +34,6 @@ export default function Home() {
       <FireIntro />
       <DragonBackground />
 
-      {/* Dragon image — bas droite fixe */}
-      <img
-        src="/assets/dragon-blazon.png"
-        alt=""
-        style={{
-          position: 'fixed',
-          bottom: '-20px',
-          right: '-40px',
-          width: '420px',
-          opacity: 0.55,
-          zIndex: 1,
-          pointerEvents: 'none',
-          userSelect: 'none',
-          filter: 'drop-shadow(0 0 20px rgba(220, 38, 38, 0.4))',
-          animation: 'dragonFloat 6s ease-in-out infinite',
-        }}
-      />
-
       {/* Hero */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-[85vh] px-4 text-center">
         {/* Dragon watermark */}
@@ -71,15 +53,13 @@ export default function Home() {
             userSelect: 'none',
           }}
         />
-        {/* Logo */}
+        {/* Logo — insigne du clan CoC */}
         <div className="animate-float mb-8">
           <img
-            src="/src/assets/logo.png"
+            src={clan?.badgeUrls?.large || 'https://api-assets.clashofclans.com/badges/512/Cbal0SXAUxTFUsLag6SVrqBsFhAfrPfk9nAANTqQTMM.png'}
             alt="Donjon Rouge"
-            className="h-32 w-32 object-contain mx-auto drop-shadow-[0_0_30px_rgba(196,30,58,0.8)]"
-            onError={(e) => {
-              e.target.outerHTML = '<div class="h-32 w-32 mx-auto rounded-full flex items-center justify-center text-6xl" style="background:rgba(107,0,0,0.4);border:2px solid #C41E3A">🔴</div>'
-            }}
+            style={{ width: '120px', height: '120px' }}
+            className="object-contain mx-auto drop-shadow-[0_0_30px_rgba(196,30,58,0.8)]"
           />
         </div>
 
