@@ -30,7 +30,7 @@ export async function syncMembers() {
           password_hash,
           is_first_login: true,
         })
-        console.log('Résultat insert:', JSON.stringify({ insertErr }))
+        console.log('Résultat insert complet:', JSON.stringify(insertErr, Object.getOwnPropertyNames(insertErr)))
         if (insertErr) {
           console.log(`❌ Insert échoué pour ${name} (${tag}):`, JSON.stringify(insertErr))
         } else {
