@@ -22,6 +22,7 @@ export async function syncMembers() {
 
       if (!existing) {
         const password_hash = await bcrypt.hash(tag, 10)
+        console.log('Tentative insert:', JSON.stringify({ coc_tag: tag, coc_name: name, coc_role: role }))
         const { error: insertErr } = await supabase.from('users').insert({
           coc_tag: tag,
           coc_name: name,
@@ -29,6 +30,7 @@ export async function syncMembers() {
           password_hash,
           is_first_login: true,
         })
+        console.log('Résultat insert:', JSON.stringify({ insertErr }))
         if (insertErr) {
           console.log(`❌ Insert échoué pour ${name} (${tag}):`, JSON.stringify(insertErr))
         } else {
