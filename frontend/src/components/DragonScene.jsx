@@ -1,21 +1,22 @@
 import { useEffect, useRef } from 'react'
 
-function drawDragon(ctx, t, isMobile) {
-  const scale = isMobile ? 0.65 : 1
-  ctx.save()
-  ctx.scale(scale, scale)
+// Dragon drawing bounds (in logical drawing coordinates)
+const DRAGON_TOP = 48     // horn tips
+const DRAGON_BOTTOM = 445 // leg tips
+const DRAGON_LEFT = 50    // left wing edge
+const DRAGON_RIGHT = 390  // right side with tail
+const DRAGON_CX = 220     // body horizontal center
 
-  // Animation values
-  const breathe = Math.sin((t / 4) * Math.PI * 2) // -1 to 1, 4s
+function drawDragon(ctx, t) {
+  const breathe = Math.sin((t / 4) * Math.PI * 2)
   const headTurn = Math.sin((t / 6) * Math.PI * 2) * (3 * Math.PI / 180)
   const tailSwing = Math.sin((t / 5) * Math.PI * 2) * (8 * Math.PI / 180)
   const wingVib = Math.sin((t / 3) * Math.PI * 2) * (2 * Math.PI / 180)
   const eyeGlow = 0.7 + 0.3 * Math.sin((t / 4) * Math.PI * 2)
 
-  const cx = 220 // canvas center-ish
-  const cy = 280 // body center
+  const cx = DRAGON_CX
+  const cy = 280
 
-  // Body scale with breathing
   const bodyScaleX = 1 + 0.015 * breathe
   const bodyScaleY = 1 + 0.008 * breathe
 
@@ -23,7 +24,6 @@ function drawDragon(ctx, t, isMobile) {
   ctx.save()
   ctx.translate(cx - 30, cy - 40)
   ctx.rotate(wingVib)
-  // Left wing membrane
   ctx.beginPath()
   ctx.moveTo(0, 0)
   ctx.bezierCurveTo(-120, -80, -160, 20, -140, 100)
@@ -34,15 +34,13 @@ function drawDragon(ctx, t, isMobile) {
   ctx.strokeStyle = '#1a0000'
   ctx.lineWidth = 1
   ctx.stroke()
-  // Wing membrane veins
   ctx.strokeStyle = '#3a0000'
   ctx.lineWidth = 0.7
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-110, 60); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-140, 20); ctx.stroke()
-  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-90, 90); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-110, 60); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-140, 20); ctx.stroke()
+  ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-90, 90); ctx.stroke()
   ctx.restore()
 
-  // Right wing (same, mirrored, slightly offset)
   ctx.save()
   ctx.translate(cx + 30, cy - 40)
   ctx.rotate(-wingVib * 0.6)
@@ -74,8 +72,6 @@ function drawDragon(ctx, t, isMobile) {
   ctx.strokeStyle = '#1a0000'
   ctx.lineWidth = 1.5
   ctx.stroke()
-
-  // Scale pattern on body
   ctx.strokeStyle = '#1a0000'
   ctx.lineWidth = 0.7
   for (let row = -3; row <= 3; row++) {
@@ -106,7 +102,6 @@ function drawDragon(ctx, t, isMobile) {
   ctx.strokeStyle = '#1a0000'
   ctx.lineWidth = 1
   ctx.stroke()
-  // Tail tip with more swing
   ctx.save()
   ctx.translate(150, -20)
   ctx.rotate(tailSwing * 0.8)
@@ -120,7 +115,6 @@ function drawDragon(ctx, t, isMobile) {
   ctx.restore()
 
   // --- Front legs ---
-  // Left leg
   ctx.save()
   ctx.translate(cx - 50, cy + 70)
   ctx.beginPath()
@@ -130,7 +124,6 @@ function drawDragon(ctx, t, isMobile) {
   ctx.lineWidth = 16
   ctx.lineCap = 'round'
   ctx.stroke()
-  // Claws
   for (let i = -1; i <= 1; i++) {
     ctx.beginPath()
     ctx.moveTo(-5 + i * 8, 80)
@@ -141,7 +134,6 @@ function drawDragon(ctx, t, isMobile) {
   }
   ctx.restore()
 
-  // Right leg
   ctx.save()
   ctx.translate(cx + 50, cy + 70)
   ctx.beginPath()
@@ -184,7 +176,6 @@ function drawDragon(ctx, t, isMobile) {
   ctx.translate(cx, cy - 150)
   ctx.rotate(headTurn)
 
-  // Head shape
   ctx.beginPath()
   ctx.ellipse(0, 0, 42, 38, 0, 0, Math.PI * 2)
   const headGrad = ctx.createRadialGradient(-10, -10, 5, 0, 0, 45)
@@ -197,14 +188,12 @@ function drawDragon(ctx, t, isMobile) {
   ctx.lineWidth = 1.5
   ctx.stroke()
 
-  // Snout
   ctx.beginPath()
   ctx.ellipse(2, 18, 22, 14, 0, 0, Math.PI * 2)
   ctx.fillStyle = '#bb0000'
   ctx.fill()
   ctx.stroke()
 
-  // Mouth line
   ctx.beginPath()
   ctx.moveTo(-18, 20)
   ctx.quadraticCurveTo(2, 26, 22, 20)
@@ -212,15 +201,8 @@ function drawDragon(ctx, t, isMobile) {
   ctx.lineWidth = 1.2
   ctx.stroke()
 
-  // Nostril
-  ctx.beginPath()
-  ctx.ellipse(-5, 14, 3, 2, -0.3, 0, Math.PI * 2)
-  ctx.fillStyle = '#1a0000'
-  ctx.fill()
-  ctx.beginPath()
-  ctx.ellipse(10, 14, 3, 2, 0.3, 0, Math.PI * 2)
-  ctx.fillStyle = '#1a0000'
-  ctx.fill()
+  ctx.beginPath(); ctx.ellipse(-5, 14, 3, 2, -0.3, 0, Math.PI * 2); ctx.fillStyle = '#1a0000'; ctx.fill()
+  ctx.beginPath(); ctx.ellipse(10, 14, 3, 2, 0.3, 0, Math.PI * 2); ctx.fillStyle = '#1a0000'; ctx.fill()
 
   // Left horn
   ctx.beginPath()
@@ -230,11 +212,7 @@ function drawDragon(ctx, t, isMobile) {
   ctx.lineWidth = 7
   ctx.lineCap = 'round'
   ctx.stroke()
-  // Gold tip left horn
-  ctx.beginPath()
-  ctx.arc(-30, -75, 3, 0, Math.PI * 2)
-  ctx.fillStyle = '#d4af37'
-  ctx.fill()
+  ctx.beginPath(); ctx.arc(-30, -75, 3, 0, Math.PI * 2); ctx.fillStyle = '#d4af37'; ctx.fill()
 
   // Right horn
   ctx.beginPath()
@@ -244,55 +222,24 @@ function drawDragon(ctx, t, isMobile) {
   ctx.lineWidth = 7
   ctx.lineCap = 'round'
   ctx.stroke()
-  // Gold tip right horn
-  ctx.beginPath()
-  ctx.arc(30, -75, 3, 0, Math.PI * 2)
-  ctx.fillStyle = '#d4af37'
-  ctx.fill()
+  ctx.beginPath(); ctx.arc(30, -75, 3, 0, Math.PI * 2); ctx.fillStyle = '#d4af37'; ctx.fill()
 
-  // Eyes glow
+  // Eye glow
   ctx.save()
   ctx.globalAlpha = eyeGlow * 0.5
-  ctx.beginPath()
-  ctx.arc(-16, -5, 10, 0, Math.PI * 2)
-  ctx.fillStyle = '#ffd700'
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(16, -5, 10, 0, Math.PI * 2)
-  ctx.fillStyle = '#ffd700'
-  ctx.fill()
+  ctx.beginPath(); ctx.arc(-16, -5, 10, 0, Math.PI * 2); ctx.fillStyle = '#ffd700'; ctx.fill()
+  ctx.beginPath(); ctx.arc(16, -5, 10, 0, Math.PI * 2); ctx.fillStyle = '#ffd700'; ctx.fill()
   ctx.restore()
 
-  // Eye pupils
-  ctx.beginPath()
-  ctx.arc(-16, -5, 6, 0, Math.PI * 2)
-  ctx.fillStyle = '#d4af37'
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(-16, -5, 3, 0, Math.PI * 2)
-  ctx.fillStyle = '#5a3a00'
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(16, -5, 6, 0, Math.PI * 2)
-  ctx.fillStyle = '#d4af37'
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(16, -5, 3, 0, Math.PI * 2)
-  ctx.fillStyle = '#5a3a00'
-  ctx.fill()
-  // Eye highlight
-  ctx.beginPath()
-  ctx.arc(-14, -7, 1.5, 0, Math.PI * 2)
-  ctx.fillStyle = 'rgba(255,255,220,0.8)'
-  ctx.fill()
-  ctx.beginPath()
-  ctx.arc(18, -7, 1.5, 0, Math.PI * 2)
-  ctx.fillStyle = 'rgba(255,255,220,0.8)'
-  ctx.fill()
+  // Eyes
+  ctx.beginPath(); ctx.arc(-16, -5, 6, 0, Math.PI * 2); ctx.fillStyle = '#d4af37'; ctx.fill()
+  ctx.beginPath(); ctx.arc(-16, -5, 3, 0, Math.PI * 2); ctx.fillStyle = '#5a3a00'; ctx.fill()
+  ctx.beginPath(); ctx.arc(16, -5, 6, 0, Math.PI * 2); ctx.fillStyle = '#d4af37'; ctx.fill()
+  ctx.beginPath(); ctx.arc(16, -5, 3, 0, Math.PI * 2); ctx.fillStyle = '#5a3a00'; ctx.fill()
+  ctx.beginPath(); ctx.arc(-14, -7, 1.5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,220,0.8)'; ctx.fill()
+  ctx.beginPath(); ctx.arc(18, -7, 1.5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,220,0.8)'; ctx.fill()
 
   ctx.restore() // end head
-
-  ctx.restore() // end scale
 }
 
 export default function DragonScene() {
@@ -304,9 +251,18 @@ export default function DragonScene() {
     if (!canvas) return
 
     const isMobile = window.innerWidth < 768
-    const size = Math.min(window.innerHeight * (isMobile ? 0.25 : 0.4), 500)
-    canvas.width = size * 0.9
-    canvas.height = size
+    // Canvas sized to contain the full dragon drawing
+    const dragonH = DRAGON_BOTTOM - DRAGON_TOP   // 397
+    const dragonW = DRAGON_RIGHT - DRAGON_LEFT    // 340
+
+    const maxH = isMobile
+      ? Math.min(window.innerHeight * 0.45, 380)
+      : Math.min(window.innerHeight * 0.55, 500)
+
+    const fitScale = Math.min(maxH / dragonH, (maxH * dragonW / dragonH) / dragonW)
+
+    canvas.height = Math.round(dragonH * fitScale)
+    canvas.width = Math.round(dragonW * fitScale)
 
     const ctx = canvas.getContext('2d')
     const start = performance.now()
@@ -315,10 +271,11 @@ export default function DragonScene() {
       const t = (now - start) / 1000
       ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-      // Translate so dragon sits at bottom-right of canvas
+      // Scale + translate so (DRAGON_LEFT, DRAGON_TOP) maps to (0, 0)
       ctx.save()
-      ctx.translate(canvas.width * 0.5 - 220, canvas.height - 400)
-      drawDragon(ctx, t, isMobile)
+      ctx.scale(fitScale, fitScale)
+      ctx.translate(-DRAGON_LEFT, -DRAGON_TOP)
+      drawDragon(ctx, t)
       ctx.restore()
 
       rafRef.current = requestAnimationFrame(animate)

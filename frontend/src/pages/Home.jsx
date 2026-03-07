@@ -40,7 +40,7 @@ export default function Home() {
       {/* Hero */}
       <section className="relative z-10 flex flex-col items-center justify-center min-h-[85vh] px-4 text-center">
         {/* Blazon watermark behind content */}
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.15, zIndex: 0, pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', opacity: 0.22, zIndex: 0, pointerEvents: 'none' }}>
           <DragonBlazon size="large" />
         </div>
         {/* Logo */}
