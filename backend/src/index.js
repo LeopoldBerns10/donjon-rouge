@@ -106,14 +106,18 @@ async function initAdminAccount() {
     }
     const password_hash = await bcrypt.hash(password, 10)
     await supabase.from('admin_account').insert({ email, password_hash })
-    console.log('✅ Compte admin créé')
+    console.log(`✅ Compte admin créé : ${email}`)
+  } else {
+    console.log('✅ Compte admin déjà configuré')
   }
 }
 
 const PORT = process.env.PORT || 3000
 httpServer.listen(PORT, async () => {
   console.log(`Donjon Rouge backend en écoute sur le port ${PORT}`)
+  console.log('🚀 Initialisation : compte admin + sync membres CoC...')
   await initAdminAccount()
   await syncMembers()
+  console.log('✅ Initialisation terminée')
   setInterval(syncMembers, 10 * 60 * 1000)
 })

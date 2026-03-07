@@ -8,6 +8,8 @@ export async function syncMembers() {
   try {
     const data = await getClanMembers(CLAN_TAG)
     const members = data.items || []
+    let created = 0
+    let updated = 0
 
     for (const member of members) {
       const { tag, name, role } = member
@@ -27,15 +29,17 @@ export async function syncMembers() {
           password_hash,
           is_first_login: true,
         })
+        created++
       } else {
         await supabase
           .from('users')
           .update({ coc_name: name, coc_role: role, updated_at: new Date().toISOString() })
           .eq('coc_tag', tag)
+        updated++
       }
     }
 
-    console.log(`✅ Sync membres CoC : ${members.length} membres synchronisés`)
+    console.log(`✅ Sync membres CoC : ${members.length} membres (${created} créés, ${updated} mis à jour)`)
   } catch (err) {
     console.error('❌ Erreur syncMembers:', err.message)
   }
