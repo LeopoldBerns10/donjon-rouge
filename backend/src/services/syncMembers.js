@@ -30,7 +30,7 @@ export async function syncMembers() {
           is_first_login: true,
         })
         if (insertErr) {
-          console.log(`❌ Insert échoué pour ${name} (${tag}): ${insertErr.message}`)
+          console.log(`❌ Insert échoué pour ${name} (${tag}):`, JSON.stringify(insertErr))
         } else {
           created++
         }
