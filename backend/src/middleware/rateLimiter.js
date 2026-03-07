@@ -5,6 +5,7 @@ export const apiLimiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { error: 'Trop de requêtes, réessayez dans 15 minutes.' }
 })
 
@@ -13,5 +14,6 @@ export const authLimiter = rateLimit({
   max: 20,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
   message: { error: 'Trop de tentatives de connexion.' }
 })
