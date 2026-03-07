@@ -14,11 +14,9 @@ export async function syncMembers() {
     for (const member of members) {
       const { tag, name, role } = member
 
-      const { data: existing } = await supabase
-        .from('users')
-        .select('id')
-        .eq('coc_tag', tag)
-        .single()
+      console.log('Checking existing for tag:', tag)
+      const { data: existing, error: selectErr } = await supabase.from('users').select('id').eq('coc_tag', tag).single()
+      console.log('Select result:', JSON.stringify({ existing, selectErr: selectErr ? Object.assign({}, selectErr) : null }))
 
       if (!existing) {
         const password_hash = await bcrypt.hash(tag, 10)
