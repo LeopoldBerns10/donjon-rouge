@@ -4,6 +4,26 @@ import { useCocClan, useCocMembers, useCocWar, useCocRaids, useCocCwl } from '..
 import SectionHeader from '../components/SectionHeader.jsx'
 import { translateRole, getRoleBadgeClass, getTownHallImageUrl } from '../utils/cocHelpers.js'
 
+// ─── Constantes ligues & rôles ─────────────────────────────────────────────
+
+const LEAGUE_EMOJIS = {
+  'squelette': '💀', 'barbare': '⚔️', 'archer': '🏹', 'sorcier': '🔮',
+  'valkyrie': '🪓', 'sorcière': '🦇', 'golem': '🪨', 'géant': '🦶',
+  'p.e.k.k.a': '⚙️', 'electro': '⚡', 'legend': '❄️'
+}
+const LEAGUE_ORDER = {
+  'legend': 10, 'electro': 9, 'p.e.k.k.a': 8,
+  'géant': 7, 'golem': 6, 'sorcière': 5,
+  'valkyrie': 4, 'sorcier': 3, 'archer': 2,
+  'barbare': 1, 'squelette': 0
+}
+const ROLE_ORDER = { leader: 0, coLeader: 1, admin: 2, member: 3 }
+
+function getLeagueName(m) { return m.leagueTier?.name || m.league?.name || null }
+function leagueKey(name) { return name ? name.toLowerCase().split(' ')[0] : '' }
+function getLeagueEmoji(name) { return LEAGUE_EMOJIS[leagueKey(name)] || '' }
+function getLeagueOrder(name) { return LEAGUE_ORDER[leagueKey(name)] ?? -1 }
+
 // ─── Composants partagés ───────────────────────────────────────────────────
 
 function StatBadge({ icon, label, value }) {
@@ -16,14 +36,15 @@ function StatBadge({ icon, label, value }) {
   )
 }
 
-function LeagueIcon({ league }) {
-  if (!league) return <span className="text-ash text-xs">Sans ligue</span>
-  const icon = league.iconUrls?.small
-  const name = league.name?.replace(' League', '')
+function LeagueBadge({ member }) {
+  const name = getLeagueName(member)
+  if (!name) return <span className="text-ash text-xs">Sans ligue</span>
+  const emoji = getLeagueEmoji(name)
+  const short = name.replace(/ \d+$/, '').replace(/ League$/i, '')
   return (
-    <div className="flex items-center gap-1">
-      {icon && <img src={icon} alt={name} className="w-5 h-5 object-contain" />}
-      <span className="text-xs text-ash hidden lg:inline">{name}</span>
+    <div className="flex items-center justify-center gap-1">
+      {emoji && <span>{emoji}</span>}
+      <span className="text-xs text-ash hidden lg:inline">{short}</span>
     </div>
   )
 }
@@ -67,63 +88,98 @@ function TableHeader({ cols }) {
 
 // ─── Onglet Membres ────────────────────────────────────────────────────────
 
+const MEMBRE_SORTS = [
+  { key: 'rank',      label: 'Rang' },
+  { key: 'role',      label: 'Rôle' },
+  { key: 'league',    label: 'Ligue' },
+  { key: 'trophies',  label: 'Trophées' },
+  { key: 'donations', label: 'Dons' },
+  { key: 'hdv',       label: 'HDV' },
+]
+
 function MembresTab({ members, loading, error }) {
   const navigate = useNavigate()
+  const [sortBy, setSortBy] = useState('rank')
+
   if (loading) return <Spinner />
   if (error) return <ErrorMsg msg={error} />
 
-  const sorted = [...(members || [])].sort((a, b) => (a.clanRank || 99) - (b.clanRank || 99))
+  const sorted = [...(members || [])].sort((a, b) => {
+    if (sortBy === 'rank')      return (a.clanRank || 99) - (b.clanRank || 99)
+    if (sortBy === 'role')      return (ROLE_ORDER[a.role] ?? 9) - (ROLE_ORDER[b.role] ?? 9)
+    if (sortBy === 'league')    return getLeagueOrder(getLeagueName(b)) - getLeagueOrder(getLeagueName(a))
+    if (sortBy === 'trophies')  return (b.trophies || 0) - (a.trophies || 0)
+    if (sortBy === 'donations') return (b.donations || 0) - (a.donations || 0)
+    if (sortBy === 'hdv')       return (b.townHallLevel || 0) - (a.townHallLevel || 0)
+    return 0
+  })
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-fog/30">
-      <table className="w-full text-sm">
-        <TableHeader cols={[
-          { label: '#', center: true },
-          { label: 'Joueur', center: false },
-          { label: 'Rôle', center: true },
-          { label: 'Ligue', center: true },
-          { label: 'HDV', center: true },
-          { label: '🏆', center: true },
-          { label: 'Dons', center: true, hidden: 'hidden md:table-cell' },
-          { label: 'Exp', center: true, hidden: 'hidden lg:table-cell' },
-        ]} />
-        <tbody>
-          {sorted.map((m, i) => (
-            <tr key={m.tag}
-              onClick={() => navigate(`/tracker/${encodeURIComponent(m.tag)}`)}
-              className="cursor-pointer transition-colors border-b border-fog/20 group"
-              style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(196,30,58,0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? '#0d0d0d' : '#111'}
-            >
-              <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{m.clanRank || i + 1}</td>
-              <td className="py-2.5 px-3">
-                <div className="flex items-center gap-2">
-                  <THImage level={m.townHallLevel} size={28} />
-                  <div>
-                    <div className="font-semibold text-bone group-hover:text-gold-light transition-colors text-sm">{m.name}</div>
-                    <div className="text-xs text-ash/60">{m.tag}</div>
+    <div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {MEMBRE_SORTS.map(s => (
+          <button
+            key={s.key}
+            onClick={() => setSortBy(s.key)}
+            className={`px-3 py-1 text-xs font-cinzel uppercase tracking-wider rounded border transition-all ${
+              sortBy === s.key ? 'text-bone border-crimson' : 'text-ash border-fog/40 hover:text-bone'
+            }`}
+            style={sortBy === s.key ? { background: 'linear-gradient(135deg, #6B0000, #C41E3A)' } : {}}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-fog/30">
+        <table className="w-full text-sm">
+          <TableHeader cols={[
+            { label: '#', center: true },
+            { label: 'Joueur', center: false },
+            { label: 'Rôle', center: true },
+            { label: 'Ligue', center: true },
+            { label: 'HDV', center: true },
+            { label: '🏆', center: true },
+            { label: 'Dons', center: true, hidden: 'hidden md:table-cell' },
+            { label: 'Exp', center: true, hidden: 'hidden lg:table-cell' },
+          ]} />
+          <tbody>
+            {sorted.map((m, i) => (
+              <tr key={m.tag}
+                onClick={() => navigate(`/tracker/${encodeURIComponent(m.tag)}`)}
+                className="cursor-pointer transition-colors border-b border-fog/20 group"
+                style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(196,30,58,0.1)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? '#0d0d0d' : '#111'}
+              >
+                <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{m.clanRank || i + 1}</td>
+                <td className="py-2.5 px-3">
+                  <div className="flex items-center gap-2">
+                    <THImage level={m.townHallLevel} size={28} />
+                    <div>
+                      <div className="font-semibold text-bone group-hover:text-gold-light transition-colors text-sm">{m.name}</div>
+                      <div className="text-xs text-ash/60">{m.tag}</div>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="py-2.5 px-3 text-center">
-                <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
-                  {translateRole(m.role)}
-                </span>
-              </td>
-              <td className="py-2.5 px-3 text-center"><LeagueIcon league={m.league} /></td>
-              <td className="py-2.5 px-3 text-center">
-                <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
-                  {m.townHallLevel}
-                </span>
-              </td>
-              <td className="py-2.5 px-3 text-center font-cinzel text-gold-light text-xs">{m.trophies?.toLocaleString()}</td>
-              <td className="py-2.5 px-3 text-center text-ash text-xs hidden md:table-cell">{m.donations?.toLocaleString()}</td>
-              <td className="py-2.5 px-3 text-center text-ash text-xs hidden lg:table-cell">{m.expLevel}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </td>
+                <td className="py-2.5 px-3 text-center">
+                  <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
+                    {translateRole(m.role)}
+                  </span>
+                </td>
+                <td className="py-2.5 px-3 text-center"><LeagueBadge member={m} /></td>
+                <td className="py-2.5 px-3 text-center">
+                  <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                    {m.townHallLevel}
+                  </span>
+                </td>
+                <td className="py-2.5 px-3 text-center font-cinzel text-gold-light text-xs">{m.trophies?.toLocaleString()}</td>
+                <td className="py-2.5 px-3 text-center text-ash text-xs hidden md:table-cell">{m.donations?.toLocaleString()}</td>
+                <td className="py-2.5 px-3 text-center text-ash text-xs hidden lg:table-cell">{m.expLevel}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -460,21 +516,7 @@ function LiguesTab({ members, loading, error }) {
                   {m.townHallLevel}
                 </span>
               </td>
-              <td className="py-2.5 px-3 text-center">
-                {m.league
-                  ? (
-                    <div className="flex items-center justify-center gap-1">
-                      {m.league.iconUrls?.small && (
-                        <img src={m.league.iconUrls.small} alt={m.league.name} className="w-5 h-5 object-contain" />
-                      )}
-                      <span className="text-xs text-ash hidden lg:inline">
-                        {m.league.name?.replace(' League', '')}
-                      </span>
-                    </div>
-                  )
-                  : <span className="text-ash text-xs">Sans ligue</span>
-                }
-              </td>
+              <td className="py-2.5 px-3 text-center"><LeagueBadge member={m} /></td>
               <td className="py-2.5 px-3 text-center font-cinzel font-bold text-gold-light">
                 {m.trophies?.toLocaleString()}
               </td>
