@@ -226,6 +226,7 @@ function ChatTab({ user }) {
   async function handleDelete(id) {
     try {
       await api.delete(`/api/chat/messages/${id}`)
+      setMessages((prev) => prev.filter((m) => m.id !== id))
     } catch (err) {
       console.error('Suppression échouée', err)
     }
@@ -241,6 +242,7 @@ function ChatTab({ user }) {
     if (!editContent.trim()) return
     try {
       await api.patch(`/api/chat/messages/${id}`, { content: editContent.trim() })
+      setMessages((prev) => prev.map((m) => m.id === id ? { ...m, content: editContent.trim() } : m))
       setEditingId(null)
     } catch (err) {
       console.error('Modification échouée', err)
