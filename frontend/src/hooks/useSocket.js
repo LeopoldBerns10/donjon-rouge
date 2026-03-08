@@ -19,7 +19,15 @@ export function useSocket(channel, user) {
     })
 
     socket.on('new_message', (msg) => {
-      setMessages((prev) => [...prev, msg])
+      setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg])
+    })
+
+    socket.on('message_deleted', ({ id }) => {
+      setMessages((prev) => prev.filter((m) => m.id !== id))
+    })
+
+    socket.on('message_edited', ({ id, content }) => {
+      setMessages((prev) => prev.map((m) => m.id === id ? { ...m, content } : m))
     })
 
     socket.on('connected_count', (count) => {

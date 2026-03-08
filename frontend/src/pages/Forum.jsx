@@ -191,16 +191,20 @@ function ForumTab({ user }) {
 }
 
 function ChatTab({ user }) {
+  const { isChief, isAdmin } = useAuth()
   const { messages, connected, sendMessage, setMessages } = useSocket('général', user)
   const [input, setInput] = useState('')
+  const [editingId, setEditingId] = useState(null)
+  const [editContent, setEditContent] = useState('')
   const bottomRef = useRef(null)
 
   useEffect(() => {
     api.get('/api/chat/messages/général').then((r) => {
       const hist = r.data.map((m) => ({
         id: m.id,
-        author: m.author?.username || 'Inconnu',
-        role: m.author?.role || 'Membre',
+        authorId: m.author_id,
+        author: m.author?.coc_name || 'Inconnu',
+        role: m.author?.coc_role || 'Membre',
         content: m.content,
         time: m.created_at
       }))
@@ -219,6 +223,38 @@ function ChatTab({ user }) {
     setInput('')
   }
 
+  async function handleDelete(id) {
+    try {
+      await api.delete(`/api/chat/messages/${id}`)
+    } catch (err) {
+      console.error('Suppression échouée', err)
+    }
+  }
+
+  function startEdit(msg) {
+    setEditingId(msg.id)
+    setEditContent(msg.content)
+  }
+
+  async function handleEdit(e, id) {
+    e.preventDefault()
+    if (!editContent.trim()) return
+    try {
+      await api.patch(`/api/chat/messages/${id}`, { content: editContent.trim() })
+      setEditingId(null)
+    } catch (err) {
+      console.error('Modification échouée', err)
+    }
+  }
+
+  function canDelete(msg) {
+    return user && (msg.authorId === user.id || isChief || isAdmin)
+  }
+
+  function canEdit(msg) {
+    return user && msg.authorId === user.id
+  }
+
   return (
     <div className="flex flex-col h-[60vh]">
       <div className="flex items-center justify-between mb-3">
@@ -228,17 +264,47 @@ function ChatTab({ user }) {
 
       <div className="flex-1 overflow-y-auto flex flex-col gap-2 bg-stone rounded p-3 border border-fog">
         {messages.map((msg, i) => (
-          <div key={msg.id || i} className="flex items-start gap-2">
+          <div key={msg.id || i} className="flex items-start gap-2 group">
             <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
               style={{ background: '#333', color: ROLE_COLORS[msg.role] || '#777' }}>
               {msg.author?.slice(0, 1).toUpperCase()}
             </div>
-            <div>
-              <span className="text-xs font-bold mr-2" style={{ color: ROLE_COLORS[msg.role] || '#777' }}>
-                {msg.author}
-              </span>
-              <span className="text-xs text-ash">{new Date(msg.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-              <p className="text-bone text-sm mt-0.5">{msg.content}</p>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold" style={{ color: ROLE_COLORS[msg.role] || '#777' }}>
+                  {msg.author}
+                </span>
+                <span className="text-xs text-ash">{new Date(msg.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+                <div className="ml-auto hidden group-hover:flex items-center gap-1">
+                  {canEdit(msg) && (
+                    <button onClick={() => startEdit(msg)}
+                      className="text-ash hover:text-bone text-xs px-1.5 py-0.5 rounded hover:bg-fog/20 transition-colors"
+                      title="Modifier">✎</button>
+                  )}
+                  {canDelete(msg) && (
+                    <button onClick={() => handleDelete(msg.id)}
+                      className="text-ash hover:text-crimson text-xs px-1.5 py-0.5 rounded hover:bg-fog/20 transition-colors"
+                      title="Supprimer">✕</button>
+                  )}
+                </div>
+              </div>
+
+              {editingId === msg.id ? (
+                <form onSubmit={(e) => handleEdit(e, msg.id)} className="flex gap-1 mt-1">
+                  <input
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="flex-1 bg-stone border border-crimson rounded px-2 py-0.5 text-bone text-sm focus:outline-none"
+                    autoFocus
+                  />
+                  <button type="submit" className="text-xs px-2 py-0.5 font-cinzel text-bone rounded"
+                    style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)' }}>OK</button>
+                  <button type="button" onClick={() => setEditingId(null)}
+                    className="text-xs px-2 py-0.5 text-ash border border-fog rounded hover:text-bone">✕</button>
+                </form>
+              ) : (
+                <p className="text-bone text-sm mt-0.5 break-words">{msg.content}</p>
+              )}
             </div>
           </div>
         ))}

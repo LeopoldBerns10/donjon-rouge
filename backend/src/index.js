@@ -12,7 +12,7 @@ import authRoutes from './routes/auth.js'
 import playersRoutes from './routes/players.js'
 import cocRoutes from './routes/coc.js'
 import forumRoutes from './routes/forum.js'
-import chatRoutes from './routes/chat.js'
+import chatRouter from './routes/chat.js'
 import announcementsRoutes from './routes/announcements.js'
 
 const app = express()
@@ -38,7 +38,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/players', playersRoutes)
 app.use('/api/coc', cocRoutes)
 app.use('/api/forum', forumRoutes)
-app.use('/api/chat', chatRoutes)
+app.use('/api/chat', chatRouter(io))
 app.use('/api/announcements', announcementsRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
@@ -70,19 +70,20 @@ io.on('connection', (socket) => {
 
     if (!userData) return
 
+    const { data: saved } = await supabase
+      .from('chat_messages')
+      .insert({ author_id: user.id, channel, content })
+      .select('id')
+      .single()
+
     const message = {
-      id: Date.now(),
+      id: saved?.id || Date.now(),
+      authorId: user.id,
       author: userData.coc_name,
       role: userData.coc_role,
       content,
       time: new Date().toISOString()
     }
-
-    try {
-      await supabase
-        .from('chat_messages')
-        .insert({ author_id: user.id, channel, content })
-    } catch {}
 
     io.to(channel).emit('new_message', message)
   })
