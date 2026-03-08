@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useCocClan, useCocMembers } from '../hooks/useCocApi.js'
+import { useCocClan, useCocMembers, useCocWar, useCocRaids, useCocCwl } from '../hooks/useCocApi.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { translateRole, getRoleBadgeClass, getTownHallImageUrl } from '../utils/cocHelpers.js'
+
+// ─── Composants partagés ───────────────────────────────────────────────────
 
 function StatBadge({ icon, label, value }) {
   return (
@@ -14,7 +17,7 @@ function StatBadge({ icon, label, value }) {
 }
 
 function LeagueIcon({ league }) {
-  if (!league) return <span className="text-ash text-xs">—</span>
+  if (!league) return <span className="text-ash text-xs">Sans ligue</span>
   const icon = league.iconUrls?.small
   const name = league.name?.replace(' League', '')
   return (
@@ -39,12 +42,467 @@ function THImage({ level, size = 32 }) {
   )
 }
 
+function Spinner() {
+  return <p className="text-center text-ash font-cinzel animate-pulse py-10">Chargement...</p>
+}
+
+function ErrorMsg({ msg }) {
+  return <p className="text-center text-crimson font-cinzel text-sm py-10">Erreur : {msg}</p>
+}
+
+function TableHeader({ cols }) {
+  return (
+    <thead>
+      <tr className="font-cinzel uppercase text-xs tracking-widest text-gold border-b border-fog/40"
+        style={{ background: '#1a1a1a' }}>
+        {cols.map((c, i) => (
+          <th key={i} className={`py-3 px-3 ${c.center !== false ? 'text-center' : 'text-left'} ${c.hidden || ''}`}>
+            {c.label}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  )
+}
+
+// ─── Onglet Membres ────────────────────────────────────────────────────────
+
+function MembresTab({ members, loading, error }) {
+  const navigate = useNavigate()
+  if (loading) return <Spinner />
+  if (error) return <ErrorMsg msg={error} />
+
+  const sorted = [...(members || [])].sort((a, b) => (a.clanRank || 99) - (b.clanRank || 99))
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-fog/30">
+      <table className="w-full text-sm">
+        <TableHeader cols={[
+          { label: '#', center: true },
+          { label: 'Joueur', center: false },
+          { label: 'Rôle', center: true },
+          { label: 'Ligue', center: true },
+          { label: 'HDV', center: true },
+          { label: '🏆', center: true },
+          { label: 'Dons', center: true, hidden: 'hidden md:table-cell' },
+          { label: 'Exp', center: true, hidden: 'hidden lg:table-cell' },
+        ]} />
+        <tbody>
+          {sorted.map((m, i) => (
+            <tr key={m.tag}
+              onClick={() => navigate(`/tracker/${encodeURIComponent(m.tag)}`)}
+              className="cursor-pointer transition-colors border-b border-fog/20 group"
+              style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(196,30,58,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? '#0d0d0d' : '#111'}
+            >
+              <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{m.clanRank || i + 1}</td>
+              <td className="py-2.5 px-3">
+                <div className="flex items-center gap-2">
+                  <THImage level={m.townHallLevel} size={28} />
+                  <div>
+                    <div className="font-semibold text-bone group-hover:text-gold-light transition-colors text-sm">{m.name}</div>
+                    <div className="text-xs text-ash/60">{m.tag}</div>
+                  </div>
+                </div>
+              </td>
+              <td className="py-2.5 px-3 text-center">
+                <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
+                  {translateRole(m.role)}
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-center"><LeagueIcon league={m.league} /></td>
+              <td className="py-2.5 px-3 text-center">
+                <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                  {m.townHallLevel}
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-center font-cinzel text-gold-light text-xs">{m.trophies?.toLocaleString()}</td>
+              <td className="py-2.5 px-3 text-center text-ash text-xs hidden md:table-cell">{m.donations?.toLocaleString()}</td>
+              <td className="py-2.5 px-3 text-center text-ash text-xs hidden lg:table-cell">{m.expLevel}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Onglet Attaques ───────────────────────────────────────────────────────
+
+function AttaquesTab({ members, loading, error }) {
+  if (loading) return <Spinner />
+  if (error) return <ErrorMsg msg={error} />
+
+  const sorted = [...(members || [])].sort((a, b) => (b.attackWins || 0) - (a.attackWins || 0))
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-fog/30">
+      <table className="w-full text-sm">
+        <TableHeader cols={[
+          { label: 'Rang', center: true },
+          { label: 'Pseudo', center: false },
+          { label: 'HDV', center: true },
+          { label: 'Att. gagnées', center: true },
+          { label: 'Déf. gagnées', center: true },
+          { label: 'Dons envoyés', center: true, hidden: 'hidden md:table-cell' },
+          { label: 'Dons reçus', center: true, hidden: 'hidden md:table-cell' },
+        ]} />
+        <tbody>
+          {sorted.map((m, i) => (
+            <tr key={m.tag} className="border-b border-fog/20"
+              style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+              <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
+              <td className="py-2.5 px-3">
+                <div className="flex items-center gap-2">
+                  <THImage level={m.townHallLevel} size={24} />
+                  <div>
+                    <div className="font-semibold text-bone text-sm">{m.name}</div>
+                    <span className={`text-xs font-cinzel font-bold uppercase px-1.5 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
+                      {translateRole(m.role)}
+                    </span>
+                  </div>
+                </div>
+              </td>
+              <td className="py-2.5 px-3 text-center">
+                <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                  {m.townHallLevel}
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-center font-bold text-gold-light">{m.attackWins ?? 0}</td>
+              <td className="py-2.5 px-3 text-center text-ash">{m.defenseWins ?? 0}</td>
+              <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donations?.toLocaleString() ?? 0}</td>
+              <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donationsReceived?.toLocaleString() ?? 0}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Onglet Guerre de Clan ────────────────────────────────────────────────
+
+const WAR_STATE_LABELS = {
+  notInWar:    { label: 'Pas de guerre en cours', color: 'text-ash' },
+  preparation: { label: 'Préparation en cours', color: 'text-amber-400' },
+  inWar:       { label: 'Guerre en cours', color: 'text-green-400' },
+  warEnded:    { label: 'Guerre terminée', color: 'text-crimson' },
+}
+
+function GuerreTab({ loading, error }) {
+  const { data: war, loading: warLoading, error: warError } = useCocWar()
+
+  if (loading || warLoading) return <Spinner />
+  if (error || warError) return <ErrorMsg msg={error || warError} />
+
+  const state = war?.state || 'notInWar'
+  const stateInfo = WAR_STATE_LABELS[state] || { label: state, color: 'text-ash' }
+
+  return (
+    <div>
+      <div className="card-stone p-4 mb-6 flex items-center gap-3">
+        <span className={`font-cinzel uppercase text-sm font-bold ${stateInfo.color}`}>⚔️ {stateInfo.label}</span>
+      </div>
+
+      {(state === 'inWar' || state === 'warEnded' || state === 'preparation') && war?.clan && (
+        <>
+          <div className="card-stone p-5 mb-6">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex flex-col items-center gap-1">
+                {war.clan.badgeUrls?.small && <img src={war.clan.badgeUrls.small} className="w-12 h-12 object-contain" alt="" />}
+                <span className="font-cinzel text-bone font-bold text-sm">{war.clan.name}</span>
+                <span className="font-cinzel text-gold text-2xl font-bold">⭐ {war.clan.stars ?? 0}</span>
+                <span className="text-ash text-xs">{war.clan.destructionPercentage?.toFixed(1)}%</span>
+              </div>
+              <div className="flex flex-col items-center">
+                <span className="font-cinzel text-gold uppercase text-xs tracking-widest mb-1">VS</span>
+                <span className="text-ash text-xs font-cinzel">{war.teamSize}v{war.teamSize}</span>
+                {state === 'inWar' && war.endTime && (
+                  <span className="text-xs text-ash mt-1">
+                    Fin : {new Date(
+                      war.endTime.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')
+                    ).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-col items-center gap-1">
+                {war.opponent?.badgeUrls?.small && <img src={war.opponent.badgeUrls.small} className="w-12 h-12 object-contain" alt="" />}
+                <span className="font-cinzel text-bone font-bold text-sm">{war.opponent?.name}</span>
+                <span className="font-cinzel text-ash text-2xl font-bold">⭐ {war.opponent?.stars ?? 0}</span>
+                <span className="text-ash text-xs">{war.opponent?.destructionPercentage?.toFixed(1)}%</span>
+              </div>
+            </div>
+          </div>
+
+          {war.clan.members && (
+            <div className="overflow-x-auto rounded-lg border border-fog/30">
+              <table className="w-full text-sm">
+                <TableHeader cols={[
+                  { label: '#', center: true },
+                  { label: 'Joueur', center: false },
+                  { label: 'HDV', center: true },
+                  { label: 'Attaques', center: true },
+                  { label: '⭐ Étoiles', center: true },
+                  { label: '% Destruct.', center: true, hidden: 'hidden md:table-cell' },
+                ]} />
+                <tbody>
+                  {[...(war.clan.members || [])]
+                    .sort((a, b) => {
+                      const starsA = a.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
+                      const starsB = b.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
+                      return starsB - starsA
+                    })
+                    .map((m, i) => {
+                      const totalStars = m.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
+                      const maxDestruct = m.attacks?.length
+                        ? Math.max(...m.attacks.map((x) => x.destructionPercentage))
+                        : 0
+                      const attacksUsed = m.attacks?.length ?? 0
+
+                      return (
+                        <tr key={m.tag} className="border-b border-fog/20"
+                          style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                          <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{m.mapPosition}</td>
+                          <td className="py-2.5 px-3">
+                            <div className="flex items-center gap-2">
+                              <THImage level={m.townhallLevel} size={24} />
+                              <span className="font-semibold text-bone text-sm">{m.name}</span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                              {m.townhallLevel}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-center text-ash">
+                            {attacksUsed}/{war.attacksPerMember || 2}
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold text-gold-light">{totalStars} ⭐</td>
+                          <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{maxDestruct.toFixed(1)}%</td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── Onglet CWL ───────────────────────────────────────────────────────────
+
+function CwlTab({ loading: parentLoading, error: parentError }) {
+  const { data: cwl, loading, error } = useCocCwl()
+
+  if (parentLoading || loading) return <Spinner />
+  if (parentError || error) return <ErrorMsg msg={parentError || error} />
+
+  if (!cwl || cwl.state === 'notInWar') {
+    return <p className="text-ash font-cinzel text-center py-10">Pas de CWL en cours</p>
+  }
+
+  const roundIdx = (cwl.rounds?.length ?? 1) - 1
+  const currentRound = cwl.rounds?.[roundIdx]
+
+  return (
+    <div>
+      <div className="card-stone p-4 mb-6 flex items-center gap-4 flex-wrap">
+        <span className="font-cinzel text-gold uppercase text-xs tracking-widest">Saison CWL</span>
+        <span className="text-bone font-bold font-cinzel">{cwl.season}</span>
+        <span className="text-ash text-xs font-cinzel ml-auto">Round en cours : {roundIdx + 1}/{cwl.rounds?.length}</span>
+      </div>
+
+      <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">Clans participants</h3>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {(cwl.clans || []).map((c) => (
+          <div key={c.tag} className="card-stone p-3 flex flex-col items-center gap-2">
+            {c.badgeUrls?.small && <img src={c.badgeUrls.small} className="w-10 h-10 object-contain" alt="" />}
+            <span className="font-cinzel text-bone text-xs font-bold text-center">{c.name}</span>
+            <span className="text-ash text-xs">{c.tag}</span>
+          </div>
+        ))}
+      </div>
+
+      {currentRound?.warTags && currentRound.warTags.filter(t => t !== '#0').length > 0 && (
+        <>
+          <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">
+            Round {roundIdx + 1} — Matchups
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {currentRound.warTags.filter(t => t !== '#0').map((tag, i) => (
+              <span key={i} className="text-ash text-xs font-cinzel px-3 py-1 border border-fog/40 rounded">
+                Match {i + 1} : {tag}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ─── Onglet Raids ─────────────────────────────────────────────────────────
+
+function RaidsTab({ loading: parentLoading, error: parentError }) {
+  const { data: raidsData, loading, error } = useCocRaids()
+
+  if (parentLoading || loading) return <Spinner />
+  if (parentError || error) return <ErrorMsg msg={parentError || error} />
+
+  const seasons = (raidsData?.items || []).slice(0, 3)
+
+  if (!seasons.length) {
+    return <p className="text-ash font-cinzel text-center py-10">Aucune saison de raid disponible</p>
+  }
+
+  function fmtDate(str) {
+    if (!str) return '—'
+    return new Date(str).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      {seasons.map((season, si) => (
+        <div key={si}>
+          <div className="card-stone p-4 mb-4 flex flex-wrap gap-4 items-center justify-between">
+            <div className="flex gap-6 flex-wrap">
+              <div>
+                <p className="text-ash text-xs font-cinzel uppercase">Période</p>
+                <p className="text-bone text-sm font-cinzel">{fmtDate(season.startTime)} → {fmtDate(season.endTime)}</p>
+              </div>
+              <div>
+                <p className="text-ash text-xs font-cinzel uppercase">Capital pillé</p>
+                <p className="text-gold font-bold font-cinzel">{season.capitalTotalLoot?.toLocaleString() ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-ash text-xs font-cinzel uppercase">Attaques totales</p>
+                <p className="text-bone font-cinzel">{season.totalAttacks ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-ash text-xs font-cinzel uppercase">Districts détruits</p>
+                <p className="text-bone font-cinzel">{season.enemyDistrictsDestroyed ?? '—'}</p>
+              </div>
+            </div>
+          </div>
+
+          {season.members?.length > 0 && (
+            <div className="overflow-x-auto rounded-lg border border-fog/30">
+              <table className="w-full text-sm">
+                <TableHeader cols={[
+                  { label: '#', center: true },
+                  { label: 'Joueur', center: false },
+                  { label: 'Attaques', center: true },
+                  { label: 'Capital pillé', center: true },
+                  { label: 'Bonus', center: true, hidden: 'hidden md:table-cell' },
+                ]} />
+                <tbody>
+                  {[...(season.members || [])]
+                    .sort((a, b) => (b.capitalResourcesLooted || 0) - (a.capitalResourcesLooted || 0))
+                    .map((m, i) => (
+                      <tr key={m.tag || i} className="border-b border-fog/20"
+                        style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                        <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
+                        <td className="py-2.5 px-3 font-semibold text-bone">{m.name}</td>
+                        <td className="py-2.5 px-3 text-center text-ash">{m.attacks ?? 0}</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-gold-light">
+                          {m.capitalResourcesLooted?.toLocaleString() ?? 0}
+                        </td>
+                        <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">
+                          {m.bonusAttackLimit ?? 0}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Onglet Ligues ────────────────────────────────────────────────────────
+
+function LiguesTab({ members, loading, error }) {
+  if (loading) return <Spinner />
+  if (error) return <ErrorMsg msg={error} />
+
+  const sorted = [...(members || [])].sort((a, b) => (b.trophies || 0) - (a.trophies || 0))
+
+  return (
+    <div className="overflow-x-auto rounded-lg border border-fog/30">
+      <table className="w-full text-sm">
+        <TableHeader cols={[
+          { label: 'Rang', center: true },
+          { label: 'Joueur', center: false },
+          { label: 'HDV', center: true },
+          { label: 'Ligue', center: true },
+          { label: '🏆 Trophées', center: true },
+        ]} />
+        <tbody>
+          {sorted.map((m, i) => (
+            <tr key={m.tag} className="border-b border-fog/20"
+              style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+              <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
+              <td className="py-2.5 px-3">
+                <div className="flex items-center gap-2">
+                  <THImage level={m.townHallLevel} size={24} />
+                  <span className="font-semibold text-bone text-sm">{m.name}</span>
+                </div>
+              </td>
+              <td className="py-2.5 px-3 text-center">
+                <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                  {m.townHallLevel}
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-center">
+                {m.league
+                  ? (
+                    <div className="flex items-center justify-center gap-1">
+                      {m.league.iconUrls?.small && (
+                        <img src={m.league.iconUrls.small} alt={m.league.name} className="w-5 h-5 object-contain" />
+                      )}
+                      <span className="text-xs text-ash hidden lg:inline">
+                        {m.league.name?.replace(' League', '')}
+                      </span>
+                    </div>
+                  )
+                  : <span className="text-ash text-xs">Sans ligue</span>
+                }
+              </td>
+              <td className="py-2.5 px-3 text-center font-cinzel font-bold text-gold-light">
+                {m.trophies?.toLocaleString()}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// ─── Page principale ──────────────────────────────────────────────────────
+
+const TABS = [
+  { key: 'membres',  label: 'Membres' },
+  { key: 'attaques', label: 'Attaques' },
+  { key: 'guerre',   label: 'Guerre' },
+  { key: 'cwl',      label: 'CWL' },
+  { key: 'raids',    label: 'Raids' },
+  { key: 'ligues',   label: 'Ligues' },
+]
+
 export default function Guilde() {
   const { data: clan, loading: clanLoading } = useCocClan()
-  const { data: membersData, loading: membersLoading } = useCocMembers()
-  const navigate = useNavigate()
+  const { data: membersData, loading: membersLoading, error: membersError } = useCocMembers()
+  const [tab, setTab] = useState('membres')
 
-  const members = [...(membersData?.items || [])].sort((a, b) => (a.clanRank || 99) - (b.clanRank || 99))
+  const members = membersData?.items || []
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 animate-fade-up">
@@ -62,7 +520,6 @@ export default function Guilde() {
               <p className="text-ash text-xs text-center max-w-xs">{clan.description}</p>
             )}
           </div>
-
           <div className="flex-1 flex flex-wrap gap-3 justify-center md:justify-start">
             <StatBadge icon="🏰" label="Niveau clan" value={clan.clanLevel} />
             <StatBadge icon="👥" label="Membres" value={`${clan.members}/50`} />
@@ -78,90 +535,32 @@ export default function Guilde() {
           </div>
         </div>
       )}
+      {clanLoading && <p className="text-center text-ash font-cinzel animate-pulse mb-8">Chargement du clan...</p>}
 
-      {clanLoading && (
-        <p className="text-center text-ash font-cinzel animate-pulse mb-8">Chargement du clan...</p>
-      )}
+      {/* Onglets */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {TABS.map((t) => (
+          <button key={t.key} onClick={() => setTab(t.key)}
+            className={`px-4 py-2 font-cinzel uppercase text-xs tracking-wider rounded transition-all ${
+              tab === t.key ? 'text-bone' : 'text-ash border border-fog hover:text-bone'
+            }`}
+            style={tab === t.key ? { background: 'linear-gradient(135deg, #6B0000, #C41E3A)' } : {}}>
+            {t.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Members table */}
-      <h2 className="font-cinzel text-gold-bright uppercase tracking-widest text-sm mb-4 flex items-center gap-3">
-        <span>Membres ({members.length})</span>
+      <h2 className="font-cinzel text-gold-bright uppercase tracking-widest text-xs mb-4 flex items-center gap-3">
+        <span>{TABS.find(t => t.key === tab)?.label} {tab === 'membres' || tab === 'attaques' || tab === 'ligues' ? `(${members.length})` : ''}</span>
         <div className="flex-1 h-px bg-fog/40" />
       </h2>
 
-      {membersLoading && (
-        <p className="text-center text-ash font-cinzel animate-pulse py-10">Chargement des membres...</p>
-      )}
-
-      {!membersLoading && (
-        <div className="overflow-x-auto rounded-lg border border-fog/30">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="font-cinzel uppercase text-xs tracking-widest text-gold border-b border-fog/40"
-                style={{ background: '#1a1a1a' }}>
-                <th className="py-3 px-3 text-center w-10">#</th>
-                <th className="py-3 px-3 text-left">Joueur</th>
-                <th className="py-3 px-3 text-center">Rôle</th>
-                <th className="py-3 px-3 text-center">Ligue</th>
-                <th className="py-3 px-3 text-center">HDV</th>
-                <th className="py-3 px-3 text-center">🏆</th>
-                <th className="py-3 px-3 text-center hidden md:table-cell">Dons</th>
-                <th className="py-3 px-3 text-center hidden lg:table-cell">Exp</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m, i) => (
-                <tr
-                  key={m.tag}
-                  onClick={() => navigate(`/tracker/${encodeURIComponent(m.tag)}`)}
-                  className="cursor-pointer transition-colors border-b border-fog/20 group"
-                  style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(196,30,58,0.1)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = i % 2 === 0 ? '#0d0d0d' : '#111'}
-                >
-                  <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">
-                    {m.clanRank || i + 1}
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <div className="flex items-center gap-2">
-                      <THImage level={m.townHallLevel} size={28} />
-                      <div>
-                        <div className="font-semibold text-bone group-hover:text-gold-light transition-colors text-sm">
-                          {m.name}
-                        </div>
-                        <div className="text-xs text-ash/60">{m.tag}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-2.5 px-3 text-center">
-                    <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
-                      {translateRole(m.role)}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-center">
-                    <LeagueIcon league={m.league} />
-                  </td>
-                  <td className="py-2.5 px-3 text-center">
-                    <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded"
-                      style={{ background: '#C41E3A' }}>
-                      {m.townHallLevel}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-center font-cinzel text-gold-light text-xs">
-                    {m.trophies?.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 px-3 text-center text-ash text-xs hidden md:table-cell">
-                    {m.donations?.toLocaleString()}
-                  </td>
-                  <td className="py-2.5 px-3 text-center text-ash text-xs hidden lg:table-cell">
-                    {m.expLevel}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {tab === 'membres'  && <MembresTab  members={members} loading={membersLoading} error={membersError} />}
+      {tab === 'attaques' && <AttaquesTab members={members} loading={membersLoading} error={membersError} />}
+      {tab === 'guerre'   && <GuerreTab   loading={false} error={null} />}
+      {tab === 'cwl'      && <CwlTab      loading={false} error={null} />}
+      {tab === 'raids'    && <RaidsTab    loading={false} error={null} />}
+      {tab === 'ligues'   && <LiguesTab   members={members} loading={membersLoading} error={membersError} />}
     </div>
   )
 }

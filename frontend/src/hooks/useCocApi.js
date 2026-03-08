@@ -31,6 +31,51 @@ export function useCocMembers() {
   return { data, loading, error }
 }
 
+export function useCocWar() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    api.get('/api/coc/clan/war')
+      .then((res) => setData(res.data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return { data, loading, error }
+}
+
+export function useCocRaids() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    api.get('/api/coc/clan/raids')
+      .then((res) => setData(res.data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return { data, loading, error }
+}
+
+export function useCocCwl() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    api.get('/api/coc/clan/cwl')
+      .then((res) => setData(res.data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return { data, loading, error }
+}
+
 export function useCocPlayer(tag) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)

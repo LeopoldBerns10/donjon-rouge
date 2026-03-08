@@ -5,7 +5,8 @@ import {
   getPlayerInfo,
   getClanWarLog,
   getCurrentWar,
-  getClanRaidSeasons
+  getClanRaidSeasons,
+  getClanLeagueGroup
 } from '../services/cocApiService.js'
 
 const CLAN_TAG = process.env.COC_CLAN_TAG || '#29292QPRC'
@@ -49,6 +50,15 @@ export async function warlog(req, res) {
 export async function raids(req, res) {
   try {
     const data = await getCached(`raids:${CLAN_TAG}`, () => getClanRaidSeasons(CLAN_TAG))
+    res.json(data)
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}
+
+export async function cwl(req, res) {
+  try {
+    const data = await getCached(`cwl:${CLAN_TAG}`, () => getClanLeagueGroup(CLAN_TAG))
     res.json(data)
   } catch (e) {
     res.status(502).json({ error: e.message })

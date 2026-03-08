@@ -39,5 +39,9 @@ export async function getCurrentWar(clanTag) {
 }
 
 export async function getClanRaidSeasons(clanTag) {
-  return cocFetch(`/clans/${encodeURIComponent(clanTag)}/capitalraidseasons`)
+  return cocFetch(`/clans/${encodeURIComponent(clanTag)}/capitalraidseasons?limit=3`)
+}
+
+export async function getClanLeagueGroup(clanTag) {
+  return cocFetch(`/clans/${encodeURIComponent(clanTag)}/currentwar/leaguegroup`)
 }
