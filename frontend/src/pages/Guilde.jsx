@@ -237,6 +237,7 @@ function AttaquesTab({ members, loading, error }) {
           </tbody>
         </table>
       </div>
+    </div>
   )
 }
 
