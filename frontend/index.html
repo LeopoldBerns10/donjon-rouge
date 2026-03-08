@@ -12,6 +12,13 @@
       href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Cinzel+Decorative:wght@400;700;900&display=swap"
       rel="stylesheet"
     />
+    <script>
+      var redirect = sessionStorage.getItem('redirect');
+      if (redirect) {
+        sessionStorage.removeItem('redirect');
+        window.history.replaceState(null, null, redirect);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -2,7 +2,8 @@
 <html>
 <head>
   <script>
-    window.location.href = '/' + window.location.pathname.slice(1) + window.location.search + window.location.hash;
+    sessionStorage.setItem('redirect', window.location.pathname);
+    window.location.href = '/';
   </script>
 </head>
 </html>
