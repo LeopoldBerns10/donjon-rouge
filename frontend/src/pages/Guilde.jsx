@@ -136,6 +136,7 @@ function MembresTab({ members, loading, error }) {
             { label: '#', center: true },
             { label: 'Joueur', center: false },
             { label: 'Rôle', center: true },
+            { label: 'Ligue', center: true },
             { label: 'HDV', center: true },
             { label: '🏆', center: true },
             { label: 'Dons', center: true, hidden: 'hidden md:table-cell' },
@@ -165,6 +166,7 @@ function MembresTab({ members, loading, error }) {
                     {translateRole(m.role)}
                   </span>
                 </td>
+                <td className="py-2.5 px-3 text-center"><LeagueBadge member={m} /></td>
                 <td className="py-2.5 px-3 text-center">
                   <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
                     {m.townHallLevel}
@@ -188,55 +190,49 @@ function AttaquesTab({ members, loading, error }) {
   if (loading) return <Spinner />
   if (error) return <ErrorMsg msg={error} />
 
-  const sorted = [...(members || [])].sort((a, b) => (b.donations || 0) - (a.donations || 0))
+  const sorted = [...(members || [])].sort((a, b) => (b.attackWins || 0) - (a.attackWins || 0))
 
   return (
-    <div>
-      <div className="bg-stone p-3 rounded border border-fog/40 mb-4 text-xs text-ash font-cinzel text-center">
-        ℹ️ Les stats attackWins / defenseWins ne sont pas disponibles via l'endpoint clan/members.<br />
-        Consultez le <span className="text-gold">profil individuel</span> de chaque joueur pour les stats de saison.
-      </div>
-      <div className="overflow-x-auto rounded-lg border border-fog/30">
-        <table className="w-full text-sm">
-          <TableHeader cols={[
-            { label: 'Rang', center: true },
-            { label: 'Joueur', center: false },
-            { label: 'HDV', center: true },
-            { label: '🏆 Trophées', center: true },
-            { label: 'Dons envoyés', center: true },
-            { label: 'Dons reçus', center: true, hidden: 'hidden md:table-cell' },
-            { label: '🏗️ Builder', center: true, hidden: 'hidden lg:table-cell' },
-          ]} />
-          <tbody>
-            {sorted.map((m, i) => (
-              <tr key={m.tag} className="border-b border-fog/20"
-                style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
-                <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
-                <td className="py-2.5 px-3">
-                  <div className="flex items-center gap-2">
-                    <THImage level={m.townHallLevel} size={24} />
-                    <div>
-                      <div className="font-semibold text-bone text-sm">{m.name}</div>
-                      <span className={`text-xs font-cinzel font-bold uppercase px-1.5 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
-                        {translateRole(m.role)}
-                      </span>
-                    </div>
+    <div className="overflow-x-auto rounded-lg border border-fog/30">
+      <table className="w-full text-sm">
+        <TableHeader cols={[
+          { label: 'Rang', center: true },
+          { label: 'Pseudo', center: false },
+          { label: 'HDV', center: true },
+          { label: 'Att. gagnées', center: true },
+          { label: 'Déf. gagnées', center: true },
+          { label: 'Dons envoyés', center: true, hidden: 'hidden md:table-cell' },
+          { label: 'Dons reçus', center: true, hidden: 'hidden md:table-cell' },
+        ]} />
+        <tbody>
+          {sorted.map((m, i) => (
+            <tr key={m.tag} className="border-b border-fog/20"
+              style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+              <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
+              <td className="py-2.5 px-3">
+                <div className="flex items-center gap-2">
+                  <THImage level={m.townHallLevel} size={24} />
+                  <div>
+                    <div className="font-semibold text-bone text-sm">{m.name}</div>
+                    <span className={`text-xs font-cinzel font-bold uppercase px-1.5 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
+                      {translateRole(m.role)}
+                    </span>
                   </div>
-                </td>
-                <td className="py-2.5 px-3 text-center">
-                  <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
-                    {m.townHallLevel}
-                  </span>
-                </td>
-                <td className="py-2.5 px-3 text-center font-cinzel text-gold-light text-xs">{m.trophies?.toLocaleString() ?? '—'}</td>
-                <td className="py-2.5 px-3 text-center font-bold text-gold-light">{m.donations?.toLocaleString() ?? 0}</td>
-                <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donationsReceived?.toLocaleString() ?? 0}</td>
-                <td className="py-2.5 px-3 text-center text-ash hidden lg:table-cell">{m.builderBaseTrophies?.toLocaleString() ?? '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </td>
+              <td className="py-2.5 px-3 text-center">
+                <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                  {m.townHallLevel}
+                </span>
+              </td>
+              <td className="py-2.5 px-3 text-center font-bold text-gold-light">{m.attackWins ?? 0}</td>
+              <td className="py-2.5 px-3 text-center text-ash">{m.defenseWins ?? 0}</td>
+              <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donations?.toLocaleString() ?? 0}</td>
+              <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donationsReceived?.toLocaleString() ?? 0}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

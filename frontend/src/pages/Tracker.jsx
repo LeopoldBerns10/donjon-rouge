@@ -115,10 +115,15 @@ export default function Tracker() {
                 <th className="py-3 px-3 text-center">Trophées</th>
                 <th className="py-3 px-3 text-center">Dons</th>
                 <th className="py-3 px-3 text-center">Rôle</th>
+                <th className="py-3 px-3 text-center">Ligue</th>
               </tr>
             </thead>
             <tbody>
               {members.map((member, i) => {
+                const leagueName = getLeagueName(member)
+                const leagueEmoji = getLeagueEmoji(leagueName)
+                const leagueShort = leagueName ? leagueName.replace(/ \d+$/, '').replace(/ League$/i, '') : null
+
                 return (
                   <tr
                     key={member.tag}
@@ -160,6 +165,16 @@ export default function Tracker() {
                       <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(member.role)}`}>
                         {translateRole(member.role)}
                       </span>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      {leagueName ? (
+                        <div className="flex items-center justify-center gap-1">
+                          {leagueEmoji && <span>{leagueEmoji}</span>}
+                          <span className="text-xs text-ash hidden lg:inline">{leagueShort}</span>
+                        </div>
+                      ) : (
+                        <span className="text-ash text-xs">—</span>
+                      )}
                     </td>
                   </tr>
                 )
