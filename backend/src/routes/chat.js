@@ -11,7 +11,7 @@ export default function chatRouter(io) {
     const { channel } = req.params
     const { data, error } = await supabase
       .from('chat_messages')
-      .select('id, author_id, content, created_at')
+      .select('id, author_id, content, created_at, author:users(id, coc_name, coc_role)')
       .eq('channel', channel)
       .order('created_at', { ascending: false })
       .limit(100)
