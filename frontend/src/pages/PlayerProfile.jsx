@@ -377,12 +377,285 @@ export default function PlayerProfile() {
           </div>
         )}
 
-        {/* Autres onglets — placeholder */}
-        {![0, 1, 9, 10].includes(activeTab) && (
-          <div className="text-center py-12 text-ash font-cinzel">
-            <p className="text-4xl mb-4">⚔️</p>
-            <p className="uppercase tracking-widest text-sm">{TABS[activeTab]}</p>
-            <p className="text-xs mt-2 text-fog">Données disponibles via l'API CoC</p>
+        {/* Onglet 2 — Attaques Guerre */}
+        {activeTab === 2 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Attaques Guerre</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold text-gold-light font-cinzel">{player.warStars || 0}</div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">⭐ Étoiles totales</div>
+              </div>
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold text-green-400 font-cinzel">{player.attackWins || 0}</div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">⚔️ Attaques gagnées</div>
+              </div>
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold font-cinzel" style={{ color: '#C41E3A' }}>{player.defenseWins || 0}</div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">🛡️ Défenses gagnées</div>
+              </div>
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold text-bone font-cinzel">
+                  {player.defenseWins > 0
+                    ? (player.attackWins / player.defenseWins).toFixed(2)
+                    : player.attackWins > 0 ? '∞' : '—'}
+                </div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">📊 Ratio Att/Déf</div>
+              </div>
+            </div>
+            <p className="text-xs text-ash/60 font-cinzel text-center">
+              Les étoiles de guerre sont le total cumulé depuis la création du compte. Attaques et défenses correspondent à la saison en cours.
+            </p>
+          </div>
+        )}
+
+        {/* Onglet 3 — Ligue Légende */}
+        {activeTab === 3 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">❄️ Ligue Légende</h3>
+            {player.legendStatistics ? (
+              <div className="flex flex-col gap-4">
+                {player.legendStatistics.currentSeason && (
+                  <div className="bg-stone p-5 rounded border border-purple-700">
+                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-3">Saison en cours</p>
+                    <div className="flex items-end gap-4 flex-wrap">
+                      <div>
+                        <div className="text-3xl font-bold text-gold-light font-cinzel">
+                          {player.legendStatistics.currentSeason.trophies?.toLocaleString()} 🏆
+                        </div>
+                        {player.legendStatistics.currentSeason.rank && (
+                          <p className="text-ash text-sm mt-1 font-cinzel">
+                            Rang mondial : #{player.legendStatistics.currentSeason.rank.toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {player.legendStatistics.previousSeason && (
+                  <div className="bg-stone p-5 rounded border border-fog">
+                    <p className="text-xs text-ash font-cinzel uppercase mb-3">Saison précédente</p>
+                    <div className="text-3xl font-bold text-bone font-cinzel">
+                      {player.legendStatistics.previousSeason.trophies?.toLocaleString()} 🏆
+                    </div>
+                    {player.legendStatistics.previousSeason.rank && (
+                      <p className="text-ash text-sm mt-1 font-cinzel">
+                        Rang : #{player.legendStatistics.previousSeason.rank.toLocaleString()}
+                      </p>
+                    )}
+                    {player.legendStatistics.previousSeason.id && (
+                      <p className="text-ash/60 text-xs mt-1 font-cinzel">{player.legendStatistics.previousSeason.id}</p>
+                    )}
+                  </div>
+                )}
+                {player.legendStatistics.bestSeason && (
+                  <div className="bg-stone p-5 rounded border border-gold/40">
+                    <p className="text-xs text-gold font-cinzel uppercase mb-3">🏅 Meilleure saison</p>
+                    <div className="text-3xl font-bold text-gold-light font-cinzel">
+                      {player.legendStatistics.bestSeason.trophies?.toLocaleString()} 🏆
+                    </div>
+                    {player.legendStatistics.bestSeason.rank && (
+                      <p className="text-ash text-sm mt-1 font-cinzel">
+                        Rang : #{player.legendStatistics.bestSeason.rank.toLocaleString()}
+                      </p>
+                    )}
+                    {player.legendStatistics.bestSeason.id && (
+                      <p className="text-ash/60 text-xs mt-1 font-cinzel">{player.legendStatistics.bestSeason.id}</p>
+                    )}
+                  </div>
+                )}
+                {player.legendStatistics.legendTrophies !== undefined && (
+                  <div className="bg-stone p-4 rounded border border-fog flex items-center gap-3">
+                    <span className="text-2xl">❄️</span>
+                    <div>
+                      <div className="text-xl font-bold text-gold-light font-cinzel">
+                        {player.legendStatistics.legendTrophies?.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-ash font-cinzel uppercase">Trophées Légende totaux</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-4xl mb-3">❄️</p>
+                <p className="text-ash font-cinzel text-sm">Pas encore en Ligue Légende</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Onglet 4 — Guerres de Clans */}
+        {activeTab === 4 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Guerres de Clans</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold text-gold-light font-cinzel">{player.warStars || 0}</div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">⭐ Étoiles de guerre totales</div>
+              </div>
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className={`text-2xl font-bold font-cinzel ${player.warPreference === 'opted_in' || player.clanWarOptedIn ? 'text-green-400' : 'text-ash'}`}>
+                  {player.warPreference === 'opted_in' || player.clanWarOptedIn ? '✅ Opt-in' : player.warPreference === 'opted_out' ? '❌ Opt-out' : '—'}
+                </div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">Participation guerre</div>
+              </div>
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold text-bone font-cinzel">{player.attackWins || 0}</div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">⚔️ Attaques cette saison</div>
+              </div>
+            </div>
+            <div className="bg-stone p-4 rounded border border-fog/50 text-center">
+              <p className="text-xs text-ash/60 font-cinzel">
+                L'historique détaillé des guerres par attaque est disponible via l'onglet Guerre de la page Guilde.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Onglet 5 — CWL */}
+        {activeTab === 5 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Guerre de Ligue (CWL)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold text-gold-light font-cinzel">{player.warStars || 0}</div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">⭐ Étoiles de guerre totales</div>
+                <p className="text-xs text-ash/50 mt-1 font-cinzel">(toutes guerres confondues)</p>
+              </div>
+              {player.clan?.warLeague && (
+                <div className="bg-stone p-5 rounded border border-fog text-center">
+                  <div className="text-xl font-bold text-bone font-cinzel">{player.clan.warLeague.name || '—'}</div>
+                  <div className="text-xs text-ash font-cinzel uppercase mt-2">🏆 Ligue de guerre du clan</div>
+                </div>
+              )}
+            </div>
+            <div className="bg-stone p-4 rounded border border-fog/50 text-center">
+              <p className="text-xs text-ash/60 font-cinzel">
+                Les détails par round CWL (attaques, étoiles) sont disponibles via l'onglet CWL de la page Guilde.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Onglet 6 — Stats de guerre */}
+        {activeTab === 6 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Stats de Guerre</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+              {[
+                { label: '⭐ Étoiles totales', value: player.warStars || 0, color: 'text-gold-light' },
+                { label: '⚔️ Attaques gagnées', value: player.attackWins || 0, color: 'text-green-400' },
+                { label: '🛡️ Défenses gagnées', value: player.defenseWins || 0, color: 'text-crimson' },
+                { label: '🎯 Ratio Att/Déf', color: 'text-bone',
+                  value: player.defenseWins > 0
+                    ? (player.attackWins / player.defenseWins).toFixed(2)
+                    : player.attackWins > 0 ? '∞' : '—' },
+                { label: '🏅 Meilleurs trophées', value: player.bestTrophies?.toLocaleString() || '—', color: 'text-gold-light' },
+                { label: '🏆 Trophées actuels', value: player.trophies?.toLocaleString() || '—', color: 'text-gold-light' },
+              ].map((s) => (
+                <div key={s.label} className="bg-stone p-4 rounded border border-fog text-center">
+                  <div className={`text-2xl font-bold font-cinzel ${s.color}`}>{s.value}</div>
+                  <div className="text-xs text-ash font-cinzel uppercase mt-2">{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {player.heroEquipment?.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-cinzel uppercase text-ash mb-3 flex items-center gap-2">
+                  Équipement actif
+                  <span className="flex-1 h-px bg-fog/40 ml-1" />
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {player.heroEquipment.filter(e => e.isActive !== false).map((eq) => (
+                    <span key={eq.name} className="text-xs font-cinzel px-2 py-1 rounded border border-gold/30 text-gold-light">
+                      {eq.name} Niv.{eq.level}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Onglet 7 — Raids */}
+        {activeTab === 7 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Raids — Capital des Clans</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              {player.clanCapitalContributions !== undefined && (
+                <div className="bg-stone p-5 rounded border border-fog text-center">
+                  <div className="text-3xl font-bold text-gold-light font-cinzel">
+                    {player.clanCapitalContributions?.toLocaleString() || 0}
+                  </div>
+                  <div className="text-xs text-ash font-cinzel uppercase mt-2">💎 Contributions Capital total</div>
+                </div>
+              )}
+              <div className="bg-stone p-5 rounded border border-fog text-center">
+                <div className="text-3xl font-bold text-bone font-cinzel">
+                  {player.clan?.name || '—'}
+                </div>
+                <div className="text-xs text-ash font-cinzel uppercase mt-2">🏰 Clan actuel</div>
+              </div>
+            </div>
+            <div className="bg-stone p-4 rounded border border-fog/50 text-center">
+              <p className="text-xs text-ash/60 font-cinzel">
+                L'historique détaillé des saisons de raid (capital pillé, attaques par saison) est disponible via l'onglet Raids de la page Guilde.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Onglet 8 — Classements */}
+        {activeTab === 8 && (
+          <div>
+            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Classements</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-stone p-5 rounded border border-fog">
+                <p className="text-xs font-cinzel uppercase text-ash mb-3">🏆 Ligue principale</p>
+                <div className="flex items-center gap-3">
+                  {player.league?.iconUrls?.medium && (
+                    <img src={player.league.iconUrls.medium} alt={player.league.name} className="w-12 h-12 object-contain" />
+                  )}
+                  <div>
+                    <div className="text-lg font-bold text-bone font-cinzel">{player.league?.name || 'Sans ligue'}</div>
+                    <div className="text-xl font-bold text-gold-light font-cinzel">{player.trophies?.toLocaleString()} 🏆</div>
+                    <div className="text-xs text-ash font-cinzel">Record : {player.bestTrophies?.toLocaleString()} 🏆</div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-stone p-5 rounded border border-fog">
+                <p className="text-xs font-cinzel uppercase text-ash mb-3">🔨 Base du Constructeur</p>
+                <div className="flex items-center gap-3">
+                  {player.builderBaseLeague?.iconUrls?.medium && (
+                    <img src={player.builderBaseLeague.iconUrls.medium} alt={player.builderBaseLeague.name} className="w-12 h-12 object-contain" />
+                  )}
+                  <div>
+                    <div className="text-lg font-bold text-bone font-cinzel">{player.builderBaseLeague?.name || 'Sans ligue'}</div>
+                    <div className="text-xl font-bold text-gold-light font-cinzel">{(player.builderBaseTrophies || 0).toLocaleString()} 🏆</div>
+                  </div>
+                </div>
+              </div>
+              {player.legendStatistics?.currentSeason && (
+                <div className="bg-stone p-5 rounded border border-purple-700">
+                  <p className="text-xs font-cinzel uppercase text-purple-400 mb-3">❄️ Ligue Légende — Saison en cours</p>
+                  <div className="text-2xl font-bold text-gold-light font-cinzel">
+                    {player.legendStatistics.currentSeason.trophies?.toLocaleString()} 🏆
+                  </div>
+                  {player.legendStatistics.currentSeason.rank && (
+                    <div className="text-ash font-cinzel mt-1">
+                      Rang mondial : <span className="text-bone font-bold">#{player.legendStatistics.currentSeason.rank.toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="bg-stone p-5 rounded border border-fog">
+                <p className="text-xs font-cinzel uppercase text-ash mb-3">⭐ Guerre</p>
+                <div className="text-2xl font-bold text-gold-light font-cinzel">{player.warStars || 0} ⭐</div>
+                <div className="text-xs text-ash font-cinzel mt-1">Étoiles de guerre totales</div>
+              </div>
+            </div>
           </div>
         )}
       </div>
