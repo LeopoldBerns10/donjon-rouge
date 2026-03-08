@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { useCocPlayer } from '../hooks/useCocApi.js'
+import { useCocPlayer, useCocWar } from '../hooks/useCocApi.js'
 import { LEAGUE_INFO } from '../lib/constants.js'
 import { translateRole, getTroopImageUrl, getTownHallImageUrl } from '../utils/cocHelpers.js'
 import SectionHeader from '../components/SectionHeader.jsx'
@@ -96,6 +96,7 @@ export default function PlayerProfile() {
   const { tag } = useParams()
   const decodedTag = decodeURIComponent(tag)
   const { data: player, loading, error } = useCocPlayer(decodedTag)
+  const { data: warData } = useCocWar()
   const [activeTab, setActiveTab] = useState(0)
 
   if (loading) {
@@ -250,73 +251,79 @@ export default function PlayerProfile() {
           </div>
         )}
 
-        {/* 1 — Guerre (fusion Attaques + Guerres de Clans + Stats) */}
-        {activeTab === 1 && (
-          <div>
-            <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Guerre</h3>
+        {/* 1 — Guerre */}
+        {activeTab === 1 && (() => {
+          const warState = warData?.state
+          const isActive = warState === 'inWar' || warState === 'preparation' || warState === 'warEnded'
+          const playerInWar = warData?.clan?.members?.find(m => m.tag === player.tag)
+          const attacks = playerInWar?.attacks || []
 
-            {/* Stats principales */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-stone p-5 rounded border border-fog text-center">
-                <div className="text-3xl font-bold text-gold-light font-cinzel">{player.warStars || 0}</div>
-                <div className="text-xs text-ash font-cinzel uppercase mt-2">⭐ Étoiles totales</div>
-              </div>
-              <div className="bg-stone p-5 rounded border border-fog text-center">
-                <div className="text-3xl font-bold text-green-400 font-cinzel">{player.attackWins || 0}</div>
-                <div className="text-xs text-ash font-cinzel uppercase mt-2">⚔️ Attaques gagnées</div>
-              </div>
-              <div className="bg-stone p-5 rounded border border-fog text-center">
-                <div className="text-3xl font-bold font-cinzel" style={{ color: '#C41E3A' }}>{player.defenseWins || 0}</div>
-                <div className="text-xs text-ash font-cinzel uppercase mt-2">🛡️ Défenses gagnées</div>
-              </div>
-              <div className="bg-stone p-5 rounded border border-fog text-center">
-                <div className="text-3xl font-bold text-bone font-cinzel">
-                  {player.defenseWins > 0
-                    ? (player.attackWins / player.defenseWins).toFixed(2)
-                    : player.attackWins > 0 ? '∞' : '—'}
-                </div>
-                <div className="text-xs text-ash font-cinzel uppercase mt-2">📊 Ratio Att/Déf</div>
-              </div>
-            </div>
+          const stateLabel = {
+            inWar: { text: 'Guerre en cours', color: 'text-green-400', border: 'border-green-700' },
+            preparation: { text: 'Phase de préparation', color: 'text-yellow-400', border: 'border-yellow-700' },
+            warEnded: { text: 'Guerre terminée', color: 'text-ash', border: 'border-fog' },
+          }[warState]
 
-            {/* Participation + Ligue de guerre */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-stone p-5 rounded border border-fog text-center">
-                <div className={`text-2xl font-bold font-cinzel ${player.warPreference === 'opted_in' || player.clanWarOptedIn ? 'text-green-400' : 'text-ash'}`}>
-                  {player.warPreference === 'opted_in' || player.clanWarOptedIn ? '✅ Opt-in' : player.warPreference === 'opted_out' ? '❌ Opt-out' : '—'}
+          return (
+            <div>
+              <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Guerre</h3>
+
+              {/* Guerre actuelle */}
+              {isActive && warData ? (
+                <div className={`bg-stone p-5 rounded border ${stateLabel?.border || 'border-fog'} mb-6`}>
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+                    <p className={`text-sm font-cinzel font-bold uppercase ${stateLabel?.color || 'text-ash'}`}>
+                      ⚔️ {stateLabel?.text}
+                    </p>
+                    <p className="text-xs text-ash font-cinzel">
+                      {warData.clan?.name} vs {warData.opponent?.name}
+                    </p>
+                  </div>
+
+                  {attacks.length > 0 ? (
+                    <div>
+                      <p className="text-xs font-cinzel uppercase text-ash mb-3">Vos attaques dans cette guerre</p>
+                      <div className="flex flex-col gap-2">
+                        {attacks.map((atk, i) => {
+                          const defender = warData.opponent?.members?.find(m => m.tag === atk.defenderTag)
+                          return (
+                            <div key={i} className="flex items-center justify-between bg-fog/10 px-4 py-2 rounded border border-fog/30">
+                              <div className="text-sm font-cinzel text-bone">
+                                vs {defender?.name || atk.defenderTag}
+                                <span className="text-xs text-ash ml-2">HDV {defender?.townhallLevel || '?'}</span>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm font-cinzel">
+                                <span className="text-gold-light">{'⭐'.repeat(atk.stars || 0)}{'☆'.repeat(3 - (atk.stars || 0))}</span>
+                                <span className="text-bone">{atk.destructionPercentage ?? 0}%</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-ash text-sm font-cinzel text-center py-2">
+                      {playerInWar ? 'Aucune attaque effectuée dans cette guerre.' : 'Ce joueur ne participe pas à la guerre actuelle.'}
+                    </p>
+                  )}
                 </div>
-                <div className="text-xs text-ash font-cinzel uppercase mt-2">Participation guerre</div>
-              </div>
-              {player.clan?.warLeague && (
-                <div className="bg-stone p-5 rounded border border-fog text-center">
-                  <div className="text-xl font-bold text-bone font-cinzel">{player.clan.warLeague.name || '—'}</div>
-                  <div className="text-xs text-ash font-cinzel uppercase mt-2">🏆 Ligue de guerre du clan</div>
+              ) : (
+                <div className="bg-stone p-5 rounded border border-fog text-center mb-6">
+                  <p className="text-ash font-cinzel text-sm">⚔️ Aucune guerre active actuellement</p>
                 </div>
               )}
-            </div>
 
-            {/* Équipement actif */}
-            {heroEquipment.length > 0 && (
-              <div className="mt-2">
-                <p className="text-xs font-cinzel uppercase text-ash mb-3 flex items-center gap-2">
-                  Équipement de héros actif
-                  <span className="flex-1 h-px bg-fog/40 ml-1" />
+              {/* Historique */}
+              <div className="bg-stone p-5 rounded border border-fog/50">
+                <p className="text-xs font-cinzel uppercase text-ash mb-3">Historique des guerres</p>
+                <p className="text-ash/60 text-sm font-cinzel text-center py-4">
+                  L'API Clash of Clans ne fournit pas d'historique individuel des guerres par joueur.<br />
+                  Consultez l'onglet <span className="text-gold">Guerre</span> de la page Guilde pour l'historique du clan.
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  {heroEquipment.filter(e => e.isActive !== false).map((eq) => (
-                    <span key={eq.name} className="text-xs font-cinzel px-2 py-1 rounded border border-gold/30 text-gold-light">
-                      {eq.name} Niv.{eq.level}
-                    </span>
-                  ))}
-                </div>
               </div>
-            )}
-
-            <p className="text-xs text-ash/60 font-cinzel text-center mt-6">
-              Les étoiles de guerre sont le total cumulé depuis la création du compte. Attaques et défenses correspondent à la saison en cours.
-            </p>
-          </div>
-        )}
+            </div>
+          )
+        })()}
 
         {/* 2 — Ranked */}
         {activeTab === 2 && (
