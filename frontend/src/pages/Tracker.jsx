@@ -32,7 +32,6 @@ function medalForRank(rank) {
 const TRACKER_SORTS = [
   { key: 'rank',      label: 'Rang' },
   { key: 'role',      label: 'Rôle' },
-  { key: 'league',    label: 'Ligue' },
   { key: 'trophies',  label: 'Trophées' },
   { key: 'donations', label: 'Dons' },
   { key: 'hdv',       label: 'HDV' },
