@@ -9,15 +9,30 @@ export default function chatRouter(io) {
 
   router.get('/messages/:channel', async (req, res) => {
     const { channel } = req.params
-    const { data, error } = await supabase
+
+    const { data: messages, error } = await supabase
       .from('chat_messages')
-      .select('id, author_id, content, created_at, author:users(id, coc_name, coc_role)')
+      .select('id, author_id, content, created_at')
       .eq('channel', channel)
       .order('created_at', { ascending: false })
       .limit(100)
 
     if (error) return res.status(500).json({ error: error.message })
-    res.json(data.reverse())
+
+    const authorIds = [...new Set(messages.map((m) => m.author_id).filter(Boolean))]
+    const { data: users } = await supabase
+      .from('users')
+      .select('id, coc_name, coc_role')
+      .in('id', authorIds)
+
+    const userMap = Object.fromEntries((users || []).map((u) => [u.id, u]))
+
+    const result = messages.reverse().map((m) => ({
+      ...m,
+      author: userMap[m.author_id] || null
+    }))
+
+    res.json(result)
   })
 
   router.post('/messages', authMiddleware, async (req, res) => {
