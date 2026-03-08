@@ -330,111 +330,95 @@ export default function PlayerProfile() {
           <div>
             <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Ranked</h3>
 
-            {/* Ligue principale + ladder 2025 */}
-            <div className="mb-6">
-              <p className="text-xs font-cinzel uppercase text-ash mb-3">Progression des ligues 2025</p>
-              <div className="flex flex-wrap items-center gap-1">
-                {LEAGUES_2025.map((l, idx) => {
-                  const isActive = currentLeagueIdx === idx
-                  const isPast = currentLeagueIdx > idx
-                  return (
-                    <div key={l.name} className="flex items-center gap-1">
-                      <div
-                        className={`flex flex-col items-center px-3 py-2 rounded border text-center transition-all ${
-                          isActive
-                            ? 'border-gold bg-gold/10'
-                            : isPast
-                            ? 'border-fog/60 bg-fog/10 opacity-60'
-                            : 'border-fog/30 opacity-40'
-                        }`}
-                      >
-                        <span className="text-lg">{l.icon}</span>
-                        <span className={`text-xs font-cinzel mt-0.5 ${isActive ? 'text-gold-light font-bold' : 'text-ash'}`}>
-                          {l.name}
-                        </span>
-                        {isActive && (
-                          <span className="text-xs text-gold mt-0.5">▲ Actuel</span>
-                        )}
-                      </div>
-                      {idx < LEAGUES_2025.length - 1 && (
-                        <span className="text-fog/40 text-xs">→</span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* Trophées actuels */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="bg-stone p-4 rounded border border-fog">
-                <p className="text-xs font-cinzel uppercase text-ash mb-3">Ligue actuelle</p>
-                <div className="flex items-center gap-3">
-                  {player.league?.iconUrls?.medium && (
-                    <img src={player.league.iconUrls.medium} alt={player.league.name} className="w-14 h-14 object-contain" />
-                  )}
-                  <div>
-                    <p className="font-bold text-bone font-cinzel">{player.league?.name || 'Sans ligue'}</p>
-                    <p className="text-2xl font-bold text-gold-light mt-1">{player.trophies?.toLocaleString()} 🏆</p>
-                    <p className="text-xs text-ash">Record : {player.bestTrophies?.toLocaleString()} 🏆</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-stone p-4 rounded border border-fog">
-                <p className="text-xs font-cinzel uppercase text-ash mb-3">Base du Constructeur</p>
-                <div className="flex items-center gap-3">
-                  {player.builderBaseLeague?.iconUrls?.medium && (
-                    <img src={player.builderBaseLeague.iconUrls.medium} alt={player.builderBaseLeague.name} className="w-14 h-14 object-contain" />
-                  )}
-                  <div>
-                    <p className="font-bold text-bone font-cinzel">{player.builderBaseLeague?.name || 'Sans ligue'}</p>
-                    <p className="text-2xl font-bold text-gold-light mt-1">{(player.builderBaseTrophies || 0).toLocaleString()} 🏆</p>
-                  </div>
+            {/* Ligue actuelle */}
+            <div className="bg-stone p-5 rounded border border-fog mb-4">
+              <p className="text-xs font-cinzel uppercase text-ash mb-3">Ligue actuelle</p>
+              <div className="flex items-center gap-4">
+                {player.league?.iconUrls?.medium && (
+                  <img src={player.league.iconUrls.medium} alt={player.league.name} className="w-16 h-16 object-contain" />
+                )}
+                <div>
+                  <p className="font-bold text-bone font-cinzel text-lg">{player.league?.name || 'Sans ligue'}</p>
+                  <p className="text-3xl font-bold text-gold-light mt-1 font-cinzel">{player.trophies?.toLocaleString()} 🏆</p>
+                  <p className="text-xs text-ash mt-1 font-cinzel">Record : {player.bestTrophies?.toLocaleString()} 🏆</p>
                 </div>
               </div>
             </div>
 
-            {/* Ligue Légende — si disponible */}
+            {/* Ligue Légende */}
             {player.legendStatistics ? (
-              <div>
+              <div className="mb-4">
                 <p className="text-xs font-cinzel uppercase text-ash mb-3 flex items-center gap-2">
-                  <span>❄️</span> Ligue Légende — Saison en cours
+                  <span>❄️</span> Ligue Légende
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="bg-stone p-5 rounded border border-purple-700 text-center">
-                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Trophées</p>
-                    <p className="text-3xl font-bold text-gold-light font-cinzel">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
+                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Trophées (saison)</p>
+                    <p className="text-2xl font-bold text-gold-light font-cinzel">
                       {player.legendStatistics.currentSeason?.trophies?.toLocaleString() ?? '—'} 🏆
                     </p>
                   </div>
-                  <div className="bg-stone p-5 rounded border border-purple-700 text-center">
+                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
+                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Attaques</p>
+                    <p className="text-2xl font-bold text-bone font-cinzel">
+                      {player.legendStatistics.currentSeason?.attacks ?? '—'}
+                    </p>
+                  </div>
+                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
                     <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Rang mondial</p>
-                    <p className="text-3xl font-bold text-bone font-cinzel">
+                    <p className="text-2xl font-bold text-bone font-cinzel">
                       {player.legendStatistics.currentSeason?.rank
                         ? `#${player.legendStatistics.currentSeason.rank.toLocaleString()}`
                         : '—'}
                     </p>
                   </div>
-                  <div className="bg-stone p-5 rounded border border-purple-700 text-center">
-                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Position dans le groupe</p>
-                    <p className="text-3xl font-bold text-bone font-cinzel">
+                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
+                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Dans le groupe</p>
+                    <p className="text-2xl font-bold text-bone font-cinzel">
                       {player.legendStatistics.currentSeason?.rank
                         ? `${((player.legendStatistics.currentSeason.rank - 1) % 100) + 1}/100`
                         : '—'}
                     </p>
-                    <p className="text-xs text-ash/60 mt-1 font-cinzel">groupes de 100</p>
                   </div>
                 </div>
+
+                {player.legendStatistics.bestSeason && (
+                  <div className="bg-stone p-4 rounded border border-gold/40 flex items-center gap-6">
+                    <div>
+                      <p className="text-xs text-gold font-cinzel uppercase mb-1">🏅 Meilleure saison</p>
+                      <p className="text-2xl font-bold text-gold-light font-cinzel">
+                        {player.legendStatistics.bestSeason.trophies?.toLocaleString()} 🏆
+                      </p>
+                    </div>
+                    {player.legendStatistics.bestSeason.rank && (
+                      <div>
+                        <p className="text-xs text-ash font-cinzel uppercase mb-1">Rang</p>
+                        <p className="text-xl font-bold text-bone font-cinzel">
+                          #{player.legendStatistics.bestSeason.rank.toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                    {player.legendStatistics.bestSeason.id && (
+                      <p className="text-xs text-ash/60 font-cinzel ml-auto">{player.legendStatistics.bestSeason.id}</p>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="bg-stone p-4 rounded border border-fog/50 text-center">
-                <p className="text-ash font-cinzel text-sm">
-                  Ce joueur n'est pas en Ligue Légende.
-                  Ligue actuelle : <span className="text-bone">{player.league?.name || 'Sans ligue'}</span>
-                </p>
+            ) : null}
+
+            {/* Base du Constructeur */}
+            <div className="bg-stone p-5 rounded border border-fog">
+              <p className="text-xs font-cinzel uppercase text-ash mb-3">Base du Constructeur</p>
+              <div className="flex items-center gap-4">
+                {player.builderBaseLeague?.iconUrls?.medium && (
+                  <img src={player.builderBaseLeague.iconUrls.medium} alt={player.builderBaseLeague.name} className="w-14 h-14 object-contain" />
+                )}
+                <div>
+                  <p className="font-bold text-bone font-cinzel">{player.builderBaseLeague?.name || 'Sans ligue'}</p>
+                  <p className="text-2xl font-bold text-gold-light mt-1 font-cinzel">{(player.builderBaseTrophies || 0).toLocaleString()} 🏆</p>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         )}
 
