@@ -24,6 +24,7 @@ const LEAGUES_2025 = [
   { name: 'Golem',      icon: '🪨' },
   { name: 'Géant',      icon: '🦴' },
   { name: 'P.E.K.K.A',  icon: '🤖' },
+  { name: 'Electro',    icon: '⚡' },
   { name: 'Legend',     icon: '❄️' },
 ]
 
@@ -136,8 +137,8 @@ export default function PlayerProfile() {
 
   const achievements = player.achievements || []
 
-  // Detect current 2025 league from player.league.name
-  const currentLeagueName = player.league?.name || ''
+  // Detect current 2025 league from leagueTier.name (new system) or league.name (fallback)
+  const currentLeagueName = player.leagueTier?.name || player.league?.name || ''
   const currentLeagueIdx = LEAGUES_2025.findIndex(l =>
     currentLeagueName.toLowerCase().includes(l.name.toLowerCase())
   )
@@ -330,93 +331,103 @@ export default function PlayerProfile() {
           <div>
             <h3 className="font-cinzel text-gold-bright uppercase tracking-wider mb-6">Ranked</h3>
 
-            {/* Ligue actuelle */}
+            {/* Section 1 — Ligue Ranked actuelle (nouveau système 2025) */}
             <div className="bg-stone p-5 rounded border border-fog mb-4">
-              <p className="text-xs font-cinzel uppercase text-ash mb-3">Ligue actuelle</p>
-              <div className="flex items-center gap-4">
-                {player.league?.iconUrls?.medium && (
-                  <img src={player.league.iconUrls.medium} alt={player.league.name} className="w-16 h-16 object-contain" />
+              <p className="text-xs font-cinzel uppercase text-ash mb-3">Ligue Ranked actuelle</p>
+              <div>
+                <p className="font-bold text-bone font-cinzel text-xl">
+                  {player.leagueTier?.name || player.league?.name || '—'}
+                </p>
+                <p className="text-3xl font-bold text-gold-light mt-1 font-cinzel">
+                  {(player.trophies || 0).toLocaleString()} 🏆
+                </p>
+                {player.currentLeagueSeasonId && (
+                  <p className="text-xs text-ash mt-1 font-cinzel">
+                    Saison : {new Date(player.currentLeagueSeasonId * 1000).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}
+                  </p>
                 )}
-                <div>
-                  <p className="font-bold text-bone font-cinzel text-lg">{player.league?.name || 'Sans ligue'}</p>
-                  <p className="text-3xl font-bold text-gold-light mt-1 font-cinzel">{player.trophies?.toLocaleString()} 🏆</p>
-                  <p className="text-xs text-ash mt-1 font-cinzel">Record : {player.bestTrophies?.toLocaleString()} 🏆</p>
+              </div>
+            </div>
+
+            {/* Progression visuelle des ligues 2025 */}
+            <div className="bg-stone p-4 rounded border border-fog mb-4">
+              <p className="text-xs font-cinzel uppercase text-ash mb-3">Progression des ligues 2025</p>
+              <div className="flex flex-wrap gap-2">
+                {LEAGUES_2025.map((l, i) => {
+                  const isActive = currentLeagueIdx === i
+                  return (
+                    <div
+                      key={l.name}
+                      className={`flex flex-col items-center px-2 py-1 rounded border text-xs font-cinzel transition-all ${
+                        isActive
+                          ? 'border-gold-light text-gold-light bg-gold/10'
+                          : 'border-fog/30 text-ash'
+                      }`}
+                    >
+                      <span>{l.icon}</span>
+                      <span className="mt-0.5">{l.name}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Section 2 — Stats de la saison en cours */}
+            <div className="bg-stone p-5 rounded border border-fog mb-4">
+              <p className="text-xs font-cinzel uppercase text-ash mb-3">Stats de la saison en cours</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gold-light font-cinzel">
+                    {player.legendStatistics?.currentSeason?.trophies?.toLocaleString() ?? '—'} 🏆
+                  </p>
+                  <p className="text-xs text-ash font-cinzel uppercase mt-1">Trophées saison</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gold-light font-cinzel">⚔️ {player.attackWins ?? '—'}</p>
+                  <p className="text-xs text-ash font-cinzel uppercase mt-1">Attaques gagnées</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gold-light font-cinzel">🛡️ {player.defenseWins ?? '—'}</p>
+                  <p className="text-xs text-ash font-cinzel uppercase mt-1">Défenses gagnées</p>
                 </div>
               </div>
             </div>
 
-            {/* Ligue Légende */}
-            {player.legendStatistics ? (
-              <div className="mb-4">
-                <p className="text-xs font-cinzel uppercase text-ash mb-3 flex items-center gap-2">
-                  <span>❄️</span> Ligue Légende
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
-                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Trophées (saison)</p>
-                    <p className="text-2xl font-bold text-gold-light font-cinzel">
-                      {player.legendStatistics.currentSeason?.trophies?.toLocaleString() ?? '—'} 🏆
-                    </p>
-                  </div>
-                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
-                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Attaques</p>
-                    <p className="text-2xl font-bold text-bone font-cinzel">
-                      {player.legendStatistics.currentSeason?.attacks ?? '—'}
-                    </p>
-                  </div>
-                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
-                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Rang mondial</p>
-                    <p className="text-2xl font-bold text-bone font-cinzel">
-                      {player.legendStatistics.currentSeason?.rank
-                        ? `#${player.legendStatistics.currentSeason.rank.toLocaleString()}`
-                        : '—'}
-                    </p>
-                  </div>
-                  <div className="bg-stone p-4 rounded border border-purple-700 text-center">
-                    <p className="text-xs text-purple-400 font-cinzel uppercase mb-2">Dans le groupe</p>
-                    <p className="text-2xl font-bold text-bone font-cinzel">
-                      {player.legendStatistics.currentSeason?.rank
-                        ? `${((player.legendStatistics.currentSeason.rank - 1) % 100) + 1}/100`
-                        : '—'}
-                    </p>
-                  </div>
+            {/* Section 3 — Records */}
+            <div className="bg-stone p-5 rounded border border-gold/30 mb-4">
+              <p className="text-xs font-cinzel uppercase text-ash mb-3">🏅 Records</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-ash font-cinzel uppercase mb-1">Meilleur record trophées</p>
+                  <p className="text-2xl font-bold text-gold-light font-cinzel">
+                    {player.bestTrophies?.toLocaleString() ?? '—'} 🏆
+                  </p>
                 </div>
-
-                {player.legendStatistics.bestSeason && (
-                  <div className="bg-stone p-4 rounded border border-gold/40 flex items-center gap-6">
-                    <div>
-                      <p className="text-xs text-gold font-cinzel uppercase mb-1">🏅 Meilleure saison</p>
-                      <p className="text-2xl font-bold text-gold-light font-cinzel">
-                        {player.legendStatistics.bestSeason.trophies?.toLocaleString()} 🏆
-                      </p>
-                    </div>
-                    {player.legendStatistics.bestSeason.rank && (
-                      <div>
-                        <p className="text-xs text-ash font-cinzel uppercase mb-1">Rang</p>
-                        <p className="text-xl font-bold text-bone font-cinzel">
-                          #{player.legendStatistics.bestSeason.rank.toLocaleString()}
-                        </p>
-                      </div>
-                    )}
-                    {player.legendStatistics.bestSeason.id && (
-                      <p className="text-xs text-ash/60 font-cinzel ml-auto">{player.legendStatistics.bestSeason.id}</p>
-                    )}
+                {player.legendStatistics?.bestBuilderBaseSeason && (
+                  <div>
+                    <p className="text-xs text-ash font-cinzel uppercase mb-1">Meilleure saison Builder Base</p>
+                    <p className="text-sm font-cinzel text-bone">
+                      Saison : {player.legendStatistics.bestBuilderBaseSeason.id ?? '—'}
+                    </p>
+                    <p className="text-sm font-cinzel text-bone">
+                      Rang : #{player.legendStatistics.bestBuilderBaseSeason.rank?.toLocaleString() ?? '—'}
+                    </p>
+                    <p className="text-2xl font-bold text-gold-light font-cinzel">
+                      {player.legendStatistics.bestBuilderBaseSeason.trophies?.toLocaleString() ?? '—'} 🏆
+                    </p>
                   </div>
                 )}
               </div>
-            ) : null}
+            </div>
 
-            {/* Base du Constructeur */}
+            {/* Section 4 — Base du Constructeur */}
             <div className="bg-stone p-5 rounded border border-fog">
               <p className="text-xs font-cinzel uppercase text-ash mb-3">Base du Constructeur</p>
-              <div className="flex items-center gap-4">
-                {player.builderBaseLeague?.iconUrls?.medium && (
-                  <img src={player.builderBaseLeague.iconUrls.medium} alt={player.builderBaseLeague.name} className="w-14 h-14 object-contain" />
-                )}
-                <div>
-                  <p className="font-bold text-bone font-cinzel">{player.builderBaseLeague?.name || 'Sans ligue'}</p>
-                  <p className="text-2xl font-bold text-gold-light mt-1 font-cinzel">{(player.builderBaseTrophies || 0).toLocaleString()} 🏆</p>
-                </div>
+              <div>
+                <p className="font-bold text-bone font-cinzel">{player.builderBaseLeague?.name || '—'}</p>
+                <p className="text-2xl font-bold text-gold-light mt-1 font-cinzel">
+                  {(player.builderBaseTrophies || 0).toLocaleString()} 🏆
+                </p>
               </div>
             </div>
           </div>
