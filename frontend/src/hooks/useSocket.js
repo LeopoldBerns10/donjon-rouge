@@ -41,6 +41,7 @@ export function useSocket(channel, user) {
 
   function sendMessage(content) {
     if (!socketRef.current || !content.trim()) return
+    console.log('sendMessage user:', JSON.stringify(user))
     socketRef.current.emit('send_message', { channel, content, user })
   }
 
