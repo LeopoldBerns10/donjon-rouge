@@ -10,7 +10,7 @@ export function useSocket(channel, user) {
     if (!channel) return
 
     const socket = io(import.meta.env.VITE_SOCKET_URL || '', {
-      transports: ['websocket']
+      transports: ['polling', 'websocket']
     })
     socketRef.current = socket
 
