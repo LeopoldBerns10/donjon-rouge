@@ -203,7 +203,7 @@ function ChatTab({ user }) {
       const hist = r.data.map((m) => ({
         id: m.id,
         authorId: m.author_id,
-        author: m.author?.coc_name || 'Inconnu',
+        author: m.author?.coc_name || m.author_id || 'Inconnu',
         role: m.author?.coc_role || 'Membre',
         content: m.content,
         time: m.created_at
