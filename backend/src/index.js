@@ -70,11 +70,13 @@ io.on('connection', (socket) => {
 
     if (!userData) return
 
-    const { data: saved } = await supabase
+    const { data: saved, error: insertError } = await supabase
       .from('chat_messages')
       .insert({ author_id: user.id, channel, content })
       .select('id')
       .single()
+
+    console.log('Insert chat:', insertError ? insertError.message : 'OK - id: ' + saved?.id)
 
     const message = {
       id: saved?.id || Date.now(),
