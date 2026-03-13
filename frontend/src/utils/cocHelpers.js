@@ -248,11 +248,13 @@ const LEAGUE_KEY_IMAGE = {
 
   // Sorcière / Or
   'sorcière':   `${LEAGUE_ASSETS}/LB_big_witch.png`,
+  'witch':      `${LEAGUE_ASSETS}/LB_big_witch.png`,
   'or':         `${LEAGUE_ASSETS}/LB_big_witch.png`,
   'gold':       `${LEAGUE_ASSETS}/LB_big_witch.png`,
 
   // Sorcier / Bronze
   'sorcier':    `${LEAGUE_ASSETS}/LB_big_wizard.png`,
+  'wizard':     `${LEAGUE_ASSETS}/LB_big_wizard.png`,
   'bronze':     `${LEAGUE_ASSETS}/LB_big_wizard.png`,
 
   // Valkyrie / Argent
