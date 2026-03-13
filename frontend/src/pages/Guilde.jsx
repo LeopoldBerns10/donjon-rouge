@@ -587,7 +587,6 @@ function InscriptionsTab() {
             <TableHeader cols={[
               { label: '#',          center: true },
               { label: 'Joueur',     center: false },
-              { label: 'HDV',        center: true },
               { label: 'Type',       center: true },
               { label: 'Inscrit le', center: true, hidden: 'hidden md:table-cell' },
             ]} />
@@ -599,30 +598,10 @@ function InscriptionsTab() {
                     style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
                     <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
                     <td className="py-2.5 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-shrink-0 w-8 h-8">
-                          <img
-                            src={getTownHallImageUrl(s.hdv_level)}
-                            alt={`HDV${s.hdv_level}`}
-                            className="w-8 h-8 object-contain"
-                            onError={(e) => { e.target.style.display = 'none' }}
-                          />
-                          <span className="absolute -bottom-1 -right-1 font-bold text-white rounded"
-                            style={{ background: '#C41E3A', fontSize: '9px', padding: '0 2px' }}>
-                            {s.hdv_level}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-bone text-sm">{s.coc_name}</div>
-                          <div className="text-xs text-ash/60">{s.coc_tag}</div>
-                        </div>
+                      <div>
+                        <div className="font-semibold text-bone text-sm">{s.coc_name}</div>
+                        <div className="text-xs text-ash/60">{s.coc_tag}</div>
                       </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded"
-                        style={{ background: '#C41E3A' }}>
-                        {s.hdv_level}
-                      </span>
                     </td>
                     <td className="py-2.5 px-3 text-center">
                       <span className="text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded border"

@@ -4,7 +4,7 @@ import supabase from '../lib/supabase.js'
 
 const router = Router()
 
-// GET /api/war-signups — liste des inscrits
+// GET /api/war-signups
 router.get('/', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-// POST /api/war-signups — s'inscrire
+// POST /api/war-signups
 router.post('/', requireAuth, async (req, res) => {
   try {
     const { war_type } = req.body
@@ -26,22 +26,20 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Type de guerre invalide' })
     }
 
-    // Récupérer les infos du joueur connecté
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, coc_name, coc_tag, coc_hdv')
-      .eq('id', req.user.id)
+      .select('id, coc_name, coc_tag')
+      .eq('id', req.user.userId)
       .single()
     if (userError || !user) return res.status(404).json({ error: 'Joueur introuvable' })
 
-    // Upsert — si déjà inscrit, met à jour le type
     const { data, error } = await supabase
       .from('war_signups')
       .upsert({
         player_id: user.id,
         coc_name:  user.coc_name,
         coc_tag:   user.coc_tag,
-        hdv_level: user.coc_hdv || 0,
+        hdv_level: 0,
         war_type,
         signed_at: new Date().toISOString()
       }, { onConflict: 'player_id' })
@@ -54,13 +52,13 @@ router.post('/', requireAuth, async (req, res) => {
   }
 })
 
-// DELETE /api/war-signups — se désinscrire
+// DELETE /api/war-signups
 router.delete('/', requireAuth, async (req, res) => {
   try {
     const { error } = await supabase
       .from('war_signups')
       .delete()
-      .eq('player_id', req.user.id)
+      .eq('player_id', req.user.userId)
     if (error) throw error
     res.json({ success: true })
   } catch (err) {
@@ -68,19 +66,22 @@ router.delete('/', requireAuth, async (req, res) => {
   }
 })
 
-// DELETE /api/war-signups/reset — remise à 0 (admin ou chef)
+// DELETE /api/war-signups/reset
 router.delete('/reset', requireAuth, async (req, res) => {
   try {
     const { data: user } = await supabase
       .from('users')
       .select('is_admin, coc_role')
-      .eq('id', req.user.id)
+      .eq('id', req.user.userId)
       .single()
 
     const isAllowed = user?.is_admin || ['leader', 'coLeader'].includes(user?.coc_role)
     if (!isAllowed) return res.status(403).json({ error: 'Non autorisé' })
 
-    const { error } = await supabase.from('war_signups').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    const { error } = await supabase
+      .from('war_signups')
+      .delete()
+      .neq('id', '00000000-0000-0000-0000-000000000000')
     if (error) throw error
     res.json({ success: true })
   } catch (err) {
