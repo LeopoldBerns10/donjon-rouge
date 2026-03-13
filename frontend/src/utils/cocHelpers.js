@@ -219,45 +219,45 @@ export function getRoleBadgeClass(role) {
 
 const LEAGUE_ASSETS = 'https://xlibijjxzqsbayltorve.supabase.co/storage/v1/object/public/coc-assets/ligues'
 
-const LEAGUE_IMAGE_MAP = {
-  'Legend League':        `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
-  'Champion League I':    `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
-  'Champion League II':   `${LEAGUE_ASSETS}/LB_big_dragon2.png`,
-  'Champion League III':  `${LEAGUE_ASSETS}/LB_big_dragon1.png`,
-  'Titan League I':       `${LEAGUE_ASSETS}/LB_big_titan.png`,
-  'Titan League II':      `${LEAGUE_ASSETS}/LB_big_titan.png`,
-  'Titan League III':     `${LEAGUE_ASSETS}/LB_big_titan.png`,
-  'Master League I':      `${LEAGUE_ASSETS}/LB_big_pekka.png`,
-  'Master League II':     `${LEAGUE_ASSETS}/LB_big_pekka.png`,
-  'Master League III':    `${LEAGUE_ASSETS}/LB_big_pekka.png`,
-  'Crystal League I':     `${LEAGUE_ASSETS}/LB_big_golem.png`,
-  'Crystal League II':    `${LEAGUE_ASSETS}/LB_big_golem.png`,
-  'Crystal League III':   `${LEAGUE_ASSETS}/LB_big_golem.png`,
-  'Gold League I':        `${LEAGUE_ASSETS}/LB_big_witch.png`,
-  'Gold League II':       `${LEAGUE_ASSETS}/LB_big_witch.png`,
-  'Gold League III':      `${LEAGUE_ASSETS}/LB_big_witch.png`,
-  'Silver League I':      `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
-  'Silver League II':     `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
-  'Silver League III':    `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
-  'Bronze League I':      `${LEAGUE_ASSETS}/LB_big_wizard.png`,
-  'Bronze League II':     `${LEAGUE_ASSETS}/LB_big_wizard.png`,
-  'Bronze League III':    `${LEAGUE_ASSETS}/LB_big_wizard.png`,
-  'Warrior League I':     `${LEAGUE_ASSETS}/LB_big_archer.png`,
-  'Warrior League II':    `${LEAGUE_ASSETS}/LB_big_archer.png`,
-  'Warrior League III':   `${LEAGUE_ASSETS}/LB_big_archer.png`,
-  'Barbarian League I':   `${LEAGUE_ASSETS}/LB_big_barb.png`,
-  'Barbarian League II':  `${LEAGUE_ASSETS}/LB_big_barb.png`,
-  'Barbarian League III': `${LEAGUE_ASSETS}/LB_big_barb.png`,
-  'Unranked':             `${LEAGUE_ASSETS}/LB_big_skeleton.png`,
+const LEAGUE_KEY_IMAGE = {
+  'légende':    `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
+  'legend':     `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
+  'champion':   `${LEAGUE_ASSETS}/LB_big_dragon2.png`,
+  'titan':      `${LEAGUE_ASSETS}/LB_big_titan.png`,
+  'maître':     `${LEAGUE_ASSETS}/LB_big_pekka.png`,
+  'master':     `${LEAGUE_ASSETS}/LB_big_pekka.png`,
+  'cristal':    `${LEAGUE_ASSETS}/LB_big_golem.png`,
+  'crystal':    `${LEAGUE_ASSETS}/LB_big_golem.png`,
+  'or':         `${LEAGUE_ASSETS}/LB_big_witch.png`,
+  'gold':       `${LEAGUE_ASSETS}/LB_big_witch.png`,
+  'argent':     `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
+  'silver':     `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
+  'bronze':     `${LEAGUE_ASSETS}/LB_big_wizard.png`,
+  'guerrier':   `${LEAGUE_ASSETS}/LB_big_archer.png`,
+  'warrior':    `${LEAGUE_ASSETS}/LB_big_archer.png`,
+  'barbare':    `${LEAGUE_ASSETS}/LB_big_barb.png`,
+  'barbarian':  `${LEAGUE_ASSETS}/LB_big_barb.png`,
+  'electro':    `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
+  'p.e.k.k.a':  `${LEAGUE_ASSETS}/LB_big_pekka.png`,
+  'golem':      `${LEAGUE_ASSETS}/LB_big_golem.png`,
+  'sorcière':   `${LEAGUE_ASSETS}/LB_big_witch.png`,
+  'valkyrie':   `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
+  'sorcier':    `${LEAGUE_ASSETS}/LB_big_wizard.png`,
+  'archer':     `${LEAGUE_ASSETS}/LB_big_archer.png`,
+  'squelette':  `${LEAGUE_ASSETS}/LB_big_skeleton.png`,
+  'skeleton':   `${LEAGUE_ASSETS}/LB_big_skeleton.png`,
+  'géant':      `${LEAGUE_ASSETS}/LB_big_pekka.png`,
+  'ligue':      `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
 }
 
 export function getLeagueImageUrl(leagueName) {
   if (!leagueName) return null
-  return LEAGUE_IMAGE_MAP[leagueName] || `${LEAGUE_ASSETS}/LB_big_skeleton.png`
+  const key = leagueName.toLowerCase().split(' ')[0]
+  return LEAGUE_KEY_IMAGE[key] || `${LEAGUE_ASSETS}/LB_big_skeleton.png`
 }
 
 export function getLeagueShortName(leagueName) {
   if (!leagueName) return ''
-  return leagueName.replace(/ League$/i, '')
+  return leagueName.replace(/ League$/i, '').replace(/Ligue /i, '')
 }
 
