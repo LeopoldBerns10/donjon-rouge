@@ -124,12 +124,36 @@ export default function PlayerProfile() {
 
   const heroes = player.heroes || []
   const heroEquipment = player.heroEquipment || []
-  const pets = player.troops?.filter((t) => ['L.A.S.S.I', 'Electro Owl', 'Mighty Yak', 'Unicorn', 'Phoenix', 'Poison Lizard', 'Diggy', 'Frosty', 'Spirit Fox', 'Angry Jelly'].includes(t.name)) || []
-  const siegeMachines = player.troops?.filter((t) => ['Wall Wrecker', 'Battle Blimp', 'Stone Slammer', 'Siege Barracks', 'Log Launcher', 'Flame Flinger', 'Battle Drill'].includes(t.name)) || []
-  const homeTroops = player.troops?.filter((t) => t.village === 'home' && !['Wall Wrecker', 'Battle Blimp', 'Stone Slammer', 'Siege Barracks', 'Log Launcher', 'Flame Flinger', 'Battle Drill'].includes(t.name) && !['L.A.S.S.I', 'Electro Owl', 'Mighty Yak', 'Unicorn', 'Phoenix', 'Poison Lizard', 'Diggy', 'Frosty', 'Spirit Fox', 'Angry Jelly'].includes(t.name)) || []
-  const darkTroops = player.troops?.filter((t) => t.village === 'builderBase') || []
+
+  const DARK_TROOP_NAMES = [
+    'Minion', 'Hog Rider', 'Valkyrie', 'Golem', 'Witch',
+    'Lava Hound', 'Bowler', 'Ice Golem', 'Headhunter',
+    'Apprentice Warden', 'Druid', 'Furnace'
+  ]
+  const SUPER_TROOP_NAMES = [
+    'Super Barbarian', 'Super Archer', 'Super Giant', 'Sneaky Goblin',
+    'Super Wall Breaker', 'Rocket Balloon', 'Super Wizard', 'Super Dragon',
+    'Inferno Dragon', 'Super Minion', 'Super Valkyrie', 'Super Witch',
+    'Ice Hound', 'Super Bowler', 'Super Miner', 'Super Hog Rider', 'Super Yeti'
+  ]
+  const SIEGE_NAMES = ['Wall Wrecker', 'Battle Blimp', 'Stone Slammer', 'Siege Barracks', 'Log Launcher', 'Flame Flinger', 'Battle Drill']
+  const PET_NAMES = ['L.A.S.S.I', 'Electro Owl', 'Mighty Yak', 'Unicorn', 'Phoenix', 'Poison Lizard', 'Diggy', 'Frosty', 'Spirit Fox', 'Angry Jelly', 'Sneezy']
+
+  const pets = player.troops?.filter((t) => PET_NAMES.includes(t.name)) || []
+  const siegeMachines = player.troops?.filter((t) => SIEGE_NAMES.includes(t.name)) || []
+  const superTroops = player.troops?.filter((t) => SUPER_TROOP_NAMES.includes(t.name)) || []
+  const darkTroops = player.troops?.filter((t) =>
+    t.village === 'home' &&
+    DARK_TROOP_NAMES.includes(t.name)
+  ) || []
+  const homeTroops = player.troops?.filter((t) =>
+    t.village === 'home' &&
+    !SIEGE_NAMES.includes(t.name) &&
+    !PET_NAMES.includes(t.name) &&
+    !DARK_TROOP_NAMES.includes(t.name) &&
+    !SUPER_TROOP_NAMES.includes(t.name)
+  ) || []
   const spells = player.spells || []
-  const superTroops = player.troops?.filter((t) => t.superTroopIsActive !== undefined) || []
 
   const allTroops = [...heroes, ...homeTroops, ...darkTroops, ...spells, ...siegeMachines]
   const totalCurrent = allTroops.reduce((s, t) => s + (t.level || 0), 0)
@@ -472,16 +496,10 @@ export default function PlayerProfile() {
             <TroopsGrid title="Équipement de héros" items={heroEquipment} category="equipment" />
             <TroopsGrid title="Familiers" items={pets} category="pets" />
             <TroopsGrid title="Machines de siège" items={siegeMachines} category="siege" />
-            <TroopsGrid
-              title="Troupes"
-              items={homeTroops.filter((t) => !superTroops.find((s) => s.name === t.name))}
-              category="troops"
-            />
+            <TroopsGrid title="Troupes" items={homeTroops} category="troops" />
             <TroopsGrid title="Troupes noires" items={darkTroops} category="troops" />
-            <TroopsGrid title="Sorts" items={spells} category="spells" />
-            {superTroops.length > 0 && (
-              <TroopsGrid title="Super Troupes" items={superTroops} category="troops" />
-            )}
+            <TroopsGrid title="Sorts" items={spells} category="sorts" />
+            <TroopsGrid title="Super Troupes" items={superTroops} category="super" />
           </div>
         )}
 
