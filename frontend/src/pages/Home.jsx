@@ -101,7 +101,7 @@ export default function Home() {
           </Link>
           <Link
             to="/guilde"
-            state={{ openTab: 'gdcldc' }}
+            state={{ openTab: 'inscriptions' }}
             className="px-6 py-3 font-cinzel uppercase tracking-wider font-bold text-bone rounded border border-gold/50 hover:border-gold transition-all hover:scale-105"
             style={{ background: 'rgba(180,130,0,0.15)' }}
           >
@@ -144,7 +144,8 @@ export default function Home() {
                 </p>
               </div>
               <Link
-                to="/tracker"
+                to="/guilde"
+                state={{ openTab: 'gdcldc' }}
                 className="ml-auto text-crimson text-sm font-cinzel uppercase hover:text-ember transition-colors"
               >
                 Voir →
