@@ -2,35 +2,39 @@ import { useState, useEffect, useCallback } from 'react'
 import api from '../lib/api.js'
 
 export function useWarSignups() {
-  const [signups, setSignups]   = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState(null)
+  const [signups, setSignups] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError]     = useState(null)
 
-  const fetch = useCallback(() => {
+  const refresh = useCallback(async () => {
     setLoading(true)
-    api.get('/api/war-signups')
-      .then(r => setSignups(r.data))
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
+    try {
+      const r = await api.get('/api/war-signups')
+      setSignups(r.data)
+      setError(null)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  useEffect(() => { fetch() }, [fetch])
+  useEffect(() => { refresh() }, [refresh])
 
   async function signup(war_type) {
-    const r = await api.post('/api/war-signups', { war_type })
-    fetch()
-    return r.data
+    await api.post('/api/war-signups', { war_type })
+    await refresh()
   }
 
   async function unsignup() {
     await api.delete('/api/war-signups')
-    fetch()
+    await refresh()
   }
 
   async function reset() {
     await api.delete('/api/war-signups/reset')
-    fetch()
+    await refresh()
   }
 
-  return { signups, loading, error, signup, unsignup, reset, refresh: fetch }
+  return { signups, loading, error, signup, unsignup, reset, refresh }
 }
