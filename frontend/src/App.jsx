@@ -15,6 +15,7 @@ import Admin from './pages/Admin.jsx'
 import Guilde from './pages/Guilde.jsx'
 import Login from './pages/Login.jsx'
 import ChangePassword from './pages/ChangePassword.jsx'
+import MonProfil from './pages/MonProfil.jsx'
 
 function AnnouncementToast() {
   const [toast, setToast] = useState(null)
@@ -68,6 +69,7 @@ export default function App() {
               <Route path="/vitrine" element={<Vitrine />} />
               <Route path="/guilde" element={<Guilde />} />
               <Route path="/admin" element={<Admin />} />
+              <Route path="/mon-profil" element={<PrivateRoute><MonProfil /></PrivateRoute>} />
             </Routes>
           </main>
           <Footer />

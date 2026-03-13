@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 
@@ -14,6 +14,18 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef(null)
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <>
@@ -67,24 +79,80 @@ export default function Navbar() {
           {/* User area */}
           <div className="flex items-center gap-3">
             {user ? (
-              <div className="flex items-center gap-3">
-                {user.isAdmin && (
-                  <span
-                    className="hidden md:inline text-xs font-cinzel uppercase tracking-wider px-2 py-1 rounded font-bold text-bone"
-                    style={{ background: '#C41E3A' }}
-                  >
-                    Admin
-                  </span>
-                )}
-                <span className="hidden md:inline text-sm font-cinzel text-bone">
-                  {user.cocName || user.email}
-                </span>
+              <div className="relative" ref={dropdownRef}>
+                {/* Bouton avatar/nom */}
                 <button
-                  onClick={logout}
-                  className="hidden md:block text-xs text-ash hover:text-crimson font-cinzel uppercase tracking-wider transition-colors"
+                  onClick={() => setDropdownOpen(v => !v)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded border border-fog/30 hover:border-crimson/50 transition-all"
                 >
-                  Déconnexion
+                  <div
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-cinzel font-bold text-bone border border-crimson/50"
+                    style={{ background: 'linear-gradient(135deg, #1a0000, #3a0000)' }}
+                  >
+                    {user.cocName?.[0]?.toUpperCase() || '?'}
+                  </div>
+                  <span className="hidden md:inline text-sm font-cinzel text-bone">
+                    {user.cocName || user.email}
+                  </span>
+                  <svg className={`w-3 h-3 text-ash transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </button>
+
+                {/* Dropdown */}
+                {dropdownOpen && (
+                  <div
+                    className="absolute right-0 top-full mt-2 w-52 rounded-lg border border-fog/30 shadow-2xl z-50 overflow-hidden"
+                    style={{ background: '#0d0d0d' }}
+                  >
+                    {/* Header */}
+                    <div className="px-4 py-3 border-b border-fog/20">
+                      <p className="font-cinzel text-bone text-sm font-bold">{user.cocName}</p>
+                      <p className="text-ash text-xs">{user.cocTag}</p>
+                      {user.isAdmin && (
+                        <span className="text-xs font-cinzel uppercase text-crimson">Admin</span>
+                      )}
+                    </div>
+
+                    {/* Items */}
+                    <div className="py-1">
+                      <Link
+                        to="/mon-profil"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-cinzel text-ash hover:text-bone hover:bg-white/5 transition-colors"
+                      >
+                        <span>👤</span> Mon Profil
+                      </Link>
+                      <Link
+                        to={`/tracker/${encodeURIComponent(user.cocTag)}`}
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-cinzel text-ash hover:text-bone hover:bg-white/5 transition-colors"
+                      >
+                        <span>📊</span> Mes Stats
+                      </Link>
+                      {user.isAdmin && (
+                        <Link
+                          to="/admin"
+                          onClick={() => setDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-cinzel text-gold hover:text-gold-light hover:bg-white/5 transition-colors"
+                        >
+                          <span>⚙️</span> Administration
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Déconnexion */}
+                    <div className="border-t border-fog/20 py-1">
+                      <button
+                        onClick={() => { logout(); setDropdownOpen(false) }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-cinzel text-ash hover:text-crimson hover:bg-white/5 transition-colors"
+                      >
+                        <span>🚪</span> Déconnexion
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <Link
@@ -128,9 +196,17 @@ export default function Navbar() {
               </Link>
             )}
             {user && (
-              <button onClick={logout} className="text-left font-cinzel text-sm uppercase text-ash hover:text-crimson">
-                Déconnexion
-              </button>
+              <>
+                <Link to="/mon-profil" onClick={() => setMenuOpen(false)} className="font-cinzel text-sm uppercase text-ash hover:text-bone">
+                  👤 Mon Profil
+                </Link>
+                <Link to={`/tracker/${encodeURIComponent(user.cocTag)}`} onClick={() => setMenuOpen(false)} className="font-cinzel text-sm uppercase text-ash hover:text-bone">
+                  📊 Mes Stats
+                </Link>
+                <button onClick={logout} className="text-left font-cinzel text-sm uppercase text-ash hover:text-crimson">
+                  Déconnexion
+                </button>
+              </>
             )}
           </div>
         )}
