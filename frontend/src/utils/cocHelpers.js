@@ -24,6 +24,7 @@ const TROOP_FILE_MAP = {
   'Grand Warden':     'Icon_HV_Hero_Grand_Warden.png',
   'Royal Champion':   'Icon_HV_Hero_Royal_Champion.png',
   'Minion Prince':    'Hero_Minion_Prince_04_noShadow.png',
+  'Dragon Duke':      'dd_iconTall_Alt.png',
 
   // Troupes principales
   'Barbarian':        'Icon_HV_Barbarian.png',
@@ -121,12 +122,13 @@ const TROOP_FILE_MAP = {
   'Snake Bracelet':       'Hero_Equipment_BK_SnakeBracelet.png',
   'Spiky Ball':           'Hero_Equipment_BK_Spiky_Ball.png',
   'Vampstache':           'Hero_Equipment_BK_Vampstache.png',
+  'Stick Horse':          'HeroGear_BK_StickFireHorse.png',
   // Équipements — Royal Champion
-  'Giant Gauntlet':       'Hero_Equipment_RQ_Giant_Gauntlet.png',
+  'Giant Gauntlet':       'Hero_Equipment_BQ_Giant_Gauntlet.png',
   'Electro Boots':        'Hero_Equipment_RC_ElectroBoots.png',
   'Frost Flake':          'Hero_Equipment_rc_frost_flake.png',
   'Haste Vial':           'Hero_Equipment_RC_Haste_Vial.png',
-  'Hog Rider Doll':       'Hero_Equipment_RC_Hog_Rider_Doll.png',
+  'Hog Rider Puppet':     'Hero_Equipment_RC_Hog_Rider_Doll.png',
   'Royal Gem':            'Hero_Equipment_RC_Royal_Gem.png',
   'Seeking Shield':       'Hero_Equipment_RC_Seeking_Shield.png',
   // Équipements — Grand Warden
@@ -136,18 +138,18 @@ const TROOP_FILE_MAP = {
   'Life Gem':             'Hero_Equipment_GW_Life_Gem.png',
   'Rage Gem':             'Hero_Equipment_GW_Rage_Gem.png',
   'Lavaloon Puppet':      'icon_gear_GW_LavaloonPuppet.png',
-  'Olympic Torch':        'HeroGear_GW_Olympic_Torch_lh0000.png',
+  'Heroic Torch':         'HeroGear_GW_Olympic_Torch_hh0000.png',
   'Dark Crown':           'HeroGear_MP_DarkCrown_2k.png',
-  'Fireside Gauntlet':    'HeroGear_BK_SlickFireHorse.png',
   'Rocket Spear':         'HeroGear_RoyalChampion_RocketSpear_Equipment_03.png',
   // Équipements — Minion Prince
   'Dark Orb':             'Hero_Equipment_MP_DarkOrb.png',
   'Henchmen Puppet':      'Hero_Equipment_MP_Henchman.png',
-  'Power Pump':           'Hero_Equipment_MP_PowerPump.png',
-  'Iron Pants':           'HeroEquipment_MP_IronPants.png',
-  'Flame Breath':         'HG_DD_FlameBreath_Marketing.png',
-  'Flame Heart':          'HG_DD_FlameHeart_Marketing.png',
-  'Stun Blast':           'HG_DD_StunBlast_Marketing.png',
+  'Noble Iron':           'Hero_Equipment_MP_PowerPump.png',
+  'Metal Pants':          'HeroEquipment_MP_IronPants.png',
+  'Flame Blower':         'HG_DD_FlameBreath_Marketing.png',
+  'Fire Heart':           'HG_DD_FlameHeart_Marketing.png',
+  'Stun Blaster':         'HG_DD_StunBlast_Marketing.png',
+  'Meteor Staff':         'HeroGear_MP_MeteoriteSceptre.png',
 
   // Super Troupes
   'Super Barbarian':      'Icon_HV_Super_Barbarian.png',
