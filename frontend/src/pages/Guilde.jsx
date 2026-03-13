@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useCocClan, useCocMembers, useCocWar, useCocRaids, useCocCwl } from '../hooks/useCocApi.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
@@ -637,6 +637,7 @@ export default function Guilde() {
   const { data: clan, loading: clanLoading } = useCocClan()
   const { data: membersData, loading: membersLoading, error: membersError } = useCocMembers()
   const [tab, setTab] = useState('membres')
+  const location = useLocation()
 
   const members = membersData?.items || []
 
@@ -645,6 +646,12 @@ export default function Guilde() {
     window.addEventListener('open-war-signups', handler)
     return () => window.removeEventListener('open-war-signups', handler)
   }, [])
+
+  useEffect(() => {
+    if (location.state?.openTab === 'gdcldc') {
+      setTab('gdcldc')
+    }
+  }, [location.state])
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10 animate-fade-up">

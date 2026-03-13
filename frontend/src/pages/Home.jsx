@@ -101,10 +101,9 @@ export default function Home() {
           </Link>
           <Link
             to="/guilde"
-            onClick={() => setTimeout(() => {
-              window.dispatchEvent(new CustomEvent('open-war-signups'))
-            }, 300)}
-            className="px-6 py-3 font-cinzel uppercase tracking-wider text-sm rounded border border-crimson text-crimson hover:bg-crimson/20 transition-all hover:scale-105"
+            state={{ openTab: 'gdcldc' }}
+            className="px-6 py-3 font-cinzel uppercase tracking-wider font-bold text-bone rounded border border-gold/50 hover:border-gold transition-all hover:scale-105"
+            style={{ background: 'rgba(180,130,0,0.15)' }}
           >
             ⚔️ Inscriptions GDC/LDC
           </Link>
@@ -124,8 +123,8 @@ export default function Home() {
       {clan && (
         <section className="relative z-10 max-w-5xl mx-auto px-4 pb-20 animate-fade-up">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard icon="👥" label="Membres" value={clan.members} sub={`/ ${clan.memberCount || 50}`} />
-            <StatCard icon="🏆" label="Trophées record" value={clan.clanPoints?.toLocaleString() || '—'} />
+            <StatCard icon="📍" label="Localisation" value="France" />
+            <StatCard icon="💎" label="Ligue clan" value="Crystal II" />
             <StatCard icon="⚔️" label="Guerres gagnées" value={clan.warWins || '—'} />
             <StatCard icon="⭐" label="Niveau clan" value={`Niv. ${clan.clanLevel || '—'}`} />
           </div>

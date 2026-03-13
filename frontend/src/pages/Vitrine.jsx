@@ -35,7 +35,7 @@ const CREATEURS = [
   {
     name: 'Skarex',
     desc: 'Commentateur eSport CoC FR, stratégies d\'attaque HDV17, mode classé et meta ligue légende. Code créateur : SKAREX',
-    url: 'https://www.youtube.com/@Skarex',
+    url: 'https://www.youtube.com/channel/UC0QsbIdsn75NES7JrNqQ7vw',
     platform: 'YouTube',
     flag: '🇫🇷🇨🇭',
   },
@@ -49,7 +49,7 @@ const CREATEURS = [
   {
     name: 'lawoke27',
     desc: 'Créateur officiel Clash of Clans, stratégies d\'attaque, super troupes et guides pour tous les HDV. Code : LAWOKE27',
-    url: 'https://www.youtube.com/@lawoke27',
+    url: 'https://www.youtube.com/@Lawoke',
     platform: 'YouTube',
     flag: '🇫🇷',
   },
