@@ -485,52 +485,6 @@ function RaidsTab({ loading: parentLoading, error: parentError }) {
   )
 }
 
-// ─── Onglet Ligues ────────────────────────────────────────────────────────
-
-function LiguesTab({ members, loading, error }) {
-  if (loading) return <Spinner />
-  if (error) return <ErrorMsg msg={error} />
-
-  const sorted = [...(members || [])].sort((a, b) => (b.trophies || 0) - (a.trophies || 0))
-
-  return (
-    <div className="overflow-x-auto rounded-lg border border-fog/30">
-      <table className="w-full text-sm">
-        <TableHeader cols={[
-          { label: 'Rang', center: true },
-          { label: 'Joueur', center: false },
-          { label: 'HDV', center: true },
-          { label: 'Ligue', center: true },
-          { label: '🏆 Trophées', center: true },
-        ]} />
-        <tbody>
-          {sorted.map((m, i) => (
-            <tr key={m.tag} className="border-b border-fog/20"
-              style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
-              <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
-              <td className="py-2.5 px-3">
-                <div className="flex items-center gap-2">
-                  <THImage level={m.townHallLevel} size={24} />
-                  <span className="font-semibold text-bone text-sm">{m.name}</span>
-                </div>
-              </td>
-              <td className="py-2.5 px-3 text-center">
-                <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
-                  {m.townHallLevel}
-                </span>
-              </td>
-              <td className="py-2.5 px-3 text-center"><LeagueBadge member={m} /></td>
-              <td className="py-2.5 px-3 text-center font-cinzel font-bold text-gold-light">
-                {m.trophies?.toLocaleString()}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
 // ─── Page principale ──────────────────────────────────────────────────────
 
 const TABS = [
@@ -538,7 +492,6 @@ const TABS = [
   { key: 'attaques', label: 'Attaques' },
   { key: 'gdcldc',   label: 'GDC/LDC' },
   { key: 'raids',    label: 'Raids' },
-  { key: 'ligues',   label: 'Ligues' },
 ]
 
 export default function Guilde() {
@@ -595,7 +548,7 @@ export default function Guilde() {
       </div>
 
       <h2 className="font-cinzel text-gold-bright uppercase tracking-widest text-xs mb-4 flex items-center gap-3">
-        <span>{TABS.find(t => t.key === tab)?.label} {tab === 'membres' || tab === 'attaques' || tab === 'ligues' ? `(${members.length})` : ''}</span>
+        <span>{TABS.find(t => t.key === tab)?.label} {tab === 'membres' || tab === 'attaques' ? `(${members.length})` : ''}</span>
         <div className="flex-1 h-px bg-fog/40" />
       </h2>
 
@@ -603,7 +556,6 @@ export default function Guilde() {
       {tab === 'attaques' && <AttaquesTab members={members} loading={membersLoading} error={membersError} />}
       {tab === 'gdcldc'   && <GdcLdcTab   loading={false} error={null} />}
       {tab === 'raids'    && <RaidsTab    loading={false} error={null} />}
-      {tab === 'ligues'   && <LiguesTab   members={members} loading={membersLoading} error={membersError} />}
     </div>
   )
 }
