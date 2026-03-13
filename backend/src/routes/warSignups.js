@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { authenticate } from '../middleware/auth.js'
+import { requireAuth } from '../middleware/auth.js'
 import supabase from '../lib/supabase.js'
 
 const router = Router()
@@ -19,7 +19,7 @@ router.get('/', async (req, res) => {
 })
 
 // POST /api/war-signups — s'inscrire
-router.post('/', authenticate, async (req, res) => {
+router.post('/', requireAuth, async (req, res) => {
   try {
     const { war_type } = req.body
     if (!['GDC', 'LDC', 'Les deux'].includes(war_type)) {
@@ -55,7 +55,7 @@ router.post('/', authenticate, async (req, res) => {
 })
 
 // DELETE /api/war-signups — se désinscrire
-router.delete('/', authenticate, async (req, res) => {
+router.delete('/', requireAuth, async (req, res) => {
   try {
     const { error } = await supabase
       .from('war_signups')
@@ -69,7 +69,7 @@ router.delete('/', authenticate, async (req, res) => {
 })
 
 // DELETE /api/war-signups/reset — remise à 0 (admin ou chef)
-router.delete('/reset', authenticate, async (req, res) => {
+router.delete('/reset', requireAuth, async (req, res) => {
   try {
     const { data: user } = await supabase
       .from('users')
