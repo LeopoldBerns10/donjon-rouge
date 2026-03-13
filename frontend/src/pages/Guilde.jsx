@@ -91,7 +91,6 @@ function TableHeader({ cols }) {
 const MEMBRE_SORTS = [
   { key: 'rank',      label: 'Rang' },
   { key: 'role',      label: 'Rôle' },
-  { key: 'trophies',  label: 'Trophées' },
   { key: 'donations', label: 'Dons' },
   { key: 'hdv',       label: 'HDV' },
 ]
@@ -236,7 +235,7 @@ function AttaquesTab({ members, loading, error }) {
   )
 }
 
-// ─── Onglet Guerre de Clan ────────────────────────────────────────────────
+// ─── Onglet GDC/LDC (fusion Guerre + CWL) ────────────────────────────────
 
 const WAR_STATE_LABELS = {
   notInWar:    { label: 'Pas de guerre en cours', color: 'text-ash' },
@@ -245,157 +244,162 @@ const WAR_STATE_LABELS = {
   warEnded:    { label: 'Guerre terminée', color: 'text-crimson' },
 }
 
-function GuerreTab({ loading, error }) {
+function GdcLdcTab({ loading, error }) {
   const { data: war, loading: warLoading, error: warError } = useCocWar()
+  const { data: cwl, loading: cwlLoading, error: cwlError } = useCocCwl()
 
-  if (loading || warLoading) return <Spinner />
+  if (loading || warLoading || cwlLoading) return <Spinner />
   if (error || warError) return <ErrorMsg msg={error || warError} />
 
   const state = war?.state || 'notInWar'
   const stateInfo = WAR_STATE_LABELS[state] || { label: state, color: 'text-ash' }
 
-  return (
-    <div>
-      <div className="card-stone p-4 mb-6 flex items-center gap-3">
-        <span className={`font-cinzel uppercase text-sm font-bold ${stateInfo.color}`}>⚔️ {stateInfo.label}</span>
-      </div>
-
-      {(state === 'inWar' || state === 'warEnded' || state === 'preparation') && war?.clan && (
-        <>
-          <div className="card-stone p-5 mb-6">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex flex-col items-center gap-1">
-                {war.clan.badgeUrls?.small && <img src={war.clan.badgeUrls.small} className="w-12 h-12 object-contain" alt="" />}
-                <span className="font-cinzel text-bone font-bold text-sm">{war.clan.name}</span>
-                <span className="font-cinzel text-gold text-2xl font-bold">⭐ {war.clan.stars ?? 0}</span>
-                <span className="text-ash text-xs">{war.clan.destructionPercentage?.toFixed(1)}%</span>
-              </div>
-              <div className="flex flex-col items-center">
-                <span className="font-cinzel text-gold uppercase text-xs tracking-widest mb-1">VS</span>
-                <span className="text-ash text-xs font-cinzel">{war.teamSize}v{war.teamSize}</span>
-                {state === 'inWar' && war.endTime && (
-                  <span className="text-xs text-ash mt-1">
-                    Fin : {new Date(
-                      war.endTime.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')
-                    ).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                {war.opponent?.badgeUrls?.small && <img src={war.opponent.badgeUrls.small} className="w-12 h-12 object-contain" alt="" />}
-                <span className="font-cinzel text-bone font-bold text-sm">{war.opponent?.name}</span>
-                <span className="font-cinzel text-ash text-2xl font-bold">⭐ {war.opponent?.stars ?? 0}</span>
-                <span className="text-ash text-xs">{war.opponent?.destructionPercentage?.toFixed(1)}%</span>
-              </div>
-            </div>
-          </div>
-
-          {war.clan.members && (
-            <div className="overflow-x-auto rounded-lg border border-fog/30">
-              <table className="w-full text-sm">
-                <TableHeader cols={[
-                  { label: '#', center: true },
-                  { label: 'Joueur', center: false },
-                  { label: 'HDV', center: true },
-                  { label: 'Attaques', center: true },
-                  { label: '⭐ Étoiles', center: true },
-                  { label: '% Destruct.', center: true, hidden: 'hidden md:table-cell' },
-                ]} />
-                <tbody>
-                  {[...(war.clan.members || [])]
-                    .sort((a, b) => {
-                      const starsA = a.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
-                      const starsB = b.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
-                      return starsB - starsA
-                    })
-                    .map((m, i) => {
-                      const totalStars = m.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
-                      const maxDestruct = m.attacks?.length
-                        ? Math.max(...m.attacks.map((x) => x.destructionPercentage))
-                        : 0
-                      const attacksUsed = m.attacks?.length ?? 0
-
-                      return (
-                        <tr key={m.tag} className="border-b border-fog/20"
-                          style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
-                          <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{m.mapPosition}</td>
-                          <td className="py-2.5 px-3">
-                            <div className="flex items-center gap-2">
-                              <THImage level={m.townhallLevel} size={24} />
-                              <span className="font-semibold text-bone text-sm">{m.name}</span>
-                            </div>
-                          </td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
-                              {m.townhallLevel}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3 text-center text-ash">
-                            {attacksUsed}/{war.attacksPerMember || 2}
-                          </td>
-                          <td className="py-2.5 px-3 text-center font-bold text-gold-light">{totalStars} ⭐</td>
-                          <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{maxDestruct.toFixed(1)}%</td>
-                        </tr>
-                      )
-                    })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  )
-}
-
-// ─── Onglet CWL ───────────────────────────────────────────────────────────
-
-function CwlTab({ loading: parentLoading, error: parentError }) {
-  const { data: cwl, loading, error } = useCocCwl()
-
-  if (parentLoading || loading) return <Spinner />
-  if (parentError || error) return <ErrorMsg msg={parentError || error} />
-
-  if (!cwl || cwl.state === 'notInWar') {
-    return <p className="text-ash font-cinzel text-center py-10">Pas de CWL en cours</p>
-  }
-
-  const roundIdx = (cwl.rounds?.length ?? 1) - 1
-  const currentRound = cwl.rounds?.[roundIdx]
+  const roundIdx = (cwl?.rounds?.length ?? 1) - 1
+  const currentRound = cwl?.rounds?.[roundIdx]
+  const cwlActive = cwl && cwl.state !== 'notInWar' && !cwlError
 
   return (
     <div>
-      <div className="card-stone p-4 mb-6 flex items-center gap-4 flex-wrap">
-        <span className="font-cinzel text-gold uppercase text-xs tracking-widest">Saison CWL</span>
-        <span className="text-bone font-bold font-cinzel">{cwl.season}</span>
-        <span className="text-ash text-xs font-cinzel ml-auto">Round en cours : {roundIdx + 1}/{cwl.rounds?.length}</span>
+      {/* ── Section GDC ── */}
+      <div>
+        <div className="card-stone p-4 mb-6 flex items-center gap-3">
+          <span className={`font-cinzel uppercase text-sm font-bold ${stateInfo.color}`}>⚔️ {stateInfo.label}</span>
+        </div>
+
+        {(state === 'inWar' || state === 'warEnded' || state === 'preparation') && war?.clan && (
+          <>
+            <div className="card-stone p-5 mb-6">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex flex-col items-center gap-1">
+                  {war.clan.badgeUrls?.small && <img src={war.clan.badgeUrls.small} className="w-12 h-12 object-contain" alt="" />}
+                  <span className="font-cinzel text-bone font-bold text-sm">{war.clan.name}</span>
+                  <span className="font-cinzel text-gold text-2xl font-bold">⭐ {war.clan.stars ?? 0}</span>
+                  <span className="text-ash text-xs">{war.clan.destructionPercentage?.toFixed(1)}%</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-cinzel text-gold uppercase text-xs tracking-widest mb-1">VS</span>
+                  <span className="text-ash text-xs font-cinzel">{war.teamSize}v{war.teamSize}</span>
+                  {state === 'inWar' && war.endTime && (
+                    <span className="text-xs text-ash mt-1">
+                      Fin : {new Date(
+                        war.endTime.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')
+                      ).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+                <div className="flex flex-col items-center gap-1">
+                  {war.opponent?.badgeUrls?.small && <img src={war.opponent.badgeUrls.small} className="w-12 h-12 object-contain" alt="" />}
+                  <span className="font-cinzel text-bone font-bold text-sm">{war.opponent?.name}</span>
+                  <span className="font-cinzel text-ash text-2xl font-bold">⭐ {war.opponent?.stars ?? 0}</span>
+                  <span className="text-ash text-xs">{war.opponent?.destructionPercentage?.toFixed(1)}%</span>
+                </div>
+              </div>
+            </div>
+
+            {war.clan.members && (
+              <div className="overflow-x-auto rounded-lg border border-fog/30">
+                <table className="w-full text-sm">
+                  <TableHeader cols={[
+                    { label: '#', center: true },
+                    { label: 'Joueur', center: false },
+                    { label: 'HDV', center: true },
+                    { label: 'Attaques', center: true },
+                    { label: '⭐ Étoiles', center: true },
+                    { label: '% Destruct.', center: true, hidden: 'hidden md:table-cell' },
+                  ]} />
+                  <tbody>
+                    {[...(war.clan.members || [])]
+                      .sort((a, b) => {
+                        const starsA = a.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
+                        const starsB = b.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
+                        return starsB - starsA
+                      })
+                      .map((m, i) => {
+                        const totalStars = m.attacks?.reduce((s, x) => s + x.stars, 0) ?? 0
+                        const maxDestruct = m.attacks?.length
+                          ? Math.max(...m.attacks.map((x) => x.destructionPercentage))
+                          : 0
+                        const attacksUsed = m.attacks?.length ?? 0
+
+                        return (
+                          <tr key={m.tag} className="border-b border-fog/20"
+                            style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                            <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{m.mapPosition}</td>
+                            <td className="py-2.5 px-3">
+                              <div className="flex items-center gap-2">
+                                <THImage level={m.townhallLevel} size={24} />
+                                <span className="font-semibold text-bone text-sm">{m.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-2.5 px-3 text-center">
+                              <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                                {m.townhallLevel}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-center text-ash">
+                              {attacksUsed}/{war.attacksPerMember || 2}
+                            </td>
+                            <td className="py-2.5 px-3 text-center font-bold text-gold-light">{totalStars} ⭐</td>
+                            <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{maxDestruct.toFixed(1)}%</td>
+                          </tr>
+                        )
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">Clans participants</h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        {(cwl.clans || []).map((c) => (
-          <div key={c.tag} className="card-stone p-3 flex flex-col items-center gap-2">
-            {c.badgeUrls?.small && <img src={c.badgeUrls.small} className="w-10 h-10 object-contain" alt="" />}
-            <span className="font-cinzel text-bone text-xs font-bold text-center">{c.name}</span>
-            <span className="text-ash text-xs">{c.tag}</span>
-          </div>
-        ))}
-      </div>
+      {/* ── Séparateur ── */}
+      <div className="my-8 border-t border-fog/30" />
 
-      {currentRound?.warTags && currentRound.warTags.filter(t => t !== '#0').length > 0 && (
-        <>
-          <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">
-            Round {roundIdx + 1} — Matchups
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {currentRound.warTags.filter(t => t !== '#0').map((tag, i) => (
-              <span key={i} className="text-ash text-xs font-cinzel px-3 py-1 border border-fog/40 rounded">
-                Match {i + 1} : {tag}
-              </span>
-            ))}
+      {/* ── Section LDC ── */}
+      <div>
+        <h2 className="font-cinzel text-gold-bright uppercase tracking-widest text-xs mb-4 flex items-center gap-3">
+          <span>⚔️ Ligue des Clans (LDC)</span>
+          <div className="flex-1 h-px bg-fog/40" />
+        </h2>
+
+        {!cwlActive ? (
+          <p className="text-ash font-cinzel text-sm text-center py-4">Aucune LDC en cours</p>
+        ) : (
+          <div>
+            <div className="card-stone p-4 mb-6 flex items-center gap-4 flex-wrap">
+              <span className="font-cinzel text-gold uppercase text-xs tracking-widest">Saison CWL</span>
+              <span className="text-bone font-bold font-cinzel">{cwl.season}</span>
+              <span className="text-ash text-xs font-cinzel ml-auto">Round en cours : {roundIdx + 1}/{cwl.rounds?.length}</span>
+            </div>
+
+            <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">Clans participants</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              {(cwl.clans || []).map((c) => (
+                <div key={c.tag} className="card-stone p-3 flex flex-col items-center gap-2">
+                  {c.badgeUrls?.small && <img src={c.badgeUrls.small} className="w-10 h-10 object-contain" alt="" />}
+                  <span className="font-cinzel text-bone text-xs font-bold text-center">{c.name}</span>
+                  <span className="text-ash text-xs">{c.tag}</span>
+                </div>
+              ))}
+            </div>
+
+            {currentRound?.warTags && currentRound.warTags.filter(t => t !== '#0').length > 0 && (
+              <>
+                <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">
+                  Round {roundIdx + 1} — Matchups
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {currentRound.warTags.filter(t => t !== '#0').map((tag, i) => (
+                    <span key={i} className="text-ash text-xs font-cinzel px-3 py-1 border border-fog/40 rounded">
+                      Match {i + 1} : {tag}
+                    </span>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-        </>
-      )}
+        )}
+      </div>
     </div>
   )
 }
@@ -532,8 +536,7 @@ function LiguesTab({ members, loading, error }) {
 const TABS = [
   { key: 'membres',  label: 'Membres' },
   { key: 'attaques', label: 'Attaques' },
-  { key: 'guerre',   label: 'Guerre' },
-  { key: 'cwl',      label: 'CWL' },
+  { key: 'gdcldc',   label: 'GDC/LDC' },
   { key: 'raids',    label: 'Raids' },
   { key: 'ligues',   label: 'Ligues' },
 ]
@@ -598,8 +601,7 @@ export default function Guilde() {
 
       {tab === 'membres'  && <MembresTab  members={members} loading={membersLoading} error={membersError} />}
       {tab === 'attaques' && <AttaquesTab members={members} loading={membersLoading} error={membersError} />}
-      {tab === 'guerre'   && <GuerreTab   loading={false} error={null} />}
-      {tab === 'cwl'      && <CwlTab      loading={false} error={null} />}
+      {tab === 'gdcldc'   && <GdcLdcTab   loading={false} error={null} />}
       {tab === 'raids'    && <RaidsTab    loading={false} error={null} />}
       {tab === 'ligues'   && <LiguesTab   members={members} loading={membersLoading} error={membersError} />}
     </div>

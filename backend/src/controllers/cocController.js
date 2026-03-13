@@ -23,7 +23,26 @@ export async function clan(req, res) {
 export async function members(req, res) {
   try {
     const data = await getCached(`members:${CLAN_TAG}`, () => getClanMembers(CLAN_TAG))
-    res.json(data)
+    const memberList = data?.items || data || []
+    const enriched = await Promise.all(
+      memberList.map(async (m) => {
+        try {
+          const player = await getCached(`player:${m.tag}`, () => getPlayerInfo(m.tag))
+          return {
+            ...m,
+            attackWins: player.attackWins ?? 0,
+            defenseWins: player.defenseWins ?? 0,
+          }
+        } catch {
+          return { ...m, attackWins: 0, defenseWins: 0 }
+        }
+      })
+    )
+    if (data?.items) {
+      res.json({ ...data, items: enriched })
+    } else {
+      res.json(enriched)
+    }
   } catch (e) {
     res.status(502).json({ error: e.message })
   }
