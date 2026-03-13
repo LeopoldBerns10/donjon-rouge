@@ -648,8 +648,8 @@ export default function Guilde() {
   }, [])
 
   useEffect(() => {
-    if (location.state?.openTab === 'gdcldc') {
-      setTab('gdcldc')
+    if (location.state?.openTab) {
+      setTab(location.state.openTab)
     }
   }, [location.state])
 
