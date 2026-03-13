@@ -217,3 +217,47 @@ export function getRoleBadgeClass(role) {
   return badges[role] || 'bg-gray-800 border border-gray-600 text-gray-400'
 }
 
+const LEAGUE_ASSETS = 'https://xlibijjxzqsbayltorve.supabase.co/storage/v1/object/public/coc-assets/ligues'
+
+const LEAGUE_IMAGE_MAP = {
+  'Legend League':        `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
+  'Champion League I':    `${LEAGUE_ASSETS}/LB_big_dragon3.png`,
+  'Champion League II':   `${LEAGUE_ASSETS}/LB_big_dragon2.png`,
+  'Champion League III':  `${LEAGUE_ASSETS}/LB_big_dragon1.png`,
+  'Titan League I':       `${LEAGUE_ASSETS}/LB_big_titan.png`,
+  'Titan League II':      `${LEAGUE_ASSETS}/LB_big_titan.png`,
+  'Titan League III':     `${LEAGUE_ASSETS}/LB_big_titan.png`,
+  'Master League I':      `${LEAGUE_ASSETS}/LB_big_pekka.png`,
+  'Master League II':     `${LEAGUE_ASSETS}/LB_big_pekka.png`,
+  'Master League III':    `${LEAGUE_ASSETS}/LB_big_pekka.png`,
+  'Crystal League I':     `${LEAGUE_ASSETS}/LB_big_golem.png`,
+  'Crystal League II':    `${LEAGUE_ASSETS}/LB_big_golem.png`,
+  'Crystal League III':   `${LEAGUE_ASSETS}/LB_big_golem.png`,
+  'Gold League I':        `${LEAGUE_ASSETS}/LB_big_witch.png`,
+  'Gold League II':       `${LEAGUE_ASSETS}/LB_big_witch.png`,
+  'Gold League III':      `${LEAGUE_ASSETS}/LB_big_witch.png`,
+  'Silver League I':      `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
+  'Silver League II':     `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
+  'Silver League III':    `${LEAGUE_ASSETS}/LB_big_valyrie.png`,
+  'Bronze League I':      `${LEAGUE_ASSETS}/LB_big_wizard.png`,
+  'Bronze League II':     `${LEAGUE_ASSETS}/LB_big_wizard.png`,
+  'Bronze League III':    `${LEAGUE_ASSETS}/LB_big_wizard.png`,
+  'Warrior League I':     `${LEAGUE_ASSETS}/LB_big_archer.png`,
+  'Warrior League II':    `${LEAGUE_ASSETS}/LB_big_archer.png`,
+  'Warrior League III':   `${LEAGUE_ASSETS}/LB_big_archer.png`,
+  'Barbarian League I':   `${LEAGUE_ASSETS}/LB_big_barb.png`,
+  'Barbarian League II':  `${LEAGUE_ASSETS}/LB_big_barb.png`,
+  'Barbarian League III': `${LEAGUE_ASSETS}/LB_big_barb.png`,
+  'Unranked':             `${LEAGUE_ASSETS}/LB_big_skeleton.png`,
+}
+
+export function getLeagueImageUrl(leagueName) {
+  if (!leagueName) return null
+  return LEAGUE_IMAGE_MAP[leagueName] || `${LEAGUE_ASSETS}/LB_big_skeleton.png`
+}
+
+export function getLeagueShortName(leagueName) {
+  if (!leagueName) return ''
+  return leagueName.replace(/ League$/i, '')
+}
+

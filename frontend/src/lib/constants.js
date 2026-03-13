@@ -62,16 +62,16 @@ export const TROOP_ICONS = {
 }
 
 export const LEAGUE_INFO = {
-  'Legend League':    { color: '#9333ea', icon: '❄️' },
-  'Champion League I':   { color: '#ef4444', icon: '🏆' },
-  'Champion League II':  { color: '#ef4444', icon: '🏆' },
-  'Champion League III': { color: '#ef4444', icon: '🏆' },
-  'Titan League I':      { color: '#6366f1', icon: '⚔️' },
-  'Titan League II':     { color: '#6366f1', icon: '⚔️' },
-  'Titan League III':    { color: '#6366f1', icon: '⚔️' },
-  'Master League I':     { color: '#f59e0b', icon: '★' },
-  'Master League II':    { color: '#f59e0b', icon: '★' },
-  'Master League III':   { color: '#f59e0b', icon: '★' },
+  'Legend League':       { color: '#9333ea' },
+  'Champion League I':   { color: '#ef4444' },
+  'Champion League II':  { color: '#ef4444' },
+  'Champion League III': { color: '#ef4444' },
+  'Titan League I':      { color: '#6366f1' },
+  'Titan League II':     { color: '#6366f1' },
+  'Titan League III':    { color: '#6366f1' },
+  'Master League I':     { color: '#f59e0b' },
+  'Master League II':    { color: '#f59e0b' },
+  'Master League III':   { color: '#f59e0b' },
 }
 
 export const ROLE_COLORS = {

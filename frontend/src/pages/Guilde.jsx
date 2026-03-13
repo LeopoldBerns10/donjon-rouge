@@ -2,15 +2,10 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCocClan, useCocMembers, useCocWar, useCocRaids, useCocCwl } from '../hooks/useCocApi.js'
 import SectionHeader from '../components/SectionHeader.jsx'
-import { translateRole, getRoleBadgeClass, getTownHallImageUrl } from '../utils/cocHelpers.js'
+import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
 
 // ─── Constantes ligues & rôles ─────────────────────────────────────────────
 
-const LEAGUE_EMOJIS = {
-  'squelette': '💀', 'barbare': '⚔️', 'archer': '🏹', 'sorcier': '🔮',
-  'valkyrie': '🪓', 'sorcière': '🦇', 'golem': '🪨', 'géant': '🦶',
-  'p.e.k.k.a': '⚙️', 'electro': '⚡', 'legend': '❄️'
-}
 const LEAGUE_ORDER = {
   'legend': 10, 'electro': 9, 'p.e.k.k.a': 8,
   'géant': 7, 'golem': 6, 'sorcière': 5,
@@ -21,7 +16,6 @@ const ROLE_ORDER = { leader: 0, coLeader: 1, admin: 2, member: 3 }
 
 function getLeagueName(m) { return m.leagueTier?.name || m.league?.name || null }
 function leagueKey(name) { return name ? name.toLowerCase().split(' ')[0] : '' }
-function getLeagueEmoji(name) { return LEAGUE_EMOJIS[leagueKey(name)] || '' }
 function getLeagueOrder(name) { return LEAGUE_ORDER[leagueKey(name)] ?? -1 }
 
 // ─── Composants partagés ───────────────────────────────────────────────────
@@ -38,12 +32,19 @@ function StatBadge({ icon, label, value }) {
 
 function LeagueBadge({ member }) {
   const name = getLeagueName(member)
-  if (!name) return <span className="text-ash text-xs">Sans ligue</span>
-  const emoji = getLeagueEmoji(name)
-  const short = name.replace(/ \d+$/, '').replace(/ League$/i, '')
+  if (!name) return <span className="text-ash text-xs">—</span>
+  const imgUrl = getLeagueImageUrl(name)
+  const short = getLeagueShortName(name)
   return (
     <div className="flex items-center justify-center gap-1">
-      {emoji && <span>{emoji}</span>}
+      {imgUrl && (
+        <img
+          src={imgUrl}
+          alt={short}
+          className="w-6 h-6 object-contain"
+          onError={(e) => { e.target.style.display = 'none' }}
+        />
+      )}
       <span className="text-xs text-ash hidden lg:inline">{short}</span>
     </div>
   )

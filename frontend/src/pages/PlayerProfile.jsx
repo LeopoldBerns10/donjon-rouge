@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useCocPlayer, useCocWar } from '../hooks/useCocApi.js'
 import { LEAGUE_INFO } from '../lib/constants.js'
-import { translateRole, getTroopImageUrl, getTownHallImageUrl } from '../utils/cocHelpers.js'
+import { translateRole, getTroopImageUrl, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 
 const TABS = [
@@ -200,10 +200,18 @@ export default function PlayerProfile() {
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-3 mb-1">
               <h1 className="text-2xl font-bold font-cinzel text-bone">{player.name}</h1>
-              {leagueInfo && (
-                <span style={{ color: leagueInfo.color }} className="text-sm font-cinzel">
-                  {leagueInfo.icon} {league?.replace(' League', '')}
-                </span>
+              {league && (
+                <div className="flex items-center gap-1">
+                  <img
+                    src={getLeagueImageUrl(league)}
+                    alt={league}
+                    className="w-8 h-8 object-contain"
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                  <span className="text-sm font-cinzel text-bone">
+                    {getLeagueShortName(league)}
+                  </span>
+                </div>
               )}
             </div>
             <p className="text-ash text-sm font-cinzel">{player.tag}</p>
@@ -366,9 +374,17 @@ export default function PlayerProfile() {
             <div className="bg-stone p-5 rounded border border-fog mb-4">
               <p className="text-xs font-cinzel uppercase text-ash mb-3">Ligue Ranked actuelle</p>
               <div>
-                <p className="font-bold text-bone font-cinzel text-xl">
-                  {player.leagueTier?.name || player.league?.name || '—'}
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <img
+                    src={getLeagueImageUrl(player.leagueTier?.name || player.league?.name)}
+                    alt=""
+                    className="w-10 h-10 object-contain"
+                    onError={(e) => { e.target.style.display = 'none' }}
+                  />
+                  <p className="font-bold text-bone font-cinzel text-xl">
+                    {player.leagueTier?.name || player.league?.name || '—'}
+                  </p>
+                </div>
                 <p className="text-3xl font-bold text-gold-light mt-1 font-cinzel">
                   {(player.trophies || 0).toLocaleString()} 🏆
                 </p>
@@ -395,7 +411,12 @@ export default function PlayerProfile() {
                           : 'border-fog/30 text-ash'
                       }`}
                     >
-                      <span>{l.icon}</span>
+                      <img
+                        src={getLeagueImageUrl(l.name + ' League')}
+                        alt={l.name}
+                        className="w-6 h-6 object-contain"
+                        onError={(e) => { e.target.style.display = 'none' }}
+                      />
                       <span className="mt-0.5">{l.name}</span>
                     </div>
                   )
