@@ -14,6 +14,7 @@ import cocRoutes from './routes/coc.js'
 import forumRoutes from './routes/forum.js'
 import chatRouter from './routes/chat.js'
 import announcementsRoutes from './routes/announcements.js'
+import warSignupsRoutes from './routes/warSignups.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -40,6 +41,7 @@ app.use('/api/coc', cocRoutes)
 app.use('/api/forum', forumRoutes)
 app.use('/api/chat', chatRouter(io))
 app.use('/api/announcements', announcementsRoutes)
+app.use('/api/war-signups', warSignupsRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
   const result = await syncMembers()
@@ -136,4 +138,29 @@ httpServer.listen(PORT, async () => {
   await syncMembers()
   console.log('✅ Initialisation terminée')
   setInterval(syncMembers, 10 * 60 * 1000)
+
+  // Vérification toutes les heures : si guerre en cours depuis > 24h → reset inscriptions
+  setInterval(async () => {
+    try {
+      const { getCurrentWar } = await import('./services/cocApiService.js')
+      const war = await getCurrentWar(process.env.COC_CLAN_TAG)
+      if (war?.state === 'inWar' && war?.startTime) {
+        const startTime = new Date(
+          war.startTime.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6Z')
+        )
+        const hoursSinceStart = (Date.now() - startTime.getTime()) / (1000 * 60 * 60)
+        if (hoursSinceStart >= 24) {
+          const { count } = await supabase
+            .from('war_signups')
+            .select('*', { count: 'exact', head: true })
+          if (count > 0) {
+            await supabase.from('war_signups').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+            console.log('✅ Inscriptions GDC/LDC remises à zéro (guerre > 24h)')
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Erreur reset war signups:', err.message)
+    }
+  }, 60 * 60 * 1000) // toutes les heures
 })

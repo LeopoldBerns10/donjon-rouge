@@ -99,6 +99,15 @@ export default function Home() {
           >
             Forum
           </Link>
+          <Link
+            to="/guilde"
+            onClick={() => setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('open-war-signups'))
+            }, 300)}
+            className="px-6 py-3 font-cinzel uppercase tracking-wider text-sm rounded border border-crimson text-crimson hover:bg-crimson/20 transition-all hover:scale-105"
+          >
+            ⚔️ Inscriptions GDC/LDC
+          </Link>
           <a
             href="https://discord.gg/GQ5a6q6X"
             target="_blank"
