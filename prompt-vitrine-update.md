@@ -1,3 +1,13 @@
+# 🏰 Prompt Claude Code — Donjon Rouge
+## Mise à jour page Vitrine — Actu & Créateurs de contenu
+
+---
+
+## FICHIER — `frontend/src/pages/Vitrine.jsx`
+
+Remplace entièrement le fichier par :
+
+```jsx
 import SectionHeader from '../components/SectionHeader.jsx'
 
 const PATCH_NOTES = [
@@ -188,3 +198,18 @@ export default function Vitrine() {
     </div>
   )
 }
+```
+
+---
+
+## DÉPLOIEMENT
+
+```bash
+git add .
+git commit -m "feat: mise à jour page Vitrine actu février 2026 + créateurs FR"
+git push origin main
+```
+
+---
+
+*Donjon Rouge — Clan #29292QPRC*
