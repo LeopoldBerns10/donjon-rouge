@@ -104,7 +104,6 @@ export default function Tracker() {
               <tr className="border-b border-fog text-ash font-cinzel uppercase text-xs tracking-widest">
                 <th className="py-3 px-3 text-left">Rang</th>
                 <th className="py-3 px-3 text-left">Joueur</th>
-                <th className="py-3 px-3 text-center">HDV</th>
                 <th className="py-3 px-3 text-center">Trophées</th>
                 <th className="py-3 px-3 text-center">Dons</th>
                 <th className="py-3 px-3 text-center">Rôle</th>
@@ -126,12 +125,20 @@ export default function Tracker() {
                     </td>
                     <td className="py-3 px-3">
                       <div className="flex items-center gap-2">
-                        <img
-                          src={getTownHallImageUrl(member.townHallLevel)}
-                          alt={`HDV${member.townHallLevel}`}
-                          className="w-8 h-8 object-contain flex-shrink-0"
-                          onError={(e) => { e.target.style.display = 'none' }}
-                        />
+                        <div className="relative flex-shrink-0">
+                          <img
+                            src={getTownHallImageUrl(member.townHallLevel)}
+                            alt={`HDV${member.townHallLevel}`}
+                            className="w-10 h-10 object-contain"
+                            onError={(e) => { e.target.style.display = 'none' }}
+                          />
+                          <span
+                            className="absolute -bottom-1 -right-1 text-xs font-bold text-white px-1 rounded"
+                            style={{ background: '#C41E3A', fontSize: '9px' }}
+                          >
+                            {member.townHallLevel}
+                          </span>
+                        </div>
                         <div>
                           <div className="font-semibold text-bone group-hover:text-gold-light transition-colors">
                             {member.name}
@@ -139,12 +146,6 @@ export default function Tracker() {
                           <div className="text-xs text-ash">{member.tag}</div>
                         </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span className="px-2 py-0.5 rounded text-xs font-bold text-white"
-                        style={{ background: '#C41E3A' }}>
-                        HDV{member.townHallLevel}
-                      </span>
                     </td>
                     <td className="py-3 px-3 text-center font-cinzel text-gold-light">
                       {member.trophies?.toLocaleString()}
@@ -158,7 +159,7 @@ export default function Tracker() {
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center">
-                      {leagueName ? (
+                      {leagueName && getLeagueImageUrl(leagueName) ? (
                         <div className="flex items-center justify-center gap-1">
                           <img
                             src={getLeagueImageUrl(leagueName)}
