@@ -136,8 +136,15 @@ export default function PlayerProfile() {
     'Inferno Dragon', 'Super Minion', 'Super Valkyrie', 'Super Witch',
     'Ice Hound', 'Super Bowler', 'Super Miner', 'Super Hog Rider', 'Super Yeti'
   ]
-  const SIEGE_NAMES = ['Wall Wrecker', 'Battle Blimp', 'Stone Slammer', 'Siege Barracks', 'Log Launcher', 'Flame Flinger', 'Battle Drill']
-  const PET_NAMES = ['L.A.S.S.I', 'Electro Owl', 'Mighty Yak', 'Unicorn', 'Phoenix', 'Poison Lizard', 'Diggy', 'Frosty', 'Spirit Fox', 'Angry Jelly', 'Sneezy']
+  const SIEGE_NAMES = [
+    'Wall Wrecker', 'Battle Blimp', 'Stone Slammer', 'Siege Barracks',
+    'Log Launcher', 'Flame Flinger', 'Battle Drill', 'Troop Launcher'
+  ]
+  const PET_NAMES = [
+    'L.A.S.S.I', 'Electro Owl', 'Mighty Yak', 'Unicorn', 'Phoenix',
+    'Poison Lizard', 'Diggy', 'Frosty', 'Spirit Fox', 'Angry Jelly',
+    'Sneezy', 'Greedy Raven'
+  ]
 
   const pets = player.troops?.filter((t) => PET_NAMES.includes(t.name)) || []
   const siegeMachines = player.troops?.filter((t) => SIEGE_NAMES.includes(t.name)) || []

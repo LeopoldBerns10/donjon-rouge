@@ -35,8 +35,8 @@ const TROOP_FILE_MAP = {
   'Wizard':           'Icon_HV_Wizard.png',
   'Healer':           'Icon_HV_Healer.png',
   'Dragon':           'Icon_HV_Dragon.png',
-  'P.E.K.K.A':        'Icon_HV_Pekka.png',
-  'Baby Dragon':      'Icon_HV_Baby_Dragon.png',
+  'P.E.K.K.A':        'Icon_HV_P.E.K.K.A.png',
+  'Baby Dragon':      'Icon_BB_Baby_Dragon.png',
   'Miner':            'Icon_HV_Miner.png',
   'Electro Dragon':   'Icon_HV_Electro_Dragon.png',
   'Yeti':             'Icon_HV_Yeti.png',
@@ -55,9 +55,11 @@ const TROOP_FILE_MAP = {
   'Valkyrie':         'Icon_HV_Valkyrie.png',
   'Minion':           'Icon_HV_Minion.png',
   'Furnace':          'Icon_HV_Furnace.png',
+  'Thrower':          'Thrower_05_grass.png',
+  'Meteor Golem':     'MeteoriteGolem_withGrassbase_f61_layered_3k .png',
 
   // Sorts
-  'Lightning Spell':  'Icon_HV_Spell_Lightning_Spell.png',
+  'Lightning Spell':  'Icon_HV_Spell_Lightning_new.png',
   'Healing Spell':    'Icon_HV_Spell_Heal.png',
   'Rage Spell':       'Icon_HV_Spell_Rage.png',
   'Freeze Spell':     'Icon_HV_Spell_Freeze_new.png',
@@ -73,6 +75,8 @@ const TROOP_FILE_MAP = {
   'Ice Spell':        'Icon_HV_Dark_Spell_Ice.png',
   'Overgrowth Spell': 'Icon_HV_Dark_Spell_Overgrowth.png',
   'Poison Spell':     'Icon_HV_Dark_Spell_Poison.png',
+  'Ice Block Spell':  'Icon_HV_Dark_Spell_Ice_block.png',
+  'Totem Spell':      'Icon_HV_Spell_totem.png',
 
   // Machines de siège
   'Wall Wrecker':     'Siege_Machine_HV_Wall_Wrecker_1.png',
@@ -82,10 +86,11 @@ const TROOP_FILE_MAP = {
   'Log Launcher':     'Siege_Machine_HV_Log_Launcher_2.png',
   'Flame Flinger':    'Icon_HV_Siege_Machine_Flame_Flinger.png',
   'Battle Drill':     'Siege_Machine_HV_Battle_Drill_2.png',
+  'Troop Launcher':   'Troop_Launcher_NoGrass_Shadow.png',
 
   // Héros MDO
-  'Battle Machine':   'Icon_HV_Hero_Battle_Machine.png',
-  'Battle Copter':    'Icon_HV_Hero_Battle_Copter.png',
+  'Battle Machine':     'Icon_BB_Hero_Battle_Machine.png',
+  'Battle Copter':      'Icon_BB_Hero_Battle_Copter.png',
 
   // Familiers (pets)
   'L.A.S.S.I':        'Icon_HV_Hero_Pets_LASSI.png',
@@ -99,6 +104,7 @@ const TROOP_FILE_MAP = {
   'Spirit Fox':       'Hero_Pet_HV_Spirit_Fox.png',
   'Angry Jelly':      'Hero_Pet_HV_Angry_Jelly_02.png',
   'Sneezy':           'Icon_HV_Hero_Pets_Sneezy.png',
+  'Greedy Raven':     'pet_Greedy_Raven_2_grass.png',
 
   // Équipements — Archer Queen
   'Archer Puppet':        'Hero_Equipment_AQ_Archer_Puppet.png',
