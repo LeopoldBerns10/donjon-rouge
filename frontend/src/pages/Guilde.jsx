@@ -659,7 +659,7 @@ export default function Guilde() {
 
       {/* Clan header */}
       {clan && (
-        <div className="card-stone p-6 mb-8 flex flex-col md:flex-row gap-6 items-start">
+        <div className="card-stone p-6 mb-8 flex flex-col md:flex-row gap-6 items-start relative">
           <div className="flex-shrink-0 flex flex-col items-center gap-2">
             {clan.badgeUrls?.large && (
               <img src={clan.badgeUrls.large} alt="Badge clan" className="w-28 h-28 object-contain" />
@@ -682,6 +682,12 @@ export default function Guilde() {
             <StatBadge icon="💎" label="Points Capital" value={clan.clanCapitalPoints?.toLocaleString()} />
             <StatBadge icon="📍" label="Localisation" value={clan.location?.name || '—'} />
           </div>
+          <img
+            src="/images/logo_2.png"
+            alt="Donjon Rouge"
+            className="h-32 w-auto object-contain absolute top-4 right-4"
+            onError={(e) => { e.target.style.display = 'none' }}
+          />
         </div>
       )}
       {clanLoading && <p className="text-center text-ash font-cinzel animate-pulse mb-8">Chargement du clan...</p>}

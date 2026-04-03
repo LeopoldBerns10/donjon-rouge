@@ -161,7 +161,7 @@ export default function Vitrine() {
         <div
           className="absolute inset-0"
           style={{
-            backgroundImage: 'url(/images/logo.png)',
+            backgroundImage: 'url(/images/logo_2.png)',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             filter: 'blur(8px)',
@@ -169,7 +169,7 @@ export default function Vitrine() {
           }}
         />
         <div className="relative z-10 flex flex-col items-center gap-4">
-          <img src="/images/logo.png" alt="Donjon Rouge" className="h-48 w-auto object-contain" />
+          <img src="/images/logo_2.png" alt="Donjon Rouge" className="h-48 w-auto object-contain mx-auto" />
           <p className="font-cinzel text-xs uppercase tracking-widest" style={{ color: '#999' }}>
             GUILDE CLASH OF CLANS
           </p>

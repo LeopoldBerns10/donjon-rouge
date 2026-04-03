@@ -37,7 +37,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
             <img
-              src="/images/logo.png"
+              src="/images/logo_2.png"
               alt="Donjon Rouge"
               className="h-10 w-auto object-contain"
               onError={(e) => { e.target.style.display = 'none' }}
