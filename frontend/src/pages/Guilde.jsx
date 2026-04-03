@@ -682,12 +682,6 @@ export default function Guilde() {
             <StatBadge icon="💎" label="Points Capital" value={clan.clanCapitalPoints?.toLocaleString()} />
             <StatBadge icon="📍" label="Localisation" value={clan.location?.name || '—'} />
           </div>
-          <img
-            src="/images/logo_2.png"
-            alt="Donjon Rouge"
-            className="h-32 w-auto object-contain absolute top-4 right-4"
-            onError={(e) => { e.target.style.display = 'none' }}
-          />
         </div>
       )}
       {clanLoading && <p className="text-center text-ash font-cinzel animate-pulse mb-8">Chargement du clan...</p>}
