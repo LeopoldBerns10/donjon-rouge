@@ -40,7 +40,6 @@ export default function Navbar() {
               src="/images/logo_2.png"
               alt="Donjon Rouge"
               className="h-10 w-auto object-contain"
-              onError={(e) => { e.target.style.display = 'none' }}
             />
             <span className="font-cinzel-deco font-bold text-xl text-gold-gradient">
               DONJON ROUGE
