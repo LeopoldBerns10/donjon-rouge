@@ -389,10 +389,20 @@ export default function Vitrine() {
             onMouseEnter={e => e.currentTarget.style.border = '1px solid #dc2626'}
             onMouseLeave={e => e.currentTarget.style.border = '1px solid #1f1f1f'}
           >
-            <img src="/images/logo.png" alt="Logo Donjon Rouge" className="h-40 w-auto object-contain" />
+            <img src="/images/logo_2.png" alt="Logo Donjon Rouge" className="h-40 w-auto object-contain" />
             <p className="font-cinzel text-xs uppercase tracking-widest" style={{ color: '#666' }}>
               LOGO OFFICIEL
             </p>
+            <a
+              href="/images/logo_2.png"
+              download="logo_donjon_rouge.png"
+              className="px-4 py-2 rounded font-cinzel text-xs uppercase tracking-wider transition-all"
+              style={{ background: '#1f1f1f', color: '#f0f0f0', border: '1px solid #333' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.color = '#dc2626' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#f0f0f0' }}
+            >
+              Télécharger
+            </a>
           </div>
 
           {/* Affiche recrutement */}
