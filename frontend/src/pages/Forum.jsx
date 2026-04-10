@@ -6,13 +6,9 @@ import { useSocket } from '../hooks/useSocket.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import RoleTag from '../components/RoleTag.jsx'
 import { ROLE_COLORS } from '../lib/constants.js'
+import { formatCocRole } from '../utils/roles.js'
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-
-function displayRole(coc_role) {
-  const map = { leader: 'Chef', coLeader: 'Co-chef', admin: 'Aîné', member: 'Membre' }
-  return map[coc_role] || coc_role || 'Membre'
-}
 
 function timeAgo(str) {
   if (!str) return ''
@@ -127,7 +123,7 @@ function PostDetail({ post, user, isAdmin, onClose, onDelete }) {
               {(post.author?.coc_name || post.author_name || '?').charAt(0).toUpperCase()}
             </div>
             <span className="text-gray-300 text-sm font-medium">{post.author?.coc_name || post.author_name || 'Inconnu'}</span>
-            {post.author?.coc_role && <RoleTag role={displayRole(post.author.coc_role)} />}
+            {post.author?.coc_role && <RoleTag role={formatCocRole(post.author.coc_role)} />}
             <span className="text-gray-600 text-xs ml-auto">
               {new Date(post.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </span>
@@ -550,7 +546,7 @@ function ForumDiscord({ user }) {
                         {post.author?.coc_name || post.author_name || 'Inconnu'}
                       </span>
                       {post.author?.coc_role && (
-                        <RoleTag role={displayRole(post.author.coc_role)} />
+                        <RoleTag role={formatCocRole(post.author.coc_role)} />
                       )}
                     </div>
 

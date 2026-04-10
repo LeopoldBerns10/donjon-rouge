@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
 import SectionHeader from '../components/SectionHeader.jsx'
+import { formatCocRole } from '../utils/roles.js'
 
 // ── Formatage de la dernière connexion ────────────────────────────────────────
 
@@ -34,15 +35,28 @@ function roleBadge(role) {
 // ── Modal de confirmation ─────────────────────────────────────────────────────
 
 function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmLabel, confirmClass }) {
+  useEffect(() => {
+    if (!isOpen) return
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [isOpen])
+
   if (!isOpen) return null
+
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#111111] border border-[#1f1f1f] rounded-xl shadow-2xl w-full max-w-md">
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="bg-[#111111] border border-[#1f1f1f] rounded-xl shadow-2xl w-full max-w-md"
+        onClick={e => e.stopPropagation()}
+      >
         <div className="px-6 py-4 border-b border-[#1f1f1f]">
           <h3 className="text-base font-bold text-white uppercase tracking-wide font-cinzel">{title}</h3>
         </div>
-        <div className="px-6 py-4">
-          <p className="text-sm text-gray-400">{message}</p>
+        <div className="px-6 py-5">
+          <p className="text-sm text-gray-400 leading-relaxed">{message}</p>
         </div>
         <div className="px-6 py-4 border-t border-[#1f1f1f] flex gap-3 justify-end">
           <button
@@ -161,7 +175,7 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
 
                 {/* Rôle CoC */}
                 <td className="py-3 px-4 text-center hidden md:table-cell">
-                  <span className="text-xs text-ash">{u.coc_role || '—'}</span>
+                  <span className="text-xs text-ash">{formatCocRole(u.coc_role)}</span>
                 </td>
 
                 {/* Rôle Site */}
