@@ -61,7 +61,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {user?.isAdmin && (
+            {['admin', 'superadmin'].includes(user?.site_role) && (
               <Link
                 to="/admin"
                 className={`font-cinzel text-sm uppercase tracking-widest transition-colors ${
@@ -107,7 +107,7 @@ export default function Navbar() {
                     <div className="px-4 py-3 border-b border-fog/20">
                       <p className="font-cinzel text-bone text-sm font-bold">{user.coc_name}</p>
                       <p className="text-ash text-xs">{user.coc_tag}</p>
-                      {user.isAdmin && (
+                      {['admin', 'superadmin'].includes(user?.site_role) && (
                         <span className="text-xs font-cinzel uppercase text-crimson">Admin</span>
                       )}
                     </div>
@@ -128,7 +128,7 @@ export default function Navbar() {
                       >
                         <span>📊</span> Mes Stats
                       </Link>
-                      {user.isAdmin && (
+                      {['admin', 'superadmin'].includes(user?.site_role) && (
                         <Link
                           to="/admin"
                           onClick={() => setDropdownOpen(false)}
@@ -187,7 +187,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {user?.isAdmin && (
+            {['admin', 'superadmin'].includes(user?.site_role) && (
               <Link to="/admin" onClick={() => setMenuOpen(false)} className="font-cinzel text-sm uppercase text-gold">
                 Admin
               </Link>
