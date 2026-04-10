@@ -32,15 +32,16 @@ export async function login(req, res) {
     })
   }
 
-  // Member login (tag CoC + mot de passe)
-  if (!coc_tag || !password) {
-    return res.status(400).json({ error: 'Tag CoC et mot de passe requis' })
+  // Member login (pseudo + mot de passe, défaut = tag CoC)
+  const { coc_name, password: memberPassword } = req.body
+  if (!coc_name || !memberPassword) {
+    return res.status(400).json({ error: 'Pseudo et mot de passe requis' })
   }
 
   const { data: user, error } = await supabase
     .from('users')
     .select('id, coc_name, coc_tag, coc_role, password_hash, site_role, is_disabled, has_custom_password, is_first_login')
-    .eq('coc_tag', coc_tag.toUpperCase())
+    .eq('coc_name', coc_name)
     .single()
 
   if (error || !user) return res.status(401).json({ error: 'Identifiants incorrects' })
@@ -58,7 +59,7 @@ export async function login(req, res) {
     return res.status(403).json({ error: 'Compte désactivé' })
   }
 
-  const valid = await bcrypt.compare(password, user.password_hash)
+  const valid = await bcrypt.compare(memberPassword, user.password_hash)
   if (!valid) return res.status(401).json({ error: 'Identifiants incorrects' })
 
   const token = jwt.sign(

@@ -18,7 +18,7 @@ export default function Login() {
       const credentials =
         tab === 'admin'
           ? { email: form.email, password: form.password }
-          : { coc_tag: form.cocTag, password: form.password }
+          : { coc_name: form.cocName, password: form.password }
 
       const result = await login(credentials)
 
@@ -71,13 +71,13 @@ export default function Login() {
           {tab === 'member' ? (
             <>
               <div>
-                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Tag CoC</label>
+                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Pseudo en jeu</label>
                 <input
                   type="text"
-                  value={form.cocTag}
-                  onChange={(e) => setForm({ ...form, cocTag: e.target.value })}
+                  value={form.cocName}
+                  onChange={(e) => setForm({ ...form, cocName: e.target.value })}
                   className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
-                  placeholder="#XXXXXXXX"
+                  placeholder="Ton pseudo CoC"
                   required
                 />
               </div>
@@ -88,7 +88,7 @@ export default function Login() {
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
-                  placeholder="Ton mot de passe"
+                  placeholder="Par défaut : ton tag #XXXXXXXX"
                   required
                 />
               </div>
