@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { AuthProvider } from './hooks/useAuth.jsx'
+import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
+import { useToast } from './components/Toast.jsx'
+import ChangePasswordModal from './components/ChangePasswordModal.jsx'
 import api from './lib/api.js'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
@@ -50,30 +52,59 @@ function AnnouncementToast() {
   )
 }
 
+// Composant interne qui accède au contexte auth pour les toasts et modals
+function AppContent() {
+  const { welcomeData, clearWelcomeData } = useAuth()
+  const { addToast, ToastContainer } = useToast()
+  const [showPwdModal, setShowPwdModal] = useState(false)
+
+  useEffect(() => {
+    if (!welcomeData) return
+    if (welcomeData.requirePwdChange) {
+      addToast('Bienvenue ! Veuillez changer votre mot de passe', 'info')
+      setShowPwdModal(true)
+    } else {
+      addToast(`Bienvenue ${welcomeData.name} !`, 'success')
+    }
+    clearWelcomeData()
+  }, [welcomeData])
+
+  return (
+    <div className="min-h-screen flex flex-col" style={{ background: '#0e0e0e' }}>
+      <ToastContainer />
+      <AnnouncementToast />
+      {showPwdModal && (
+        <ChangePasswordModal
+          onClose={() => setShowPwdModal(false)}
+          onSuccess={() => addToast('Mot de passe changé avec succès !', 'success')}
+        />
+      )}
+      <Navbar />
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/changer-mot-de-passe" element={<PrivateRoute><ChangePassword /></PrivateRoute>} />
+          <Route path="/tracker" element={<Tracker />} />
+          <Route path="/tracker/:tag" element={<PlayerProfile />} />
+          <Route path="/forum" element={<Forum />} />
+          <Route path="/annonces" element={<Announcements />} />
+          <Route path="/vitrine" element={<Vitrine />} />
+          <Route path="/guilde" element={<Guilde />} />
+          <Route path="/admin" element={<Admin />} />
+          <Route path="/mon-profil" element={<PrivateRoute><MonProfil /></PrivateRoute>} />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <div className="min-h-screen flex flex-col" style={{ background: '#0e0e0e' }}>
-          <AnnouncementToast />
-          <Navbar />
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/changer-mot-de-passe" element={<PrivateRoute><ChangePassword /></PrivateRoute>} />
-              <Route path="/tracker" element={<Tracker />} />
-              <Route path="/tracker/:tag" element={<PlayerProfile />} />
-              <Route path="/forum" element={<Forum />} />
-              <Route path="/annonces" element={<Announcements />} />
-              <Route path="/vitrine" element={<Vitrine />} />
-              <Route path="/guilde" element={<Guilde />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/mon-profil" element={<PrivateRoute><MonProfil /></PrivateRoute>} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+        <AppContent />
       </BrowserRouter>
     </AuthProvider>
   )

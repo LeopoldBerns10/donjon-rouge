@@ -29,6 +29,12 @@ export async function login(req, res) {
     return res.status(401).json({ error: 'Mot de passe incorrect' })
   }
 
+  // Mettre à jour la dernière connexion
+  await supabase
+    .from('users')
+    .update({ last_login: new Date().toISOString() })
+    .eq('id', user.id)
+
   const token = jwt.sign(
     {
       id: user.id,

@@ -5,31 +5,12 @@ import supabase from '../lib/supabase.js'
 export async function getUsers(req, res) {
   const { data, error } = await supabase
     .from('users')
-    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, created_at')
+    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, last_login, created_at')
     .order('coc_name')
 
   if (error) return res.status(500).json({ error: error.message })
 
-  const userIds = (data || []).map((u) => u.id)
-
-  const { data: sessions } = await supabase
-    .from('user_sessions')
-    .select('user_id, last_seen, is_online')
-    .in('user_id', userIds)
-    .order('last_seen', { ascending: false })
-
-  const sessionMap = {}
-  for (const s of sessions || []) {
-    if (!sessionMap[s.user_id]) sessionMap[s.user_id] = s
-  }
-
-  return res.json(
-    (data || []).map((u) => ({
-      ...u,
-      last_seen: sessionMap[u.id]?.last_seen || null,
-      is_online: sessionMap[u.id]?.is_online || false,
-    }))
-  )
+  return res.json(data || [])
 }
 
 // Reset mot de passe → remet le coc_tag comme mdp

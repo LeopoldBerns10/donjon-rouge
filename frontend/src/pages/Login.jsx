@@ -14,12 +14,8 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const userData = await login({ coc_name: form.cocName, password: form.password })
-      if (userData?.has_custom_password === false) {
-        navigate('/changer-mot-de-passe')
-      } else {
-        navigate('/')
-      }
+      await login({ coc_name: form.cocName, password: form.password })
+      navigate('/')
     } catch (err) {
       setError(err.response?.data?.error || 'Une erreur est survenue')
     } finally {

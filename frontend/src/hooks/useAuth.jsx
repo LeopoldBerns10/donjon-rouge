@@ -13,6 +13,7 @@ export function AuthProvider({ children }) {
     }
   })
   const [loading, setLoading] = useState(true)
+  const [welcomeData, setWelcomeData] = useState(null)
 
   useEffect(() => {
     const token = localStorage.getItem('dr_token')
@@ -40,6 +41,10 @@ export function AuthProvider({ children }) {
     localStorage.setItem('dr_token', token)
     localStorage.setItem('dr_user', JSON.stringify(userData))
     setUser(userData)
+    setWelcomeData({
+      name: userData.coc_name,
+      requirePwdChange: !userData.has_custom_password,
+    })
     return userData
   }
 
@@ -57,13 +62,21 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  function clearWelcomeData() {
+    setWelcomeData(null)
+  }
+
   const isAdmin = user?.site_role === 'admin' || user?.site_role === 'superadmin'
   const isSuperAdmin = user?.site_role === 'superadmin'
   const isChief = isAdmin || user?.coc_role === 'leader' || user?.coc_role === 'coLeader'
   const userRole = user?.site_role || 'member'
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, changePassword, logout, isAdmin, isSuperAdmin, isChief, userRole }}>
+    <AuthContext.Provider value={{
+      user, loading, login, changePassword, logout,
+      isAdmin, isSuperAdmin, isChief, userRole,
+      welcomeData, clearWelcomeData,
+    }}>
       {children}
     </AuthContext.Provider>
   )
