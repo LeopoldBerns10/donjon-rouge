@@ -61,7 +61,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/change-password" element={<PrivateRoute><ChangePassword /></PrivateRoute>} />
+              <Route path="/changer-mot-de-passe" element={<PrivateRoute><ChangePassword /></PrivateRoute>} />
               <Route path="/tracker" element={<Tracker />} />
               <Route path="/tracker/:tag" element={<PlayerProfile />} />
               <Route path="/forum" element={<Forum />} />

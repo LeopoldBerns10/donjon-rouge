@@ -5,8 +5,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 export default function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const [tab, setTab] = useState('member')
-  const [form, setForm] = useState({ cocName: '', cocTag: '', email: '', password: '' })
+  const [form, setForm] = useState({ cocName: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -15,15 +14,9 @@ export default function Login() {
     setError('')
     setLoading(true)
     try {
-      const credentials =
-        tab === 'admin'
-          ? { email: form.email, password: form.password }
-          : { coc_name: form.cocName, password: form.password }
-
-      const result = await login(credentials)
-
-      if (result?.requirePasswordChange) {
-        navigate('/change-password')
+      const userData = await login({ coc_name: form.cocName, password: form.password })
+      if (userData?.has_custom_password === false) {
+        navigate('/changer-mot-de-passe')
       } else {
         navigate('/')
       }
@@ -41,82 +34,29 @@ export default function Login() {
           Connexion
         </h1>
 
-        {/* Tabs */}
-        <div className="flex mb-6 border border-fog/30 rounded overflow-hidden">
-          <button
-            onClick={() => { setTab('member'); setError('') }}
-            className={`flex-1 py-2 font-cinzel text-sm uppercase tracking-widest transition-colors ${
-              tab === 'member'
-                ? 'text-bone'
-                : 'text-ash hover:text-bone'
-            }`}
-            style={tab === 'member' ? { background: 'linear-gradient(135deg, #6B0000, #C41E3A)' } : { background: 'transparent' }}
-          >
-            Membre
-          </button>
-          <button
-            onClick={() => { setTab('admin'); setError('') }}
-            className={`flex-1 py-2 font-cinzel text-sm uppercase tracking-widest transition-colors ${
-              tab === 'admin'
-                ? 'text-bone'
-                : 'text-ash hover:text-bone'
-            }`}
-            style={tab === 'admin' ? { background: 'linear-gradient(135deg, #6B0000, #C41E3A)' } : { background: 'transparent' }}
-          >
-            Admin
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {tab === 'member' ? (
-            <>
-              <div>
-                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Pseudo en jeu</label>
-                <input
-                  type="text"
-                  value={form.cocName}
-                  onChange={(e) => setForm({ ...form, cocName: e.target.value })}
-                  className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
-                  placeholder="Ton pseudo CoC"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Mot de passe</label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
-                  placeholder="Par défaut : ton tag #XXXXXXXX"
-                  required
-                />
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Mot de passe</label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
-                  required
-                />
-              </div>
-            </>
-          )}
+          <div>
+            <label className="block text-xs font-cinzel uppercase text-ash mb-1">Pseudo en jeu</label>
+            <input
+              type="text"
+              value={form.cocName}
+              onChange={(e) => setForm({ ...form, cocName: e.target.value })}
+              className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
+              placeholder="Ton pseudo CoC"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-cinzel uppercase text-ash mb-1">Mot de passe</label>
+            <input
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
+              placeholder="Par défaut : ton tag #XXXXXXXX"
+              required
+            />
+          </div>
 
           {error && <p className="text-crimson text-sm">{error}</p>}
 

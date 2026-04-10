@@ -1,26 +1,17 @@
 import bcrypt from 'bcryptjs'
 import supabase from '../lib/supabase.js'
 
-function canAdmin(role) {
-  return role === 'admin' || role === 'superadmin'
-}
-
+// Liste tous les utilisateurs
 export async function getUsers(req, res) {
-  if (!canAdmin(req.user.site_role)) return res.status(403).json({ error: 'Accès refusé' })
-
   const { data, error } = await supabase
     .from('users')
-    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, created_at, updated_at')
-    .order('created_at', { ascending: false })
+    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, created_at')
+    .order('coc_name')
 
-  if (error) {
-    console.error('getUsers error:', error)
-    return res.status(500).json({ error: error.message })
-  }
+  if (error) return res.status(500).json({ error: error.message })
 
   const userIds = (data || []).map((u) => u.id)
 
-  // Get latest session per user
   const { data: sessions } = await supabase
     .from('user_sessions')
     .select('user_id, last_seen, is_online')
@@ -32,7 +23,7 @@ export async function getUsers(req, res) {
     if (!sessionMap[s.user_id]) sessionMap[s.user_id] = s
   }
 
-  res.json(
+  return res.json(
     (data || []).map((u) => ({
       ...u,
       last_seen: sessionMap[u.id]?.last_seen || null,
@@ -41,65 +32,102 @@ export async function getUsers(req, res) {
   )
 }
 
+// Reset mot de passe → remet le coc_tag comme mdp
 export async function resetPassword(req, res) {
-  if (!canAdmin(req.user.site_role)) return res.status(403).json({ error: 'Accès refusé' })
-
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
 
-  const { data: user } = await supabase.from('users').select('coc_tag').eq('id', userId).single()
-  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' })
+  const { data: user, error: fetchErr } = await supabase
+    .from('users')
+    .select('coc_tag')
+    .eq('id', userId)
+    .single()
 
-  const password_hash = await bcrypt.hash(user.coc_tag, 10)
+  if (fetchErr || !user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+
+  const hash = await bcrypt.hash(user.coc_tag, 10)
+
   const { error } = await supabase
     .from('users')
-    .update({ password_hash, has_custom_password: false, is_first_login: true })
+    .update({ password_hash: hash, has_custom_password: false })
     .eq('id', userId)
 
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
+  return res.json({ success: true })
 }
 
+// Promouvoir en admin (superadmin uniquement)
 export async function promoteUser(req, res) {
-  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
-
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
 
-  const { error } = await supabase.from('users').update({ site_role: 'admin' }).eq('id', userId)
+  const { data: target } = await supabase
+    .from('users')
+    .select('site_role, coc_name')
+    .eq('id', userId)
+    .single()
+
+  if (target?.site_role === 'superadmin') {
+    return res.status(403).json({ error: 'Impossible de modifier un super administrateur' })
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ site_role: 'admin' })
+    .eq('id', userId)
+
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
+  return res.json({ success: true })
 }
 
+// Retirer le rôle admin (superadmin uniquement)
 export async function demoteUser(req, res) {
-  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
-
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
 
-  const { error } = await supabase.from('users').update({ site_role: 'member' }).eq('id', userId)
+  const { data: target } = await supabase
+    .from('users')
+    .select('site_role')
+    .eq('id', userId)
+    .single()
+
+  if (target?.site_role === 'superadmin') {
+    return res.status(403).json({ error: 'Impossible de modifier un super administrateur' })
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .update({ site_role: 'member' })
+    .eq('id', userId)
+
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
+  return res.json({ success: true })
 }
 
+// Désactiver un compte (superadmin uniquement)
 export async function disableUser(req, res) {
-  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
-
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
 
-  const { error } = await supabase.from('users').update({ is_disabled: true }).eq('id', userId)
+  const { error } = await supabase
+    .from('users')
+    .update({ is_disabled: true })
+    .eq('id', userId)
+
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
+  return res.json({ success: true })
 }
 
+// Réactiver un compte (superadmin uniquement)
 export async function enableUser(req, res) {
-  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
-
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
 
-  const { error } = await supabase.from('users').update({ is_disabled: false }).eq('id', userId)
+  const { error } = await supabase
+    .from('users')
+    .update({ is_disabled: false })
+    .eq('id', userId)
+
   if (error) return res.status(500).json({ error: error.message })
-  res.json({ success: true })
+  return res.json({ success: true })
 }

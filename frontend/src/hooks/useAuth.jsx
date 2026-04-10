@@ -33,17 +33,11 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  // credentials: { coc_name, coc_tag } pour membre, { email, password } pour admin
   async function login(credentials) {
     const res = await api.post('/api/auth/login', credentials)
-    const { token, user: userData, requirePasswordChange } = res.data
+    const { token, user: userData } = res.data
 
     localStorage.setItem('dr_token', token)
-
-    if (requirePasswordChange) {
-      return { requirePasswordChange: true }
-    }
-
     localStorage.setItem('dr_user', JSON.stringify(userData))
     setUser(userData)
     return userData
@@ -63,7 +57,7 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  const isAdmin = user?.isAdmin === true || user?.site_role === 'admin' || user?.site_role === 'superadmin'
+  const isAdmin = user?.site_role === 'admin' || user?.site_role === 'superadmin'
   const isSuperAdmin = user?.site_role === 'superadmin'
   const isChief = isAdmin || user?.coc_role === 'leader' || user?.coc_role === 'coLeader'
   const userRole = user?.site_role || 'member'

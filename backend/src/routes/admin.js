@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import authMiddleware from '../middleware/auth.js'
+import verifyToken, { requireAdmin, requireSuperAdmin } from '../middleware/auth.js'
 import {
   getUsers,
   resetPassword,
@@ -11,13 +11,11 @@ import {
 
 const router = Router()
 
-router.use(authMiddleware)
-
-router.get('/users', getUsers)
-router.post('/reset-password', resetPassword)
-router.post('/promote', promoteUser)
-router.post('/demote', demoteUser)
-router.post('/disable', disableUser)
-router.post('/enable', enableUser)
+router.get('/users', verifyToken, requireAdmin, getUsers)
+router.post('/reset-password', verifyToken, requireAdmin, resetPassword)
+router.post('/promote', verifyToken, requireSuperAdmin, promoteUser)
+router.post('/demote', verifyToken, requireSuperAdmin, demoteUser)
+router.post('/disable', verifyToken, requireSuperAdmin, disableUser)
+router.post('/enable', verifyToken, requireSuperAdmin, enableUser)
 
 export default router

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 
 export default function ChangePassword() {
-  const { changePassword } = useAuth()
+  const { user, changePassword } = useAuth()
   const navigate = useNavigate()
   const [newPassword, setNewPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -32,10 +32,10 @@ export default function ChangePassword() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="card-stone w-full max-w-md p-8">
         <h1 className="font-cinzel-deco text-2xl font-bold text-gold-gradient text-center mb-2">
-          Bienvenue !
+          Bienvenue {user?.coc_name} !
         </h1>
         <p className="text-ash text-center font-cinzel text-sm mb-8">
-          Créez votre mot de passe personnel.
+          Vous devez personnaliser votre mot de passe pour continuer
         </p>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -50,7 +50,7 @@ export default function ChangePassword() {
             />
           </div>
           <div>
-            <label className="block text-xs font-cinzel uppercase text-ash mb-1">Confirmer</label>
+            <label className="block text-xs font-cinzel uppercase text-ash mb-1">Confirmer le mot de passe</label>
             <input
               type="password"
               value={confirm}
