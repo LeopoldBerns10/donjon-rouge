@@ -6,11 +6,11 @@ function canAdmin(role) {
 }
 
 export async function getUsers(req, res) {
-  if (!canAdmin(req.user.role)) return res.status(403).json({ error: 'Accès refusé' })
+  if (!canAdmin(req.user.site_role)) return res.status(403).json({ error: 'Accès refusé' })
 
   const { data, error } = await supabase
     .from('users')
-    .select('id, coc_name, coc_tag, coc_role, role, has_custom_password, is_disabled, created_at')
+    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, created_at')
     .order('coc_name')
 
   if (error) return res.status(500).json({ error: error.message })
@@ -39,7 +39,7 @@ export async function getUsers(req, res) {
 }
 
 export async function resetPassword(req, res) {
-  if (!canAdmin(req.user.role)) return res.status(403).json({ error: 'Accès refusé' })
+  if (!canAdmin(req.user.site_role)) return res.status(403).json({ error: 'Accès refusé' })
 
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
@@ -58,29 +58,29 @@ export async function resetPassword(req, res) {
 }
 
 export async function promoteUser(req, res) {
-  if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
+  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
 
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
 
-  const { error } = await supabase.from('users').update({ role: 'admin' }).eq('id', userId)
+  const { error } = await supabase.from('users').update({ site_role: 'admin' }).eq('id', userId)
   if (error) return res.status(500).json({ error: error.message })
   res.json({ success: true })
 }
 
 export async function demoteUser(req, res) {
-  if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
+  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
 
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
 
-  const { error } = await supabase.from('users').update({ role: 'member' }).eq('id', userId)
+  const { error } = await supabase.from('users').update({ site_role: 'member' }).eq('id', userId)
   if (error) return res.status(500).json({ error: error.message })
   res.json({ success: true })
 }
 
 export async function disableUser(req, res) {
-  if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
+  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
 
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
@@ -91,7 +91,7 @@ export async function disableUser(req, res) {
 }
 
 export async function enableUser(req, res) {
-  if (req.user.role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
+  if (req.user.site_role !== 'superadmin') return res.status(403).json({ error: 'Réservé au superadmin' })
 
   const { userId } = req.body
   if (!userId) return res.status(400).json({ error: 'userId requis' })
