@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
@@ -43,9 +44,9 @@ function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmLabe
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
       onClick={onCancel}
     >
       <div
@@ -73,7 +74,8 @@ function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmLabe
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -132,6 +134,16 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
       isDisabled
         ? 'bg-green-700 hover:bg-green-600 text-white border border-green-600'
         : 'bg-red-800 hover:bg-red-700 text-white border border-red-600'
+    )
+  }
+
+  function handleDelete(userId, userName) {
+    ask(
+      'Supprimer le compte',
+      `⚠️ Cette action est irréversible. Le compte de ${userName} sera définitivement supprimé.`,
+      () => { onAction('delete', userId); closeModal() },
+      'Supprimer définitivement',
+      'bg-red-600 hover:bg-red-500 text-white border border-red-500'
     )
   }
 
@@ -237,6 +249,16 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
                         {u.is_disabled ? 'Réactiver' : 'Désactiver'}
                       </button>
                     )}
+
+                    {/* Supprimer — superadmin only, pas sur superadmin */}
+                    {isSuperAdmin && u.id !== currentUser?.id && u.site_role !== 'superadmin' && (
+                      <button
+                        onClick={() => handleDelete(u.id, u.coc_name)}
+                        className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide bg-red-950 border border-red-800 text-red-400 hover:bg-red-900 hover:text-red-300 rounded-lg transition-all duration-150"
+                      >
+                        Supprimer
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -274,7 +296,11 @@ export default function Admin() {
     setError('')
     setSuccess('')
     try {
-      await api.post(`/api/admin/${action}`, { userId })
+      if (action === 'delete') {
+        await api.delete(`/api/admin/users/${userId}`)
+      } else {
+        await api.post(`/api/admin/${action}`, { userId })
+      }
       const r = await api.get('/api/admin/users')
       setUsers(r.data)
       const labels = {
@@ -283,6 +309,7 @@ export default function Admin() {
         demote: 'Admin destitué',
         disable: 'Compte désactivé',
         enable: 'Compte réactivé',
+        delete: 'Compte supprimé définitivement',
       }
       setSuccess(labels[action] || 'Action effectuée')
       setTimeout(() => setSuccess(''), 3000)

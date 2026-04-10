@@ -112,3 +112,29 @@ export async function enableUser(req, res) {
   if (error) return res.status(500).json({ error: error.message })
   return res.json({ success: true })
 }
+
+// Supprimer définitivement un compte (superadmin uniquement)
+export async function deleteUser(req, res) {
+  const { userId } = req.params
+  if (!userId) return res.status(400).json({ error: 'userId requis' })
+
+  // Vérifier que la cible n'est pas superadmin
+  const { data: target } = await supabase
+    .from('users')
+    .select('site_role, coc_name')
+    .eq('id', userId)
+    .single()
+
+  if (!target) return res.status(404).json({ error: 'Utilisateur non trouvé' })
+  if (target.site_role === 'superadmin') {
+    return res.status(403).json({ error: 'Impossible de supprimer un super administrateur' })
+  }
+
+  const { error } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', userId)
+
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+}

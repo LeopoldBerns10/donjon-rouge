@@ -7,6 +7,7 @@ import {
   demoteUser,
   disableUser,
   enableUser,
+  deleteUser,
 } from '../controllers/adminController.js'
 
 const router = Router()
@@ -17,5 +18,6 @@ router.post('/promote', verifyToken, requireSuperAdmin, promoteUser)
 router.post('/demote', verifyToken, requireSuperAdmin, demoteUser)
 router.post('/disable', verifyToken, requireSuperAdmin, disableUser)
 router.post('/enable', verifyToken, requireSuperAdmin, enableUser)
+router.delete('/users/:userId', verifyToken, requireSuperAdmin, deleteUser)
 
 export default router
