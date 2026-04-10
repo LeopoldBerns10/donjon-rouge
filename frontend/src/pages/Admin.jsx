@@ -89,7 +89,7 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
                     <div className="text-xs text-ash/60">{u.coc_tag}</div>
                   </div>
                 </td>
-                <td className="py-2.5 px-3 text-center">{roleBadge(u.role || 'member')}</td>
+                <td className="py-2.5 px-3 text-center">{roleBadge(u.site_role || 'member')}</td>
                 <td className="py-2.5 px-3 text-center">
                   <div className="flex items-center justify-center gap-1.5">
                     <ConnectionDot lastSeen={u.last_seen} isOnline={u.is_online} />
@@ -124,7 +124,7 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
                     )}
 
                     {/* Promouvoir — superadmin only, si member */}
-                    {isSuperAdmin && (u.role === 'member' || !u.role) && u.id !== currentUser?.id && (
+                    {isSuperAdmin && (u.site_role === 'member' || !u.site_role) && u.id !== currentUser?.id && (
                       <button
                         onClick={() => ask(`Promouvoir ${u.coc_name} en admin ?`, () => onAction('promote', u.id))}
                         className="text-xs px-2 py-1 border border-orange-600/40 text-orange-400 hover:text-orange-300 rounded font-cinzel uppercase transition-colors"
@@ -134,7 +134,7 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
                     )}
 
                     {/* Destituer — superadmin only, si admin */}
-                    {isSuperAdmin && u.role === 'admin' && u.id !== currentUser?.id && (
+                    {isSuperAdmin && u.site_role === 'admin' && u.id !== currentUser?.id && (
                       <button
                         onClick={() => ask(`Destituer ${u.coc_name} de son rôle admin ?`, () => onAction('demote', u.id))}
                         className="text-xs px-2 py-1 border border-gray-600/40 text-gray-400 hover:text-gray-300 rounded font-cinzel uppercase transition-colors"
@@ -144,7 +144,7 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
                     )}
 
                     {/* Désactiver/Réactiver — superadmin only */}
-                    {isSuperAdmin && u.id !== currentUser?.id && u.role !== 'superadmin' && (
+                    {isSuperAdmin && u.id !== currentUser?.id && u.site_role !== 'superadmin' && (
                       <button
                         onClick={() => ask(
                           u.is_disabled ? `Réactiver le compte de ${u.coc_name} ?` : `Désactiver le compte de ${u.coc_name} ?`,
@@ -230,7 +230,7 @@ export default function Admin() {
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
           { label: 'Membres', value: users.length, icon: '👥' },
-          { label: 'Admins', value: users.filter(u => u.role === 'admin' || u.role === 'superadmin').length, icon: '🛡️' },
+          { label: 'Admins', value: users.filter(u => u.site_role === 'admin' || u.site_role === 'superadmin').length, icon: '🛡️' },
           { label: 'MDP par défaut', value: users.filter(u => !u.has_custom_password).length, icon: '🔑' },
         ].map((s) => (
           <div key={s.label} className="rounded-lg p-4 flex flex-col items-center gap-1 border border-fog/30"

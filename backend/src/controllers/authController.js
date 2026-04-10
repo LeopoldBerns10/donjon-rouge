@@ -54,7 +54,7 @@ export async function login(req, res) {
       cocTag: user.coc_tag,
       cocName: user.coc_name,
       cocRole: user.coc_role,
-      role: user.role || 'member',
+      site_role: user.site_role || 'member',
       isAdmin: false,
     },
     process.env.JWT_SECRET,
@@ -72,7 +72,7 @@ export async function login(req, res) {
       cocTag: user.coc_tag,
       cocName: user.coc_name,
       cocRole: user.coc_role,
-      role: user.role || 'member',
+      site_role: user.site_role || 'member',
       isAdmin: false,
     },
   })
@@ -100,7 +100,7 @@ export async function changePassword(req, res) {
       cocTag: user.coc_tag,
       cocName: user.coc_name,
       cocRole: user.coc_role,
-      role: user.role || 'member',
+      site_role: user.site_role || 'member',
       isAdmin: false,
     },
   })
@@ -131,7 +131,7 @@ export async function me(req, res) {
     cocTag: user.coc_tag,
     cocName: user.coc_name,
     cocRole: user.coc_role,
-    role: user.role || 'member',
+    site_role: user.site_role || 'member',
     isAdmin: false,
     isFirstLogin: user.is_first_login,
   })

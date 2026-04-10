@@ -63,10 +63,10 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
-  const isAdmin = user?.isAdmin === true || user?.role === 'admin' || user?.role === 'superadmin'
-  const isSuperAdmin = user?.role === 'superadmin'
+  const isAdmin = user?.isAdmin === true || user?.site_role === 'admin' || user?.site_role === 'superadmin'
+  const isSuperAdmin = user?.site_role === 'superadmin'
   const isChief = isAdmin || user?.cocRole === 'leader' || user?.cocRole === 'coLeader'
-  const userRole = user?.role || 'member'
+  const userRole = user?.site_role || 'member'
 
   return (
     <AuthContext.Provider value={{ user, loading, login, changePassword, logout, isAdmin, isSuperAdmin, isChief, userRole }}>
