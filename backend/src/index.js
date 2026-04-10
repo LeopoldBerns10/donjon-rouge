@@ -15,6 +15,7 @@ import forumRoutes from './routes/forum.js'
 import chatRouter from './routes/chat.js'
 import announcementsRoutes from './routes/announcements.js'
 import warSignupsRoutes from './routes/warSignups.js'
+import adminRoutes from './routes/admin.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -42,6 +43,7 @@ app.use('/api/forum', forumRoutes)
 app.use('/api/chat', chatRouter(io))
 app.use('/api/announcements', announcementsRoutes)
 app.use('/api/war-signups', warSignupsRoutes)
+app.use('/api/admin', adminRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
   const result = await syncMembers()

@@ -54,6 +54,7 @@ export async function login(req, res) {
       cocTag: user.coc_tag,
       cocName: user.coc_name,
       cocRole: user.coc_role,
+      role: user.role || 'member',
       isAdmin: false,
     },
     process.env.JWT_SECRET,
@@ -71,6 +72,7 @@ export async function login(req, res) {
       cocTag: user.coc_tag,
       cocName: user.coc_name,
       cocRole: user.coc_role,
+      role: user.role || 'member',
       isAdmin: false,
     },
   })
@@ -85,7 +87,7 @@ export async function changePassword(req, res) {
 
   const { error } = await supabase
     .from('users')
-    .update({ password_hash, is_first_login: false, updated_at: new Date().toISOString() })
+    .update({ password_hash, is_first_login: false, has_custom_password: true, updated_at: new Date().toISOString() })
     .eq('id', userId)
 
   if (error) return res.status(500).json({ error: 'Erreur lors du changement de mot de passe' })
@@ -98,6 +100,7 @@ export async function changePassword(req, res) {
       cocTag: user.coc_tag,
       cocName: user.coc_name,
       cocRole: user.coc_role,
+      role: user.role || 'member',
       isAdmin: false,
     },
   })
@@ -128,6 +131,7 @@ export async function me(req, res) {
     cocTag: user.coc_tag,
     cocName: user.coc_name,
     cocRole: user.coc_role,
+    role: user.role || 'member',
     isAdmin: false,
     isFirstLogin: user.is_first_login,
   })

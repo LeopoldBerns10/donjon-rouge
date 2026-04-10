@@ -6,7 +6,8 @@ import {
   getClanWarLog,
   getCurrentWar,
   getClanRaidSeasons,
-  getClanLeagueGroup
+  getClanLeagueGroup,
+  getLdcWarDetail,
 } from '../services/cocApiService.js'
 
 const CLAN_TAG = process.env.COC_CLAN_TAG || '#29292QPRC'
@@ -88,6 +89,52 @@ export async function player(req, res) {
   const tag = req.params.tag
   try {
     const data = await getCached(`player:${tag}`, () => getPlayerInfo(tag))
+    res.json(data)
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}
+
+export async function ldcCurrent(req, res) {
+  try {
+    const group = await getCached(`ldc:group:${CLAN_TAG}`, () => getClanLeagueGroup(CLAN_TAG))
+
+    if (!group || !group.rounds) {
+      return res.json({ state: 'notInWar', rounds: [] })
+    }
+
+    // Fetch all available war details in parallel (skip '#0' placeholders)
+    const rounds = await Promise.all(
+      (group.rounds || []).map(async (round, idx) => {
+        const tags = (round.warTags || []).filter((t) => t !== '#0')
+        const wars = await Promise.all(
+          tags.map(async (tag) => {
+            try {
+              const war = await getCached(`ldc:war:${tag}`, () => getLdcWarDetail(tag))
+              return war
+            } catch {
+              return { warTag: tag, state: 'notStarted' }
+            }
+          })
+        )
+        // Find our clan's match in this round
+        const ourWar = wars.find((w) =>
+          w?.clan?.tag === CLAN_TAG || w?.opponent?.tag === CLAN_TAG
+        )
+        return { roundIndex: idx + 1, warTag: ourWar?.tag || tags[0] || null, war: ourWar || null }
+      })
+    )
+
+    res.json({ ...group, rounds })
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}
+
+export async function ldcWar(req, res) {
+  const { warTag } = req.params
+  try {
+    const data = await getCached(`ldc:war:${warTag}`, () => getLdcWarDetail(warTag))
     res.json(data)
   } catch (e) {
     res.status(502).json({ error: e.message })

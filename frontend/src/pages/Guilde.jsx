@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useCocClan, useCocMembers, useCocWar, useCocRaids, useCocCwl } from '../hooks/useCocApi.js'
+import { useCocClan, useCocMembers, useCocWar, useCocRaids } from '../hooks/useCocApi.js'
+import api from '../lib/api.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
 import { useWarSignups } from '../hooks/useWarSignups.js'
@@ -238,6 +239,271 @@ function AttaquesTab({ members, loading, error }) {
   )
 }
 
+// ─── Composant LDC Détail 7 jours ─────────────────────────────────────────
+
+const CLAN_TAG = '#29292QPRC'
+
+function parseCocDate(str) {
+  if (!str) return null
+  return new Date(str.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6Z'))
+}
+
+function WarResultBadge({ war, ourTag }) {
+  if (!war || war.state === 'notStarted') {
+    return <span className="text-xs font-cinzel uppercase px-2 py-0.5 rounded border bg-gray-900 text-gray-500 border-gray-700">À VENIR</span>
+  }
+  if (war.state === 'preparation') {
+    return <span className="text-xs font-cinzel uppercase px-2 py-0.5 rounded border bg-yellow-900 text-yellow-400 border-yellow-700">PRÉPARATION</span>
+  }
+  if (war.state === 'inWar') {
+    return <span className="text-xs font-cinzel uppercase px-2 py-0.5 rounded border bg-yellow-900 text-yellow-400 border-yellow-700 animate-pulse">EN COURS</span>
+  }
+  if (war.state === 'warEnded') {
+    const our = war.clan?.tag === ourTag ? war.clan : war.opponent
+    const opp = war.clan?.tag === ourTag ? war.opponent : war.clan
+    if (!our || !opp) return null
+    if (our.stars > opp.stars) return <span className="text-xs font-cinzel uppercase px-2 py-0.5 rounded border bg-green-900 text-green-400 border-green-700">VICTOIRE</span>
+    if (our.stars < opp.stars) return <span className="text-xs font-cinzel uppercase px-2 py-0.5 rounded border bg-red-900 text-red-400 border-red-700">DÉFAITE</span>
+    return <span className="text-xs font-cinzel uppercase px-2 py-0.5 rounded border bg-gray-900 text-gray-400 border-gray-600">NUL</span>
+  }
+  return null
+}
+
+function StarDisplay({ count }) {
+  const filled = Math.min(count, 3)
+  const colors = ['text-yellow-800', 'text-yellow-600', 'text-yellow-400']
+  return (
+    <span className={`font-bold ${colors[Math.max(0, filled - 1)] || 'text-gray-600'}`}>
+      {'⭐'.repeat(filled)}{filled === 0 ? '—' : ''}
+    </span>
+  )
+}
+
+function AttackRow({ attack, attackerMap, defenderMap }) {
+  const attacker = attackerMap[attack.attackerTag]
+  const defender = defenderMap[attack.defenderTag]
+  const stars = attack.stars ?? 0
+  return (
+    <tr className="border-b border-fog/20" style={{ background: '#0d0d0d' }}>
+      <td className="py-2 px-3 text-bone text-xs">{attacker?.name || attack.attackerTag}</td>
+      <td className="py-2 px-3 text-ash text-xs">{defender?.name || attack.defenderTag}</td>
+      <td className="py-2 px-3 text-center"><StarDisplay count={stars} /></td>
+      <td className="py-2 px-3 text-center text-ash text-xs">{attack.destructionPercentage ?? 0}%</td>
+      <td className="py-2 px-3 text-center text-xs">{stars === 3 ? '✅' : stars >= 2 ? '✅' : stars === 1 ? '⚠️' : '❌'}</td>
+    </tr>
+  )
+}
+
+function RoundCard({ round, index, ourTag }) {
+  const [expanded, setExpanded] = useState(false)
+  const war = round.war
+
+  const isPlaceholder = !war || war.state === 'notStarted'
+  const our = war?.clan?.tag === ourTag ? war?.clan : war?.opponent
+  const opp = war?.clan?.tag === ourTag ? war?.opponent : war?.clan
+
+  // Build attacker/defender maps from both sides
+  const attackerMap = {}
+  const defenderMap = {}
+  if (war) {
+    for (const m of [...(war.clan?.members || []), ...(war.opponent?.members || [])]) {
+      attackerMap[m.tag] = m
+      defenderMap[m.tag] = m
+    }
+  }
+
+  // Collect our clan's attacks
+  const ourAttacks = []
+  if (war && our) {
+    for (const m of our.members || []) {
+      for (const atk of m.attacks || []) {
+        ourAttacks.push(atk)
+      }
+    }
+  }
+
+  const startDate = parseCocDate(war?.startTime)
+  const fmtDate = startDate
+    ? startDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+    : '—'
+
+  return (
+    <div className="rounded-lg mb-3 overflow-hidden" style={{ background: '#111111', border: '1px solid #1f1f1f' }}>
+      {/* Card header */}
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div className="flex items-center gap-3">
+            <span className="font-cinzel text-gold uppercase text-xs tracking-widest">JOUR {index}</span>
+            {fmtDate !== '—' && <span className="text-ash text-xs">• {fmtDate}</span>}
+          </div>
+          <WarResultBadge war={war} ourTag={ourTag} />
+        </div>
+
+        {isPlaceholder ? (
+          <p className="text-ash text-xs font-cinzel">Adversaire non encore connu</p>
+        ) : (
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Notre clan */}
+            <div className="flex flex-col items-center gap-1 min-w-[100px]">
+              {our?.badgeUrls?.small && <img src={our.badgeUrls.small} className="w-10 h-10 object-contain" alt="" />}
+              <span className="font-cinzel text-bone text-xs font-bold text-center">{our?.name || 'DONJON ROUGE'}</span>
+              <span className="font-cinzel text-gold font-bold">⭐ {our?.stars ?? 0}</span>
+              <span className="text-ash text-xs">{our?.attacks ?? 0}/{war?.teamSize ?? 0} att.</span>
+              <span className="text-ash text-xs">{our?.destructionPercentage?.toFixed(1) ?? 0}%</span>
+            </div>
+            {/* VS */}
+            <div className="flex flex-col items-center">
+              <span className="font-cinzel text-gold uppercase text-xs tracking-widest">VS</span>
+              <span className="text-ash text-xs font-cinzel mt-1">{war?.teamSize}v{war?.teamSize}</span>
+            </div>
+            {/* Adversaire */}
+            <div className="flex flex-col items-center gap-1 min-w-[100px]">
+              {opp?.badgeUrls?.small && <img src={opp.badgeUrls.small} className="w-10 h-10 object-contain" alt="" />}
+              <span className="font-cinzel text-bone text-xs font-bold text-center">{opp?.name || '—'}</span>
+              <span className="font-cinzel text-ash font-bold">⭐ {opp?.stars ?? 0}</span>
+              <span className="text-ash text-xs">{opp?.attacks ?? 0}/{war?.teamSize ?? 0} att.</span>
+              <span className="text-ash text-xs">{opp?.destructionPercentage?.toFixed(1) ?? 0}%</span>
+            </div>
+          </div>
+        )}
+
+        {!isPlaceholder && ourAttacks.length > 0 && (
+          <button onClick={() => setExpanded((v) => !v)}
+            className="mt-3 text-xs font-cinzel uppercase text-ash hover:text-bone transition-colors flex items-center gap-1">
+            {expanded ? '▲ Masquer les attaques' : '▼ Voir le détail des attaques'}
+          </button>
+        )}
+      </div>
+
+      {/* Détail attaques */}
+      {expanded && ourAttacks.length > 0 && (
+        <div className="border-t border-fog/20 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="font-cinzel uppercase text-xs tracking-widest text-gold" style={{ background: '#1a1a1a' }}>
+                <th className="py-2 px-3 text-left">Joueur</th>
+                <th className="py-2 px-3 text-left">Cible</th>
+                <th className="py-2 px-3 text-center">⭐</th>
+                <th className="py-2 px-3 text-center">%</th>
+                <th className="py-2 px-3 text-center">Résultat</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ourAttacks
+                .sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0) || (b.destructionPercentage ?? 0) - (a.destructionPercentage ?? 0))
+                .map((atk, i) => (
+                  <AttackRow key={i} attack={atk} attackerMap={attackerMap} defenderMap={defenderMap} />
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function LdcSection() {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    api.get('/api/coc/ldc/current')
+      .then((r) => setData(r.data))
+      .catch((e) => setError(e.response?.data?.error || e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) return <Spinner />
+  if (error) return <ErrorMsg msg={error} />
+  if (!data || data.state === 'notInWar' || !data.rounds?.length) {
+    return <p className="text-ash font-cinzel text-sm text-center py-4">Aucune LDC en cours</p>
+  }
+
+  const rounds = data.rounds || []
+  const ourClan = (data.clans || []).find((c) => c.tag === CLAN_TAG)
+
+  // Bilan global
+  let wins = 0, losses = 0, draws = 0, totalStars = 0
+  const playerStarMap = {}
+
+  for (const r of rounds) {
+    const war = r.war
+    if (!war || war.state !== 'warEnded') continue
+    const our = war.clan?.tag === CLAN_TAG ? war.clan : war.opponent
+    const opp = war.clan?.tag === CLAN_TAG ? war.opponent : war.clan
+    if (!our || !opp) continue
+    if (our.stars > opp.stars) wins++
+    else if (our.stars < opp.stars) losses++
+    else draws++
+    totalStars += our.stars || 0
+    for (const m of our.members || []) {
+      for (const atk of m.attacks || []) {
+        playerStarMap[m.name] = (playerStarMap[m.name] || 0) + (atk.stars || 0)
+      }
+    }
+  }
+
+  const played = wins + losses + draws
+  const bestEntry = Object.entries(playerStarMap).sort((a, b) => b[1] - a[1])[0]
+
+  return (
+    <div>
+      {/* Header */}
+      <div className="card-stone p-4 mb-6">
+        <div className="flex items-center gap-4 flex-wrap">
+          {ourClan?.badgeUrls?.small && <img src={ourClan.badgeUrls.small} className="w-10 h-10 object-contain" alt="" />}
+          <div>
+            <p className="font-cinzel text-gold uppercase text-xs tracking-widest mb-0.5">Ligue de Guerre de Clans</p>
+            <p className="font-cinzel text-bone font-bold text-sm">Saison {data.season}</p>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-ash text-xs font-cinzel">{(data.clans || []).length} clans • Groupe</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 7 rounds */}
+      <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">Les 7 matchs de la semaine</h3>
+      {rounds.map((r) => (
+        <RoundCard key={r.roundIndex} round={r} index={r.roundIndex} ourTag={CLAN_TAG} />
+      ))}
+
+      {/* Bilan global */}
+      {played > 0 && (
+        <div className="mt-6 rounded-lg p-5" style={{ background: '#111', border: '1px solid #1f1f1f' }}>
+          <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-4">Bilan de la semaine</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'Matchs joués', value: `${played} / ${rounds.length}` },
+              { label: 'Victoires', value: wins, color: 'text-green-400' },
+              { label: 'Défaites', value: losses, color: 'text-red-400' },
+              { label: 'Nuls', value: draws, color: 'text-gray-400' },
+            ].map((s) => (
+              <div key={s.label} className="text-center">
+                <p className={`text-2xl font-bold font-cinzel ${s.color || 'text-gold-light'}`}>{s.value}</p>
+                <p className="text-ash text-xs font-cinzel uppercase tracking-wider mt-1">{s.label}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-fog/20 flex flex-wrap gap-6">
+            <div>
+              <p className="text-ash text-xs font-cinzel uppercase tracking-wider">Total étoiles</p>
+              <p className="font-cinzel text-gold font-bold text-lg">⭐ {totalStars}</p>
+            </div>
+            {bestEntry && (
+              <div>
+                <p className="text-ash text-xs font-cinzel uppercase tracking-wider">Meilleur attaquant</p>
+                <p className="font-cinzel text-bone font-bold">{bestEntry[0]} — {bestEntry[1]} ⭐</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Onglet GDC/LDC (fusion Guerre + CWL) ────────────────────────────────
 
 const WAR_STATE_LABELS = {
@@ -249,17 +515,12 @@ const WAR_STATE_LABELS = {
 
 function GdcLdcTab({ loading, error }) {
   const { data: war, loading: warLoading, error: warError } = useCocWar()
-  const { data: cwl, loading: cwlLoading, error: cwlError } = useCocCwl()
 
-  if (loading || warLoading || cwlLoading) return <Spinner />
+  if (loading || warLoading) return <Spinner />
   if (error || warError) return <ErrorMsg msg={error || warError} />
 
   const state = war?.state || 'notInWar'
   const stateInfo = WAR_STATE_LABELS[state] || { label: state, color: 'text-ash' }
-
-  const roundIdx = (cwl?.rounds?.length ?? 1) - 1
-  const currentRound = cwl?.rounds?.[roundIdx]
-  const cwlActive = cwl && cwl.state !== 'notInWar' && !cwlError
 
   return (
     <div>
@@ -361,47 +622,10 @@ function GdcLdcTab({ loading, error }) {
       {/* ── Section LDC ── */}
       <div>
         <h2 className="font-cinzel text-gold-bright uppercase tracking-widest text-xs mb-4 flex items-center gap-3">
-          <span>⚔️ Ligue des Clans (LDC)</span>
+          <span>🏆 Ligue de Guerre de Clans (LDC)</span>
           <div className="flex-1 h-px bg-fog/40" />
         </h2>
-
-        {!cwlActive ? (
-          <p className="text-ash font-cinzel text-sm text-center py-4">Aucune LDC en cours</p>
-        ) : (
-          <div>
-            <div className="card-stone p-4 mb-6 flex items-center gap-4 flex-wrap">
-              <span className="font-cinzel text-gold uppercase text-xs tracking-widest">Saison CWL</span>
-              <span className="text-bone font-bold font-cinzel">{cwl.season}</span>
-              <span className="text-ash text-xs font-cinzel ml-auto">Round en cours : {roundIdx + 1}/{cwl.rounds?.length}</span>
-            </div>
-
-            <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">Clans participants</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              {(cwl.clans || []).map((c) => (
-                <div key={c.tag} className="card-stone p-3 flex flex-col items-center gap-2">
-                  {c.badgeUrls?.small && <img src={c.badgeUrls.small} className="w-10 h-10 object-contain" alt="" />}
-                  <span className="font-cinzel text-bone text-xs font-bold text-center">{c.name}</span>
-                  <span className="text-ash text-xs">{c.tag}</span>
-                </div>
-              ))}
-            </div>
-
-            {currentRound?.warTags && currentRound.warTags.filter(t => t !== '#0').length > 0 && (
-              <>
-                <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">
-                  Round {roundIdx + 1} — Matchups
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {currentRound.warTags.filter(t => t !== '#0').map((tag, i) => (
-                    <span key={i} className="text-ash text-xs font-cinzel px-3 py-1 border border-fog/40 rounded">
-                      Match {i + 1} : {tag}
-                    </span>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        <LdcSection />
       </div>
     </div>
   )

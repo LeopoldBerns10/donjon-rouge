@@ -178,11 +178,148 @@ export async function deletePost(req, res) {
 
   if (!post) return res.status(404).json({ error: 'Post introuvable' })
 
-  if (post.author_id !== req.user.userId && !isPrivileged(req.user)) {
+  const isAdminRole = req.user.role === 'admin' || req.user.role === 'superadmin'
+  if (post.author_id !== req.user.userId && !isPrivileged(req.user) && !isAdminRole) {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
   const { error } = await supabase.from('forum_posts').delete().eq('id', id)
   if (error) return res.status(500).json({ error: error.message })
   res.json({ success: true })
+}
+
+// ── Nouvelles fonctions Discord-like ────────────────────────────────────────
+
+export async function getCategories(req, res) {
+  const { data, error } = await supabase
+    .from('forum_categories')
+    .select('*')
+    .order('order_index')
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data || [])
+}
+
+export async function getCategoryPosts(req, res) {
+  const { catId } = req.params
+  const { data, error } = await supabase
+    .from('forum_posts')
+    .select('id, category_id, author_id, author_name, title, content, image_url, is_pinned, created_at, updated_at')
+    .eq('category_id', catId)
+    .order('is_pinned', { ascending: false })
+    .order('created_at', { ascending: false })
+  if (error) return res.status(500).json({ error: error.message })
+
+  const authorIds = [...new Set((data || []).map((p) => p.author_id).filter(Boolean))]
+  const userMap = await fetchAuthors(authorIds)
+
+  res.json((data || []).map((p) => ({ ...p, author: userMap[p.author_id] || null })))
+}
+
+export async function createCategoryPost(req, res) {
+  const { title, content, category_id, image_url } = req.body
+  if (!title || !category_id) return res.status(400).json({ error: 'Titre et catégorie requis' })
+
+  const { data: author } = await supabase
+    .from('users').select('coc_name').eq('id', req.user.userId).single()
+
+  const { data, error } = await supabase
+    .from('forum_posts')
+    .insert({
+      author_id: req.user.userId,
+      author_name: author?.coc_name || req.user.cocName || 'Inconnu',
+      title,
+      content: content || '',
+      category_id,
+      image_url: image_url || null,
+      is_pinned: false,
+    })
+    .select('id, category_id, author_id, author_name, title, content, image_url, is_pinned, created_at')
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.status(201).json({ ...data, author: author || null })
+}
+
+export async function toggleReaction(req, res) {
+  const { id: postId } = req.params
+  const { reaction_type } = req.body
+  const userId = req.user.userId
+
+  if (!['up', 'down', 'heart'].includes(reaction_type)) {
+    return res.status(400).json({ error: 'Type invalide (up, down, heart)' })
+  }
+
+  const { data: existing } = await supabase
+    .from('forum_reactions')
+    .select('id')
+    .eq('post_id', postId)
+    .eq('user_id', userId)
+    .eq('reaction_type', reaction_type)
+    .maybeSingle()
+
+  if (existing) {
+    await supabase.from('forum_reactions').delete().eq('id', existing.id)
+    return res.json({ active: false, reaction_type })
+  } else {
+    await supabase.from('forum_reactions').insert({ post_id: postId, user_id: userId, reaction_type })
+    return res.json({ active: true, reaction_type })
+  }
+}
+
+export async function getReactions(req, res) {
+  const { id: postId } = req.params
+  const userId = req.user?.userId
+
+  const { data } = await supabase
+    .from('forum_reactions')
+    .select('reaction_type, user_id')
+    .eq('post_id', postId)
+
+  const counts = { up: 0, down: 0, heart: 0 }
+  const userReactions = { up: false, down: false, heart: false }
+
+  for (const r of data || []) {
+    if (counts[r.reaction_type] !== undefined) counts[r.reaction_type]++
+    if (userId && r.user_id === userId) userReactions[r.reaction_type] = true
+  }
+
+  res.json({ counts, userReactions })
+}
+
+export async function getUserReactions(req, res) {
+  const { id: postId } = req.params
+  const userId = req.user.userId
+
+  const { data } = await supabase
+    .from('forum_reactions')
+    .select('reaction_type')
+    .eq('post_id', postId)
+    .eq('user_id', userId)
+
+  const userReactions = { up: false, down: false, heart: false }
+  for (const r of data || []) userReactions[r.reaction_type] = true
+  res.json(userReactions)
+}
+
+export async function getAllPostsReactions(req, res) {
+  // Returns reaction counts for multiple posts (used by category posts list)
+  const { postIds } = req.query
+  if (!postIds) return res.json({})
+
+  const ids = postIds.split(',').filter(Boolean)
+  const { data } = await supabase
+    .from('forum_reactions')
+    .select('post_id, reaction_type, user_id')
+    .in('post_id', ids)
+
+  const userId = req.user?.userId
+  const result = {}
+
+  for (const r of data || []) {
+    if (!result[r.post_id]) result[r.post_id] = { counts: { up: 0, down: 0, heart: 0 }, userReactions: { up: false, down: false, heart: false } }
+    if (result[r.post_id].counts[r.reaction_type] !== undefined) result[r.post_id].counts[r.reaction_type]++
+    if (userId && r.user_id === userId) result[r.post_id].userReactions[r.reaction_type] = true
+  }
+
+  res.json(result)
 }
