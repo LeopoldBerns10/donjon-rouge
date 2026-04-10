@@ -1,9 +1,12 @@
 import supabase from '../lib/supabase.js'
 
-const PRIVILEGED_ROLES = ['leader', 'coLeader']
+const PRIVILEGED_COC_ROLES = ['leader', 'coLeader']
 
 function isPrivileged(user) {
-  return user.isAdmin || PRIVILEGED_ROLES.includes(user.cocRole)
+  return (
+    ['superadmin', 'admin'].includes(user?.site_role) ||
+    PRIVILEGED_COC_ROLES.includes(user?.coc_role)
+  )
 }
 
 async function fetchAuthors(ids) {
@@ -64,7 +67,8 @@ export async function createPost(req, res) {
   const { data, error } = await supabase
     .from('forum_posts')
     .insert({
-      author_id: req.user.userId,
+      author_id: req.user.id,
+      author_name: req.user.coc_name,
       title,
       content,
       category: category || 'Général',
@@ -77,7 +81,7 @@ export async function createPost(req, res) {
   if (error) return res.status(500).json({ error: error.message })
 
   const { data: author } = await supabase
-    .from('users').select('id, coc_name, coc_role').eq('id', req.user.userId).single()
+    .from('users').select('id, coc_name, coc_role').eq('id', req.user.id).single()
 
   res.status(201).json({ ...data, author: author || null })
 }
@@ -90,7 +94,7 @@ export async function editPost(req, res) {
     .from('forum_posts').select('id, author_id').eq('id', id).single()
 
   if (fetchErr || !post) return res.status(404).json({ error: 'Post introuvable' })
-  if (post.author_id !== req.user.userId) return res.status(403).json({ error: 'Non autorisé' })
+  if (post.author_id !== req.user.id) return res.status(403).json({ error: 'Non autorisé' })
 
   const updates = { updated_at: new Date().toISOString() }
   if (title) updates.title = title
@@ -137,21 +141,21 @@ export async function replyPost(req, res) {
 
   const { data, error } = await supabase
     .from('forum_replies')
-    .insert({ post_id: id, author_id: req.user.userId, content })
+    .insert({ post_id: id, author_id: req.user.id, content })
     .select('id, author_id, content, created_at')
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
 
   const { data: author } = await supabase
-    .from('users').select('id, coc_name, coc_role').eq('id', req.user.userId).single()
+    .from('users').select('id, coc_name, coc_role').eq('id', req.user.id).single()
 
   res.status(201).json({ ...data, author: author || null })
 }
 
 export async function likePost(req, res) {
   const { id } = req.params
-  const userId = req.user.userId
+  const userId = req.user.id
 
   const { data: existing } = await supabase
     .from('post_likes').select('id').eq('user_id', userId).eq('post_id', id).single()
@@ -178,8 +182,7 @@ export async function deletePost(req, res) {
 
   if (!post) return res.status(404).json({ error: 'Post introuvable' })
 
-  const isAdminRole = req.user.role === 'admin' || req.user.role === 'superadmin'
-  if (post.author_id !== req.user.userId && !isPrivileged(req.user) && !isAdminRole) {
+  if (post.author_id !== req.user.id && !isPrivileged(req.user)) {
     return res.status(403).json({ error: 'Non autorisé' })
   }
 
@@ -188,7 +191,7 @@ export async function deletePost(req, res) {
   res.json({ success: true })
 }
 
-// ── Nouvelles fonctions Discord-like ────────────────────────────────────────
+// ── Catégories ───────────────────────────────────────────────────────────────
 
 export async function getCategories(req, res) {
   const { data, error } = await supabase
@@ -198,6 +201,34 @@ export async function getCategories(req, res) {
   if (error) return res.status(500).json({ error: error.message })
   res.json(data || [])
 }
+
+export async function createCategory(req, res) {
+  const { name, description, icon, order_index } = req.body
+  if (!name) return res.status(400).json({ error: 'Nom de catégorie requis' })
+
+  const { data, error } = await supabase
+    .from('forum_categories')
+    .insert({ name, description: description || '', icon: icon || '💬', order_index: order_index ?? 99 })
+    .select()
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.status(201).json(data)
+}
+
+export async function deleteCategory(req, res) {
+  const { id } = req.params
+
+  const { error } = await supabase
+    .from('forum_categories')
+    .delete()
+    .eq('id', id)
+
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ success: true })
+}
+
+// ── Posts par catégorie ──────────────────────────────────────────────────────
 
 export async function getCategoryPosts(req, res) {
   const { catId } = req.params
@@ -219,14 +250,11 @@ export async function createCategoryPost(req, res) {
   const { title, content, category_id, image_url } = req.body
   if (!title || !category_id) return res.status(400).json({ error: 'Titre et catégorie requis' })
 
-  const { data: author } = await supabase
-    .from('users').select('coc_name').eq('id', req.user.userId).single()
-
   const { data, error } = await supabase
     .from('forum_posts')
     .insert({
-      author_id: req.user.userId,
-      author_name: author?.coc_name || req.user.cocName || 'Inconnu',
+      author_id: req.user.id,
+      author_name: req.user.coc_name || 'Inconnu',
       title,
       content: content || '',
       category_id,
@@ -237,13 +265,19 @@ export async function createCategoryPost(req, res) {
     .single()
 
   if (error) return res.status(500).json({ error: error.message })
+
+  const { data: author } = await supabase
+    .from('users').select('id, coc_name, coc_role').eq('id', req.user.id).single()
+
   res.status(201).json({ ...data, author: author || null })
 }
+
+// ── Réactions ────────────────────────────────────────────────────────────────
 
 export async function toggleReaction(req, res) {
   const { id: postId } = req.params
   const { reaction_type } = req.body
-  const userId = req.user.userId
+  const userId = req.user.id
 
   if (!['up', 'down', 'heart'].includes(reaction_type)) {
     return res.status(400).json({ error: 'Type invalide (up, down, heart)' })
@@ -268,7 +302,7 @@ export async function toggleReaction(req, res) {
 
 export async function getReactions(req, res) {
   const { id: postId } = req.params
-  const userId = req.user?.userId
+  const userId = req.user?.id
 
   const { data } = await supabase
     .from('forum_reactions')
@@ -288,7 +322,7 @@ export async function getReactions(req, res) {
 
 export async function getUserReactions(req, res) {
   const { id: postId } = req.params
-  const userId = req.user.userId
+  const userId = req.user.id
 
   const { data } = await supabase
     .from('forum_reactions')
@@ -302,7 +336,6 @@ export async function getUserReactions(req, res) {
 }
 
 export async function getAllPostsReactions(req, res) {
-  // Returns reaction counts for multiple posts (used by category posts list)
   const { postIds } = req.query
   if (!postIds) return res.json({})
 
@@ -312,7 +345,7 @@ export async function getAllPostsReactions(req, res) {
     .select('post_id, reaction_type, user_id')
     .in('post_id', ids)
 
-  const userId = req.user?.userId
+  const userId = req.user?.id
   const result = {}
 
   for (const r of data || []) {

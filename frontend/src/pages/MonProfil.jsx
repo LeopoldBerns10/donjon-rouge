@@ -30,7 +30,7 @@ export default function MonProfil() {
     )
   }
 
-  const mySignup = signups.find(s => s.coc_tag === user.cocTag)
+  const mySignup = signups.find(s => s.coc_tag === user.coc_tag)
 
   async function handleChangePassword(e) {
     e.preventDefault()
@@ -79,21 +79,21 @@ export default function MonProfil() {
           className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-cinzel font-bold text-bone border-2 border-crimson/60 flex-shrink-0"
           style={{ background: 'linear-gradient(135deg, #1a0000, #3a0000)' }}
         >
-          {user.cocName?.[0]?.toUpperCase() || '?'}
+          {user.coc_name?.[0]?.toUpperCase() || '?'}
         </div>
         <div>
-          <h1 className="font-cinzel-deco text-xl text-gold-bright">{user.cocName}</h1>
-          <p className="text-ash text-sm font-cinzel">{user.cocTag}</p>
+          <h1 className="font-cinzel-deco text-xl text-gold-bright">{user.coc_name}</h1>
+          <p className="text-ash text-sm font-cinzel">{user.coc_tag}</p>
           <p className="text-ash/60 text-xs font-cinzel mt-1 uppercase tracking-wider">
-            {user.cocRole === 'leader' ? '👑 Chef' :
-             user.cocRole === 'coLeader' ? '⚔️ Co-chef' :
-             user.cocRole === 'admin' ? '⚔️ Co-chef' :
-             user.cocRole === 'elder' ? '🛡️ Ancien' : '🗡️ Membre'}
+            {user.coc_role === 'leader' ? '👑 Chef' :
+             user.coc_role === 'coLeader' ? '⚔️ Co-chef' :
+             user.coc_role === 'admin' ? '⚔️ Co-chef' :
+             user.coc_role === 'elder' ? '🛡️ Ancien' : '🗡️ Membre'}
           </p>
         </div>
         <div className="ml-auto hidden md:block">
           <Link
-            to={`/tracker/${encodeURIComponent(user.cocTag)}`}
+            to={`/tracker/${encodeURIComponent(user.coc_tag)}`}
             className="px-4 py-2 text-xs font-cinzel uppercase tracking-wider rounded border border-fog/40 text-ash hover:text-bone hover:border-bone/40 transition-all"
           >
             Voir mon Tracker →
@@ -166,7 +166,7 @@ export default function MonProfil() {
             </h2>
             <p className="text-ash text-sm mb-3">Retrouve toutes tes statistiques Clash of Clans sur ton profil Tracker.</p>
             <Link
-              to={`/tracker/${encodeURIComponent(user.cocTag)}`}
+              to={`/tracker/${encodeURIComponent(user.coc_tag)}`}
               className="inline-block px-4 py-2 text-xs font-cinzel uppercase tracking-wider rounded border border-crimson text-crimson hover:bg-crimson/20 transition-all"
             >
               Voir mes stats →

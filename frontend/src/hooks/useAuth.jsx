@@ -65,7 +65,7 @@ export function AuthProvider({ children }) {
 
   const isAdmin = user?.isAdmin === true || user?.site_role === 'admin' || user?.site_role === 'superadmin'
   const isSuperAdmin = user?.site_role === 'superadmin'
-  const isChief = isAdmin || user?.cocRole === 'leader' || user?.cocRole === 'coLeader'
+  const isChief = isAdmin || user?.coc_role === 'leader' || user?.coc_role === 'coLeader'
   const userRole = user?.site_role || 'member'
 
   return (

@@ -86,10 +86,10 @@ export default function Navbar() {
                     className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-cinzel font-bold text-bone border border-crimson/50"
                     style={{ background: 'linear-gradient(135deg, #1a0000, #3a0000)' }}
                   >
-                    {user.cocName?.[0]?.toUpperCase() || '?'}
+                    {user.coc_name?.[0]?.toUpperCase() || '?'}
                   </div>
                   <span className="hidden md:inline text-sm font-cinzel text-bone">
-                    {user.cocName || user.email}
+                    {user.coc_name || user.email}
                   </span>
                   <svg className={`w-3 h-3 text-ash transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -105,8 +105,8 @@ export default function Navbar() {
                   >
                     {/* Header */}
                     <div className="px-4 py-3 border-b border-fog/20">
-                      <p className="font-cinzel text-bone text-sm font-bold">{user.cocName}</p>
-                      <p className="text-ash text-xs">{user.cocTag}</p>
+                      <p className="font-cinzel text-bone text-sm font-bold">{user.coc_name}</p>
+                      <p className="text-ash text-xs">{user.coc_tag}</p>
                       {user.isAdmin && (
                         <span className="text-xs font-cinzel uppercase text-crimson">Admin</span>
                       )}
@@ -122,7 +122,7 @@ export default function Navbar() {
                         <span>👤</span> Mon Profil
                       </Link>
                       <Link
-                        to={`/tracker/${encodeURIComponent(user.cocTag)}`}
+                        to={`/tracker/${encodeURIComponent(user.coc_tag)}`}
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-2 px-4 py-2.5 text-sm font-cinzel text-ash hover:text-bone hover:bg-white/5 transition-colors"
                       >
@@ -197,7 +197,7 @@ export default function Navbar() {
                 <Link to="/mon-profil" onClick={() => setMenuOpen(false)} className="font-cinzel text-sm uppercase text-ash hover:text-bone">
                   👤 Mon Profil
                 </Link>
-                <Link to={`/tracker/${encodeURIComponent(user.cocTag)}`} onClick={() => setMenuOpen(false)} className="font-cinzel text-sm uppercase text-ash hover:text-bone">
+                <Link to={`/tracker/${encodeURIComponent(user.coc_tag)}`} onClick={() => setMenuOpen(false)} className="font-cinzel text-sm uppercase text-ash hover:text-bone">
                   📊 Mes Stats
                 </Link>
                 <button onClick={logout} className="text-left font-cinzel text-sm uppercase text-ash hover:text-crimson">

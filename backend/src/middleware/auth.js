@@ -1,5 +1,7 @@
 import jwt from 'jsonwebtoken'
 
+// ── Vérification du token JWT ─────────────────────────────────────────────────
+
 export default function authMiddleware(req, res, next) {
   const header = req.headers.authorization
   if (!header || !header.startsWith('Bearer ')) {
@@ -19,9 +21,24 @@ export function requireAuth(req, res, next) {
   return authMiddleware(req, res, next)
 }
 
+// ── Helpers de permissions ────────────────────────────────────────────────────
+
+export const isSuperAdmin = (req) => req.user?.site_role === 'superadmin'
+
+export const isAdmin = (req) =>
+  ['superadmin', 'admin'].includes(req.user?.site_role)
+
+export const isLeader = (req) =>
+  ['superadmin', 'admin'].includes(req.user?.site_role) ||
+  ['leader', 'coLeader', 'co-chef', 'chef'].some(
+    (r) => req.user?.coc_role?.toLowerCase().includes(r.toLowerCase())
+  )
+
+// ── Middlewares de routes ─────────────────────────────────────────────────────
+
 export function requireAdmin(req, res, next) {
   authMiddleware(req, res, () => {
-    if (!req.user?.isAdmin) {
+    if (!isAdmin(req) && !req.user?.isAdmin) {
       return res.status(403).json({ error: 'Accès réservé aux administrateurs' })
     }
     next()
@@ -30,10 +47,24 @@ export function requireAdmin(req, res, next) {
 
 export function requireChief(req, res, next) {
   authMiddleware(req, res, () => {
-    const { cocRole, isAdmin } = req.user || {}
-    if (!isAdmin && cocRole !== 'leader' && cocRole !== 'coLeader') {
+    if (!isLeader(req) && !req.user?.isAdmin) {
       return res.status(403).json({ error: 'Accès réservé aux chefs de clan' })
     }
     next()
   })
+}
+
+export function canManageCategories(req, res, next) {
+  const allowedSiteRoles = ['superadmin', 'admin']
+  const allowedCocRoles = ['leader', 'coLeader', 'chef', 'co-chef', 'coleader']
+
+  const siteRoleOk = allowedSiteRoles.includes(req.user?.site_role)
+  const cocRoleOk = allowedCocRoles.some((r) =>
+    req.user?.coc_role?.toLowerCase().includes(r.toLowerCase())
+  )
+
+  if (!siteRoleOk && !cocRoleOk) {
+    return res.status(403).json({ error: 'Réservé aux chefs et administrateurs' })
+  }
+  next()
 }

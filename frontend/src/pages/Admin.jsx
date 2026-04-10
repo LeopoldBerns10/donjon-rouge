@@ -218,7 +218,7 @@ export default function Admin() {
         <SectionHeader title="Zone Administration" subtitle="Donjon Rouge · Panneau de contrôle" />
         <div className="flex items-center gap-3 mt-2">
           <span className="text-ash font-cinzel text-xs uppercase tracking-wider">Connecté en tant que :</span>
-          <span className="text-bone font-cinzel text-sm font-bold">{user?.cocName || user?.email}</span>
+          <span className="text-bone font-cinzel text-sm font-bold">{user?.coc_name || user?.email}</span>
           {roleBadge(userRole)}
         </div>
       </div>

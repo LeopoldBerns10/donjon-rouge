@@ -9,6 +9,8 @@ import {
   likePost,
   deletePost,
   getCategories,
+  createCategory,
+  deleteCategory,
   getCategoryPosts,
   createCategoryPost,
   toggleReaction,
@@ -16,11 +18,11 @@ import {
   getUserReactions,
   getAllPostsReactions,
 } from '../controllers/forumController.js'
-import authMiddleware from '../middleware/auth.js'
+import authMiddleware, { canManageCategories } from '../middleware/auth.js'
 
 const router = Router()
 
-// ── Anciennes routes (compatibilité) ─────────────────────────────────────
+// ── Anciennes routes (compatibilité) ─────────────────────────────────────────
 router.get('/posts', getPosts)
 router.get('/posts/:id', getPost)
 router.post('/posts', authMiddleware, createPost)
@@ -30,12 +32,16 @@ router.post('/posts/:id/reply', authMiddleware, replyPost)
 router.post('/posts/:id/like', authMiddleware, likePost)
 router.post('/posts/:id/pin', authMiddleware, pinPost)
 
-// ── Nouvelles routes Discord-like ─────────────────────────────────────────
+// ── Catégories ────────────────────────────────────────────────────────────────
 router.get('/categories', getCategories)
+router.post('/categories', authMiddleware, canManageCategories, createCategory)
+router.delete('/categories/:id', authMiddleware, canManageCategories, deleteCategory)
+
+// ── Posts par catégorie ───────────────────────────────────────────────────────
 router.get('/categories/:catId/posts', getCategoryPosts)
 router.post('/category-posts', authMiddleware, createCategoryPost)
 
-// Réactions
+// ── Réactions ─────────────────────────────────────────────────────────────────
 router.post('/posts/:id/reactions', authMiddleware, toggleReaction)
 router.get('/posts/:id/reactions', getReactions)
 router.get('/posts/:id/my-reactions', authMiddleware, getUserReactions)

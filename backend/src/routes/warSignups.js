@@ -29,7 +29,7 @@ router.post('/', requireAuth, async (req, res) => {
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('id, coc_name, coc_tag')
-      .eq('id', req.user.userId)
+      .eq('id', req.user.id)
       .single()
     if (userError || !user) return res.status(404).json({ error: 'Joueur introuvable' })
 
@@ -58,7 +58,7 @@ router.delete('/', requireAuth, async (req, res) => {
     const { error } = await supabase
       .from('war_signups')
       .delete()
-      .eq('player_id', req.user.userId)
+      .eq('player_id', req.user.id)
     if (error) throw error
     res.json({ success: true })
   } catch (err) {
@@ -72,7 +72,7 @@ router.delete('/reset', requireAuth, async (req, res) => {
     const { data: user } = await supabase
       .from('users')
       .select('is_admin, coc_role')
-      .eq('id', req.user.userId)
+      .eq('id', req.user.id)
       .single()
 
     const isAllowed = user?.is_admin || ['leader', 'coLeader'].includes(user?.coc_role)

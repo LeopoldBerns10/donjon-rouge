@@ -18,7 +18,7 @@ export default function Login() {
       const credentials =
         tab === 'admin'
           ? { email: form.email, password: form.password }
-          : { coc_name: form.cocName, coc_tag: form.cocTag }
+          : { coc_tag: form.cocTag, password: form.password }
 
       const result = await login(credentials)
 
@@ -71,24 +71,24 @@ export default function Login() {
           {tab === 'member' ? (
             <>
               <div>
-                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Pseudo CoC</label>
+                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Tag CoC</label>
                 <input
                   type="text"
-                  value={form.cocName}
-                  onChange={(e) => setForm({ ...form, cocName: e.target.value })}
-                  className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
-                  placeholder="Ton pseudo en jeu"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Tag CoC (mot de passe)</label>
-                <input
-                  type="password"
                   value={form.cocTag}
                   onChange={(e) => setForm({ ...form, cocTag: e.target.value })}
                   className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
                   placeholder="#XXXXXXXX"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-cinzel uppercase text-ash mb-1">Mot de passe</label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  className="w-full bg-stone border border-fog rounded px-3 py-2 text-bone focus:outline-none focus:border-crimson"
+                  placeholder="Ton mot de passe"
                   required
                 />
               </div>

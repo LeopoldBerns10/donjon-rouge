@@ -10,10 +10,13 @@ export async function getUsers(req, res) {
 
   const { data, error } = await supabase
     .from('users')
-    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, created_at')
-    .order('coc_name')
+    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, created_at, updated_at')
+    .order('created_at', { ascending: false })
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error('getUsers error:', error)
+    return res.status(500).json({ error: error.message })
+  }
 
   const userIds = (data || []).map((u) => u.id)
 

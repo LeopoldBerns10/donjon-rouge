@@ -41,7 +41,7 @@ export default function chatRouter(io) {
 
     const { data, error } = await supabase
       .from('chat_messages')
-      .insert({ author_id: req.user.userId, channel, content })
+      .insert({ author_id: req.user.id, channel, content })
       .select('*, author:users(id, coc_name, coc_role)')
       .single()
 
@@ -51,7 +51,7 @@ export default function chatRouter(io) {
 
   router.delete('/messages/:id', authMiddleware, async (req, res) => {
     const { id } = req.params
-    const { userId, cocRole, isAdmin } = req.user
+    const { id: userId, coc_role, site_role } = req.user
 
     const { data: msg, error: fetchErr } = await supabase
       .from('chat_messages')
@@ -62,7 +62,9 @@ export default function chatRouter(io) {
     if (fetchErr || !msg) return res.status(404).json({ error: 'Message introuvable' })
 
     const isOwner = msg.author_id === userId
-    const isPrivileged = isAdmin || PRIVILEGED_ROLES.includes(cocRole)
+    const isPrivileged =
+      ['superadmin', 'admin'].includes(site_role) ||
+      PRIVILEGED_ROLES.includes(coc_role)
 
     if (!isOwner && !isPrivileged) return res.status(403).json({ error: 'Non autorisé' })
 
@@ -78,7 +80,7 @@ export default function chatRouter(io) {
     const { content } = req.body
     if (!content?.trim()) return res.status(400).json({ error: 'content requis' })
 
-    const { userId } = req.user
+    const { id: userId } = req.user
 
     const { data: msg, error: fetchErr } = await supabase
       .from('chat_messages')
