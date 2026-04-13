@@ -11,7 +11,11 @@ function formatDate(d) {
 
 function formatTime(d) {
   if (!d) return ''
-  return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  const dt = new Date(d)
+  const day = String(dt.getDate()).padStart(2, '0')
+  const month = String(dt.getMonth() + 1).padStart(2, '0')
+  const time = dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  return `${day}/${month} à ${time}`
 }
 
 function formatCocRole(role) {
