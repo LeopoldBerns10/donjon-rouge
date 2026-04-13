@@ -1,145 +1,274 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../lib/api.js'
 import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useSocket } from '../hooks/useSocket.js'
-import SectionHeader from '../components/SectionHeader.jsx'
-import RoleTag from '../components/RoleTag.jsx'
 import { ROLE_COLORS } from '../lib/constants.js'
-import { formatCocRole } from '../utils/roles.js'
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function timeAgo(str) {
-  if (!str) return ''
-  const diff = Date.now() - new Date(str).getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 1) return "À l'instant"
-  if (mins < 60) return `Il y a ${mins}min`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24) return `Il y a ${hrs}h`
-  return new Date(str).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })
+function formatDate(d) {
+  if (!d) return ''
+  return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-// ── ReactionButton ──────────────────────────────────────────────────────────
-
-const REACTION_CONFIG = {
-  up:    { emoji: '👍', activeClass: 'bg-green-500/20 border-green-500/50 text-green-400' },
-  down:  { emoji: '👎', activeClass: 'bg-red-500/20 border-red-500/50 text-red-400' },
-  heart: { emoji: '❤️', activeClass: 'bg-pink-500/20 border-pink-500/50 text-pink-400' },
+function formatFullDate(d) {
+  if (!d) return ''
+  return new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-function ReactionButton({ type, count, active, onClick, disabled }) {
-  const { emoji, activeClass } = REACTION_CONFIG[type]
+function formatDateTime(d) {
+  if (!d) return ''
+  const dt = new Date(d)
+  return dt.toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+function formatCocRole(role) {
+  const map = { leader: 'Chef', coLeader: 'Co-Chef', admin: 'Ancien', member: 'Membre' }
+  return map[role] || role || ''
+}
+
+const COMMON_EMOJIS = [
+  '😀','😂','😍','🤔','😎','😭','🥳','😡',
+  '👏','🙏','💪','✊','🤝','👀','🎉','🏆',
+  '⚔️','🛡️','🔥','⭐','💎','🎯','💀','👑'
+]
+
+// ─── RoleBadge ────────────────────────────────────────────────────────────────
+
+function RoleBadge({ role, siteRole }) {
+  if (siteRole === 'superadmin') return (
+    <span className="text-[10px] bg-purple-900/30 border border-purple-700/50 text-purple-400 px-1.5 py-0.5 rounded-full uppercase">Admin</span>
+  )
+  if (siteRole === 'admin') return (
+    <span className="text-[10px] bg-blue-900/30 border border-blue-700/50 text-blue-400 px-1.5 py-0.5 rounded-full uppercase">Modo</span>
+  )
+  if (role === 'leader') return (
+    <span className="text-[10px] bg-yellow-900/30 border border-yellow-700/50 text-yellow-400 px-1.5 py-0.5 rounded-full uppercase">Chef</span>
+  )
+  if (role === 'coLeader') return (
+    <span className="text-[10px] bg-orange-900/30 border border-orange-700/50 text-orange-400 px-1.5 py-0.5 rounded-full uppercase">Co-Chef</span>
+  )
+  return null
+}
+
+// ─── ReactionButton ───────────────────────────────────────────────────────────
+
+function ReactionButton({ emoji, count, active, onClick }) {
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`
-        flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs
-        font-medium transition-all duration-150
-        ${active
-          ? activeClass
+    <button onClick={onClick}
+      className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium transition-all duration-150 ${
+        active
+          ? 'bg-[#dc2626]/20 border-[#dc2626]/50 text-white'
           : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-500 hover:border-[#3a3a3a] hover:text-gray-300'
-        }
-        ${disabled ? 'cursor-default opacity-70' : 'cursor-pointer'}
-      `}
-    >
-      {emoji} {count > 0 && <span>{count}</span>}
+      }`}>
+      {emoji}{count > 0 && <span className="text-[10px]">{count}</span>}
     </button>
   )
 }
 
-function ReactionBar({ postId, user, compact = false }) {
-  const [counts, setCounts] = useState({ up: 0, down: 0, heart: 0 })
-  const [mine, setMine] = useState({ up: false, down: false, heart: false })
-  const [busy, setBusy] = useState(false)
+// ─── ReactionBar ──────────────────────────────────────────────────────────────
+
+function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
+  const { user } = useAuth()
+  const [counts, setCounts] = useState(initialCounts)
+  const [userReactions, setUserReactions] = useState(initialUserReactions)
+  const [showPicker, setShowPicker] = useState(false)
+  const pickerRef = useRef(null)
 
   useEffect(() => {
-    api.get(`/api/forum/posts/${postId}/reactions`)
-      .then((r) => { setCounts(r.data.counts); setMine(r.data.userReactions) })
-      .catch(() => {})
-  }, [postId])
+    function handleClick(e) {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) setShowPicker(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
-  async function toggle(type) {
-    if (!user || busy) return
-    setBusy(true)
+  const toggle = async (emoji) => {
+    if (!user) return
     try {
-      const r = await api.post(`/api/forum/posts/${postId}/reactions`, { reaction_type: type })
-      setMine((prev) => ({ ...prev, [type]: r.data.active }))
-      setCounts((prev) => ({ ...prev, [type]: r.data.active ? prev[type] + 1 : Math.max(0, prev[type] - 1) }))
+      const { data } = await api.post(`/api/forum/posts/${post.id}/reactions`, { emoji })
+      setUserReactions(prev => data.active ? [...prev, emoji] : prev.filter(e => e !== emoji))
+      setCounts(prev => ({ ...prev, [emoji]: Math.max(0, (prev[emoji] || 0) + (data.active ? 1 : -1)) }))
     } catch {}
-    setBusy(false)
   }
 
+  const presetEmojis = post.reaction_preset || ['👍', '👎', '❤️', '🔥', '⭐']
+
   return (
-    <div className={`flex items-center gap-2 ${compact ? '' : 'mt-4'}`}>
-      {['up', 'down', 'heart'].map((type) => (
-        <ReactionButton
-          key={type}
-          type={type}
-          count={counts[type]}
-          active={mine[type]}
-          onClick={() => toggle(type)}
-          disabled={!user}
-        />
-      ))}
+    <div className="flex items-center gap-2 flex-wrap relative">
+      {(post.allow_reactions === 'preset' || post.allow_reactions === 'both') &&
+        presetEmojis.map(emoji => (
+          <ReactionButton
+            key={emoji}
+            emoji={emoji}
+            count={counts[emoji] || 0}
+            active={userReactions.includes(emoji)}
+            onClick={() => toggle(emoji)}
+          />
+        ))
+      }
+      {(post.allow_reactions === 'custom' || post.allow_reactions === 'both') && (
+        <div className="relative" ref={pickerRef}>
+          <button onClick={() => setShowPicker(!showPicker)}
+            className="px-2.5 py-1 rounded-full border border-[#2a2a2a] text-gray-500 hover:text-gray-300 hover:border-[#3a3a3a] text-sm transition-colors">
+            + 😀
+          </button>
+          {showPicker && (
+            <div className="absolute bottom-full mb-2 left-0 bg-[#111111] border border-[#1f1f1f] rounded-xl p-3 shadow-xl z-20 grid grid-cols-8 gap-1">
+              {COMMON_EMOJIS.map(e => (
+                <button key={e} onClick={() => { toggle(e); setShowPicker(false) }}
+                  className="w-8 h-8 hover:bg-[#1a1a1a] rounded-lg text-lg transition-colors flex items-center justify-center">
+                  {e}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
 
-// ── Post detail modal ──────────────────────────────────────────────────────
+// ─── PostOptionsMenu ──────────────────────────────────────────────────────────
 
-function PostDetail({ post, user, isAdmin, onClose, onDelete }) {
+function PostOptionsMenu({ post, isPostAuthor, isAdmin, onToggleComments, onOpenReactionSettings, onClearComments, onTogglePin, onDeletePost }) {
+  const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const MenuItem = ({ onClick, danger, children }) => (
+    <button onClick={() => { onClick(); setShowMenu(false) }}
+      className={`w-full text-left px-4 py-2 text-xs hover:bg-[#1a1a1a] transition-colors ${danger ? 'text-red-400 hover:text-red-300' : 'text-gray-300 hover:text-white'}`}>
+      {children}
+    </button>
+  )
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto py-8 px-4"
-      style={{ background: 'rgba(0,0,0,0.85)' }}>
-      <div className="w-full max-w-2xl rounded-xl" style={{ background: '#111', border: '1px solid #1f1f1f' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[#1f1f1f]">
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-xs font-cinzel uppercase tracking-wider transition-colors">← Retour</button>
-          {(user?.id === post.author_id || isAdmin) && (
-            <button
-              onClick={() => { if (window.confirm('Supprimer ce post ?')) onDelete(post.id) }}
-              className="text-xs text-red-400 hover:text-red-300 font-cinzel uppercase border border-red-800/40 px-2 py-1 rounded transition-colors">
-              🗑️ Supprimer
-            </button>
+    <div className="relative" ref={menuRef}>
+      <button onClick={() => setShowMenu(!showMenu)}
+        className="text-gray-600 hover:text-gray-300 px-2 py-1 rounded text-lg leading-none transition-colors">
+        ⋯
+      </button>
+      {showMenu && (
+        <div className="absolute right-0 top-full mt-1 w-52 bg-[#111111] border border-[#1f1f1f] rounded-xl shadow-xl z-20 py-1">
+          {isPostAuthor && (
+            <>
+              <MenuItem onClick={onToggleComments}>
+                {post.allow_comments ? '🔇 Désactiver commentaires' : '💬 Activer commentaires'}
+              </MenuItem>
+              <MenuItem onClick={onOpenReactionSettings}>
+                😀 Gérer les réactions
+              </MenuItem>
+              {post.allow_comments && (
+                <MenuItem onClick={onClearComments} danger>
+                  🗑️ Vider les commentaires
+                </MenuItem>
+              )}
+            </>
+          )}
+          {isAdmin && (
+            <>
+              {isPostAuthor && <div className="border-t border-[#1a1a1a] my-1" />}
+              <MenuItem onClick={onTogglePin}>
+                {post.is_pinned ? '📌 Désépingler' : '📌 Épingler'}
+              </MenuItem>
+              <MenuItem onClick={onDeletePost} danger>
+                🗑️ Supprimer le post
+              </MenuItem>
+            </>
           )}
         </div>
+      )}
+    </div>
+  )
+}
 
-        {/* Content */}
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-3 flex-wrap">
-            {post.is_pinned && (
-              <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 px-2 py-0.5 rounded-full">
-                📌 Épinglé
-              </span>
-            )}
+// ─── ReactionSettingsModal ────────────────────────────────────────────────────
+
+function ReactionSettingsModal({ post, onClose, onSaved }) {
+  const [reactionType, setReactionType] = useState(post.allow_reactions || 'preset')
+  const [selectedPresets, setSelectedPresets] = useState(post.reaction_preset || ['👍', '👎', '❤️', '🔥', '⭐'])
+  const [showPresetPicker, setShowPresetPicker] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const removePreset = (e) => setSelectedPresets(prev => prev.filter(x => x !== e))
+  const addPreset = (e) => { if (!selectedPresets.includes(e)) setSelectedPresets(prev => [...prev, e]) }
+
+  const save = async () => {
+    setLoading(true)
+    try {
+      await api.put(`/api/forum/posts/${post.id}`, {
+        allow_reactions: reactionType,
+        reaction_preset: selectedPresets
+      })
+      onSaved({ allow_reactions: reactionType, reaction_preset: selectedPresets })
+      onClose()
+    } catch {} finally { setLoading(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-[#1a1a1a]">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wide">😀 Réglages des réactions</h3>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">Type de réactions</label>
+            <select value={reactionType} onChange={e => setReactionType(e.target.value)}
+              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50">
+              <option value="preset">Emojis prédéfinis uniquement</option>
+              <option value="custom">Emoji picker libre</option>
+              <option value="both">Les deux</option>
+              <option value="none">Aucune réaction</option>
+            </select>
           </div>
-          <h2 className="text-xl font-bold font-cinzel text-white mb-4">{post.title}</h2>
-          <div className="flex items-center gap-2 mb-5 flex-wrap">
-            <div className="w-7 h-7 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
-                            flex items-center justify-center text-xs font-bold text-[#dc2626]">
-              {(post.author?.coc_name || post.author_name || '?').charAt(0).toUpperCase()}
+
+          {(reactionType === 'preset' || reactionType === 'both') && (
+            <div>
+              <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-2">Emojis prédéfinis</label>
+              <div className="flex gap-2 flex-wrap">
+                {selectedPresets.map(e => (
+                  <button key={e} onClick={() => removePreset(e)}
+                    className="text-2xl hover:opacity-50 transition-opacity" title="Retirer">
+                    {e}
+                  </button>
+                ))}
+                <button onClick={() => setShowPresetPicker(!showPresetPicker)}
+                  className="w-10 h-10 rounded-lg border border-dashed border-[#333] text-gray-500 hover:text-gray-300 transition-colors text-lg">
+                  +
+                </button>
+              </div>
+              {showPresetPicker && (
+                <div className="mt-2 bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-3 grid grid-cols-8 gap-1">
+                  {COMMON_EMOJIS.map(e => (
+                    <button key={e} onClick={() => addPreset(e)}
+                      className={`w-8 h-8 rounded-lg text-lg transition-colors flex items-center justify-center ${selectedPresets.includes(e) ? 'opacity-30' : 'hover:bg-[#1a1a1a]'}`}>
+                      {e}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            <span className="text-gray-300 text-sm font-medium">{post.author?.coc_name || post.author_name || 'Inconnu'}</span>
-            {post.author?.coc_role && <RoleTag role={formatCocRole(post.author.coc_role)} />}
-            <span className="text-gray-600 text-xs ml-auto">
-              {new Date(post.created_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-
-          <div className="border-t border-[#1f1f1f] pt-4 mb-4">
-            <p className="text-gray-300 leading-relaxed whitespace-pre-wrap text-sm">{post.content}</p>
-          </div>
-
-          {post.image_url && (
-            <img src={post.image_url} alt="Image du post" className="max-w-full rounded-lg mb-4" style={{ maxHeight: 400, objectFit: 'contain' }} />
           )}
 
-          <div className="border-t border-[#1f1f1f] pt-4">
-            <p className="text-gray-600 text-xs font-cinzel uppercase tracking-wider mb-3">Réactions</p>
-            <ReactionBar postId={post.id} user={user} />
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+              Annuler
+            </button>
+            <button onClick={save} disabled={loading}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 transition-all">
+              Sauvegarder
+            </button>
           </div>
         </div>
       </div>
@@ -147,24 +276,278 @@ function PostDetail({ post, user, isAdmin, onClose, onDelete }) {
   )
 }
 
-// ── Formulaire nouveau post ─────────────────────────────────────────────────
+// ─── CommentsSection ──────────────────────────────────────────────────────────
 
-function NewPostForm({ categoryId, user, onClose, onCreated }) {
-  const [form, setForm] = useState({ title: '', content: '' })
+function CommentsSection({ postId, isPostAuthor, initialComments = [] }) {
+  const { user } = useAuth()
+  const isAdmin = ['superadmin', 'admin'].includes(user?.site_role)
+  const [comments, setComments] = useState(initialComments)
+  const [newComment, setNewComment] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const submitComment = async () => {
+    if (!newComment.trim() || !user) return
+    setLoading(true)
+    try {
+      const { data } = await api.post(`/api/forum/posts/${postId}/comments`, { content: newComment.trim() })
+      setComments(prev => [...prev, data])
+      setNewComment('')
+    } catch {} finally { setLoading(false) }
+  }
+
+  const deleteComment = async (id) => {
+    try {
+      await api.delete(`/api/forum/comments/${id}`)
+      setComments(prev => prev.filter(c => c.id !== id))
+    } catch {}
+  }
+
+  const clearAllComments = async () => {
+    if (!window.confirm('Vider tous les commentaires ?')) return
+    try {
+      await api.delete(`/api/forum/posts/${postId}/comments`)
+      setComments([])
+    } catch {}
+  }
+
+  return (
+    <div className="mx-6 mb-6">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-xs uppercase tracking-widest text-gray-600">
+          💬 Commentaires ({comments.length})
+        </span>
+        {isPostAuthor && comments.length > 0 && (
+          <button onClick={clearAllComments}
+            className="text-xs text-gray-700 hover:text-red-400 transition-colors">
+            Tout vider
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-2 mb-4">
+        {comments.map(c => (
+          <div key={c.id} className="flex gap-3 p-3 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a]">
+            <div className="w-7 h-7 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
+                            flex items-center justify-center text-[10px] font-bold text-[#dc2626] flex-shrink-0">
+              {c.author_name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs font-bold text-white">{c.author_name}</span>
+                <RoleBadge role={c.author_coc_role} siteRole={c.author_site_role} />
+                <span className="text-[10px] text-gray-700 ml-auto">{formatDateTime(c.created_at)}</span>
+              </div>
+              <p className="text-xs text-gray-400">{c.content}</p>
+            </div>
+            {(isPostAuthor || isAdmin || c.author_id === user?.id) && (
+              <button onClick={() => deleteComment(c.id)}
+                className="text-gray-700 hover:text-red-400 transition-colors text-xs flex-shrink-0">
+                ✕
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {user && (
+        <div className="flex gap-3">
+          <div className="w-7 h-7 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
+                          flex items-center justify-center text-[10px] font-bold text-[#dc2626] flex-shrink-0">
+            {user?.coc_name?.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 flex gap-2">
+            <input
+              value={newComment}
+              onChange={e => setNewComment(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submitComment()}
+              placeholder="Écrire un commentaire..."
+              className="flex-1 px-3 py-2 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#dc2626]/50 transition-colors"
+            />
+            <button onClick={submitComment} disabled={loading || !newComment.trim()}
+              className="px-4 py-2 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] text-white text-sm font-semibold transition-colors disabled:opacity-50">
+              →
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── PostView (vue détaillée) ─────────────────────────────────────────────────
+
+function PostView({ postId, onBack, onDeleted }) {
+  const { user } = useAuth()
+  const isAdmin = ['superadmin', 'admin'].includes(user?.site_role)
+  const [post, setPost] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [showReactionSettings, setShowReactionSettings] = useState(false)
+
+  const fetchPost = useCallback(async () => {
+    try {
+      const { data } = await api.get(`/api/forum/posts/${postId}`)
+      setPost(data)
+    } catch {} finally { setLoading(false) }
+  }, [postId])
+
+  useEffect(() => { fetchPost() }, [fetchPost])
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="w-6 h-6 border-2 border-[#dc2626] border-t-transparent rounded-full animate-spin" />
+    </div>
+  )
+
+  if (!post) return (
+    <div className="flex-1 flex items-center justify-center">
+      <p className="text-gray-600 text-sm">Post introuvable</p>
+    </div>
+  )
+
+  const isPostAuthor = post.author_id === user?.id
+
+  const handleToggleComments = async () => {
+    try {
+      const { data } = await api.put(`/api/forum/posts/${post.id}`, { allow_comments: !post.allow_comments })
+      setPost(p => ({ ...p, allow_comments: data.allow_comments }))
+    } catch {}
+  }
+
+  const handleClearComments = async () => {
+    if (!window.confirm('Vider tous les commentaires ?')) return
+    try {
+      await api.delete(`/api/forum/posts/${post.id}/comments`)
+      setPost(p => ({ ...p, comments: [] }))
+    } catch {}
+  }
+
+  const handleTogglePin = async () => {
+    try {
+      const { data } = await api.post(`/api/forum/posts/${post.id}/pin`)
+      setPost(p => ({ ...p, is_pinned: data.is_pinned }))
+    } catch {}
+  }
+
+  const handleDeletePost = async () => {
+    if (!window.confirm('Supprimer ce post ?')) return
+    try {
+      await api.delete(`/api/forum/posts/${post.id}`)
+      onDeleted(post.id)
+      onBack()
+    } catch {}
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto">
+      <button onClick={onBack}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors mb-4 mx-6 mt-4">
+        ← Retour
+      </button>
+
+      <div className="mx-6 mb-4 p-5 rounded-2xl bg-[#111111] border border-[#1f1f1f]">
+        {/* Header auteur */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
+                            flex items-center justify-center font-bold text-[#dc2626]">
+              {post.author_name?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-white">{post.author_name}</span>
+                <RoleBadge role={post.author_coc_role} siteRole={post.author_site_role} />
+              </div>
+              <span className="text-xs text-gray-600">{formatFullDate(post.created_at)}</span>
+            </div>
+          </div>
+          {(isPostAuthor || isAdmin) && (
+            <PostOptionsMenu
+              post={post}
+              isPostAuthor={isPostAuthor}
+              isAdmin={isAdmin}
+              onToggleComments={handleToggleComments}
+              onOpenReactionSettings={() => setShowReactionSettings(true)}
+              onClearComments={handleClearComments}
+              onTogglePin={handleTogglePin}
+              onDeletePost={handleDeletePost}
+            />
+          )}
+        </div>
+
+        {/* Badge épinglé */}
+        {post.is_pinned && (
+          <div className="flex items-center gap-1.5 mb-3">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: post.pin_color || '#f59e0b' }} />
+            <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: post.pin_color || '#f59e0b' }}>
+              Post épinglé
+            </span>
+          </div>
+        )}
+
+        <h2 className="text-lg font-bold text-white mb-3 uppercase tracking-wide">{post.title}</h2>
+
+        {post.content && (
+          <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap mb-4">{post.content}</p>
+        )}
+
+        {post.image_url && (
+          <img src={post.image_url} alt="" className="w-full max-h-96 object-cover rounded-xl mb-4" />
+        )}
+
+        {post.allow_reactions !== 'none' && (
+          <div className="pt-3 border-t border-[#1a1a1a]">
+            <ReactionBar
+              post={post}
+              initialCounts={post.reaction_counts || {}}
+              initialUserReactions={post.user_reactions || []}
+            />
+          </div>
+        )}
+      </div>
+
+      {post.allow_comments && (
+        <CommentsSection
+          postId={post.id}
+          isPostAuthor={isPostAuthor}
+          initialComments={post.comments || []}
+        />
+      )}
+
+      {showReactionSettings && (
+        <ReactionSettingsModal
+          post={post}
+          onClose={() => setShowReactionSettings(false)}
+          onSaved={(updates) => setPost(p => ({ ...p, ...updates }))}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── CreatePostModal ──────────────────────────────────────────────────────────
+
+function CreatePostModal({ categoryId, onClose, onCreated }) {
+  const [form, setForm] = useState({
+    title: '',
+    content: '',
+    allow_comments: true,
+    allow_reactions: 'preset',
+  })
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const fileRef = useRef(null)
 
-  function handleImage(e) {
+  const handleImage = (e) => {
     const file = e.target.files[0]
     if (!file) return
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
 
-  async function submit(e) {
+  const submit = async (e) => {
     e.preventDefault()
     if (!form.title.trim()) return setError('Le titre est requis')
     setError('')
@@ -179,20 +562,21 @@ function NewPostForm({ categoryId, user, onClose, onCreated }) {
         const { data: urlData } = supabase.storage.from('forum-images').getPublicUrl(path)
         image_url = urlData.publicUrl
       } catch (err) {
-        setError("Erreur upload image: " + err.message)
+        setError('Erreur upload image: ' + err.message)
         setUploading(false)
         return
       }
     }
 
     try {
-      const r = await api.post('/api/forum/category-posts', {
+      const { data } = await api.post('/api/forum/posts', {
+        ...form,
         title: form.title.trim(),
         content: form.content.trim(),
         category_id: categoryId,
         image_url,
       })
-      onCreated(r.data)
+      onCreated(data)
       onClose()
     } catch (err) {
       setError(err.response?.data?.error || 'Erreur lors de la publication')
@@ -200,260 +584,295 @@ function NewPostForm({ categoryId, user, onClose, onCreated }) {
     setUploading(false)
   }
 
+  const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#dc2626]/50'
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
-      <div className="w-full max-w-lg rounded-xl" style={{ background: '#111', border: '1px solid #1f1f1f' }}>
-        <div className="flex items-center justify-between p-4 border-b border-[#1f1f1f]">
-          <h3 className="font-cinzel text-white uppercase tracking-wider text-sm">Nouveau post</h3>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-[#1a1a1a] flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wide">Nouveau post</h3>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">✕</button>
         </div>
-        <div className="p-5">
-          {error && <p className="text-red-400 text-xs mb-3 font-cinzel">{error}</p>}
-          <form onSubmit={submit} className="flex flex-col gap-3">
-            <input
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Titre du post"
-              className="w-full rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#dc2626] transition-colors"
-              style={{ background: '#0d0d0d', border: '1px solid #1f1f1f' }}
-              required
-            />
-            <textarea
-              value={form.content}
-              onChange={(e) => setForm({ ...form, content: e.target.value })}
-              rows={6}
-              placeholder="Contenu..."
-              className="w-full rounded-lg px-3 py-2.5 text-white text-sm resize-none focus:outline-none focus:border-[#dc2626] transition-colors"
-              style={{ background: '#0d0d0d', border: '1px solid #1f1f1f' }}
-            />
-            <div>
-              <button type="button" onClick={() => fileRef.current?.click()}
-                className="text-xs font-cinzel uppercase text-gray-400 border border-[#2a2a2a] px-3 py-1.5 rounded-lg hover:text-white hover:border-[#3a3a3a] transition-colors">
-                📎 Ajouter une image
-              </button>
-              <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
-              {imagePreview && (
-                <div className="mt-2 relative inline-block">
-                  <img src={imagePreview} alt="Aperçu" className="max-h-32 rounded-lg" />
-                  <button type="button" onClick={() => { setImageFile(null); setImagePreview(null) }}
-                    className="absolute top-1 right-1 bg-red-900 text-white text-xs rounded px-1">✕</button>
-                </div>
-              )}
+        <form onSubmit={submit} className="px-6 py-5 space-y-3">
+          {error && <p className="text-xs text-[#dc2626]">{error}</p>}
+          <input required value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            placeholder="Titre du post *"
+            className={inputCls} />
+          <textarea value={form.content}
+            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+            rows={5} placeholder="Contenu (optionnel)"
+            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#dc2626]/50 resize-none" />
+
+          <div>
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="text-xs text-gray-400 border border-[#2a2a2a] px-3 py-1.5 rounded-lg hover:text-white hover:border-[#3a3a3a] transition-colors">
+              📎 Ajouter une image
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+            {imagePreview && (
+              <div className="mt-2 relative inline-block">
+                <img src={imagePreview} alt="" className="max-h-32 rounded-lg" />
+                <button type="button" onClick={() => { setImageFile(null); setImagePreview(null) }}
+                  className="absolute top-1 right-1 bg-red-900 text-white text-xs rounded px-1">✕</button>
+              </div>
+            )}
+          </div>
+
+          <details open={showAdvanced} onToggle={e => setShowAdvanced(e.target.open)}>
+            <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-300 select-none">
+              ⚙️ Options avancées
+            </summary>
+            <div className="mt-3 space-y-3 pl-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-gray-400">Autoriser les commentaires</label>
+                <button type="button" onClick={() => setForm(f => ({ ...f, allow_comments: !f.allow_comments }))}
+                  className={`w-10 h-5 rounded-full transition-colors relative ${form.allow_comments ? 'bg-[#dc2626]' : 'bg-[#2a2a2a]'}`}>
+                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.allow_comments ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                </button>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">Type de réactions</label>
+                <select value={form.allow_reactions} onChange={e => setForm(f => ({ ...f, allow_reactions: e.target.value }))}
+                  className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-[#dc2626]/50">
+                  <option value="preset">Emojis prédéfinis</option>
+                  <option value="custom">Emoji picker libre</option>
+                  <option value="both">Les deux</option>
+                  <option value="none">Aucune</option>
+                </select>
+              </div>
             </div>
-            <div className="flex gap-3 pt-1">
-              <button type="submit" disabled={uploading}
-                className="px-5 py-2 font-cinzel uppercase text-xs text-white rounded-lg disabled:opacity-50 transition-colors"
-                style={{ background: uploading ? '#6B0000' : 'linear-gradient(135deg, #6B0000, #C41E3A)' }}>
-                {uploading ? 'Publication...' : 'Publier'}
-              </button>
-              <button type="button" onClick={onClose}
-                className="px-5 py-2 font-cinzel uppercase text-xs text-gray-400 border border-[#dc2626]/40 rounded-lg hover:text-white transition-colors">
-                Annuler
-              </button>
-            </div>
-          </form>
-        </div>
+          </details>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+              Annuler
+            </button>
+            <button type="submit" disabled={uploading}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 transition-all">
+              {uploading ? 'Publication...' : 'Publier'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
 }
 
-// ── Formulaire nouvelle catégorie ───────────────────────────────────────────
+// ─── CreateCategoryModal ──────────────────────────────────────────────────────
 
-function NewCategoryForm({ onClose, onCreated }) {
-  const [form, setForm] = useState({ name: '', description: '', icon: '💬' })
-  const [error, setError] = useState('')
+function CreateCategoryModal({ parentId, onClose, onCreated }) {
+  const [form, setForm] = useState({ name: '', description: '', icon: '💬', color: '#dc2626', allow_member_subcategories: false })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  async function submit(e) {
+  const submit = async (e) => {
     e.preventDefault()
     if (!form.name.trim()) return setError('Le nom est requis')
     setError('')
     setLoading(true)
     try {
-      const r = await api.post('/api/forum/categories', {
+      const { data } = await api.post('/api/forum/categories', {
+        ...form,
         name: form.name.trim(),
-        description: form.description.trim(),
-        icon: form.icon.trim() || '💬',
+        parent_id: parentId || null,
       })
-      onCreated(r.data)
+      onCreated(data)
       onClose()
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de la création')
-    }
-    setLoading(false)
+      setError(err.response?.data?.error || 'Erreur création')
+    } finally { setLoading(false) }
   }
 
+  const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50'
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: 'rgba(0,0,0,0.85)' }}>
-      <div className="w-full max-w-md rounded-xl" style={{ background: '#111', border: '1px solid #1f1f1f' }}>
-        <div className="flex items-center justify-between p-4 border-b border-[#1f1f1f]">
-          <h3 className="font-cinzel text-white uppercase tracking-wider text-sm">Nouvelle catégorie</h3>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-[#1a1a1a] flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+            {parentId ? '+ Sous-catégorie' : '+ Nouvelle catégorie'}
+          </h3>
           <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">✕</button>
         </div>
-        <div className="p-5">
-          {error && <p className="text-red-400 text-xs mb-3 font-cinzel">{error}</p>}
-          <form onSubmit={submit} className="flex flex-col gap-3">
-            <div className="flex gap-2">
-              <input
-                value={form.icon}
-                onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                placeholder="Icône"
-                className="w-16 rounded-lg px-2 py-2.5 text-white text-center text-lg focus:outline-none"
-                style={{ background: '#0d0d0d', border: '1px solid #1f1f1f' }}
-              />
-              <input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Nom de la catégorie"
-                className="flex-1 rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#dc2626] transition-colors"
-                style={{ background: '#0d0d0d', border: '1px solid #1f1f1f' }}
-                required
-              />
-            </div>
-            <input
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              placeholder="Description (optionnelle)"
-              className="w-full rounded-lg px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#dc2626] transition-colors"
-              style={{ background: '#0d0d0d', border: '1px solid #1f1f1f' }}
-            />
-            <div className="flex gap-3 pt-1">
-              <button type="submit" disabled={loading}
-                className="px-5 py-2 font-cinzel uppercase text-xs text-white rounded-lg disabled:opacity-50"
-                style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)' }}>
-                {loading ? 'Création...' : 'Créer'}
-              </button>
-              <button type="button" onClick={onClose}
-                className="px-5 py-2 font-cinzel uppercase text-xs text-gray-400 border border-[#dc2626]/40 rounded-lg hover:text-white transition-colors">
-                Annuler
+        <form onSubmit={submit} className="px-6 py-5 space-y-3">
+          {error && <p className="text-xs text-[#dc2626]">{error}</p>}
+          <div className="flex gap-2">
+            <input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))}
+              className="w-14 bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-2 py-2.5 text-center text-xl focus:outline-none"
+              placeholder="💬" />
+            <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              placeholder="Nom *" className={`flex-1 ${inputCls}`} />
+          </div>
+          <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+            placeholder="Description (optionnel)" className={inputCls} />
+          {!parentId && (
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-gray-400">Membres peuvent créer des sous-catégories</label>
+              <button type="button" onClick={() => setForm(f => ({ ...f, allow_member_subcategories: !f.allow_member_subcategories }))}
+                className={`w-10 h-5 rounded-full transition-colors relative ${form.allow_member_subcategories ? 'bg-[#dc2626]' : 'bg-[#2a2a2a]'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.allow_member_subcategories ? 'translate-x-5' : 'translate-x-0.5'}`} />
               </button>
             </div>
-          </form>
-        </div>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+              Annuler
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 transition-all">
+              {loading ? 'Création...' : 'Créer'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
 }
 
-// ── Forum Discord-like ──────────────────────────────────────────────────────
+// ─── ForumDiscord ─────────────────────────────────────────────────────────────
 
 function ForumDiscord({ user }) {
-  const { isAdmin } = useAuth()
+  const isAdmin = ['superadmin', 'admin'].includes(user?.site_role)
+  const isPrivileged = isAdmin || ['leader', 'coLeader'].includes(user?.coc_role)
+
   const [categories, setCategories] = useState([])
   const [catLoading, setCatLoading] = useState(true)
-  const [selectedCat, setSelectedCat] = useState(null)
+  const [activeCategory, setActiveCategory] = useState(null)
+  const [expandedCategories, setExpandedCategories] = useState([])
   const [posts, setPosts] = useState([])
   const [postsLoading, setPostsLoading] = useState(false)
-  const [selectedPost, setSelectedPost] = useState(null)
-  const [showNewPost, setShowNewPost] = useState(false)
-  const [showNewCategory, setShowNewCategory] = useState(false)
-  const [error, setError] = useState('')
+  const [activePostId, setActivePostId] = useState(null)
+  const [showCreatePost, setShowCreatePost] = useState(false)
+  const [createCategoryModal, setCreateCategoryModal] = useState(null) // null | 'root' | parentId
 
-  // Vérification des permissions pour gérer les catégories
-  const canManage =
-    ['superadmin', 'admin'].includes(user?.site_role) ||
-    ['chef', 'co-chef', 'leader', 'coleader', 'coLeader'].some((r) =>
-      user?.coc_role?.toLowerCase().includes(r.toLowerCase())
-    )
+  const fetchCategories = useCallback(async () => {
+    setCatLoading(true)
+    try {
+      const { data } = await api.get('/api/forum/categories')
+      setCategories(data || [])
+      if (!activeCategory && data?.length > 0) {
+        setActiveCategory(data[0].id)
+        setExpandedCategories([data[0].id])
+      }
+    } catch {} finally { setCatLoading(false) }
+  }, [activeCategory])
 
-  useEffect(() => {
-    api.get('/api/forum/categories')
-      .then((r) => {
-        setCategories(r.data)
-        if (r.data.length > 0) setSelectedCat(r.data[0])
-      })
-      .catch(() => setError('Erreur chargement des catégories'))
-      .finally(() => setCatLoading(false))
-  }, [])
+  useEffect(() => { fetchCategories() }, [])
 
   useEffect(() => {
-    if (!selectedCat) return
+    if (!activeCategory) return
     setPostsLoading(true)
     setPosts([])
-    setShowNewPost(false)
-    api.get(`/api/forum/categories/${selectedCat.id}/posts`)
-      .then((r) => setPosts(r.data))
+    setActivePostId(null)
+    api.get(`/api/forum/categories/${activeCategory}/posts`)
+      .then(r => setPosts(r.data || []))
       .catch(() => {})
       .finally(() => setPostsLoading(false))
-  }, [selectedCat])
+  }, [activeCategory])
 
-  async function handleDelete(postId) {
-    try {
-      await api.delete(`/api/forum/posts/${postId}`)
-      setPosts((prev) => prev.filter((p) => p.id !== postId))
-      setSelectedPost(null)
-    } catch (e) {
-      setError(e.response?.data?.error || 'Erreur suppression')
-    }
+  const toggleExpand = (catId) => {
+    setExpandedCategories(prev =>
+      prev.includes(catId) ? prev.filter(id => id !== catId) : [...prev, catId]
+    )
   }
 
-  async function handleDeleteCategory(catId) {
+  const handleSelectCategory = (catId) => {
+    setActiveCategory(catId)
+    setActivePostId(null)
+  }
+
+  const handleDeleteCategory = async (catId) => {
     if (!window.confirm('Supprimer cette catégorie et tous ses posts ?')) return
     try {
       await api.delete(`/api/forum/categories/${catId}`)
-      setCategories((prev) => prev.filter((c) => c.id !== catId))
-      if (selectedCat?.id === catId) setSelectedCat(null)
-    } catch (e) {
-      setError(e.response?.data?.error || 'Erreur suppression catégorie')
-    }
+      setCategories(prev => prev.filter(c => c.id !== catId && c.parent_id !== catId))
+      if (activeCategory === catId) setActiveCategory(null)
+    } catch {}
   }
 
+  const activeCat = categories.find(c => c.id === activeCategory) ||
+    categories.flatMap(c => c.subcategories || []).find(c => c.id === activeCategory)
+
   return (
-    <div className="flex" style={{ minHeight: '70vh', background: '#0d0d0d' }}>
-      {/* Sidebar */}
-      <aside className="flex-shrink-0 flex flex-col" style={{ width: 288, background: '#0a0a0a', borderRight: '1px solid #1a1a1a' }}>
+    <div className="flex" style={{ minHeight: '75vh', background: '#0d0d0d' }}>
+
+      {/* ── Sidebar ── */}
+      <aside className="flex-shrink-0 flex flex-col overflow-y-auto"
+        style={{ width: 288, background: '#080808', borderRight: '1px solid #1a1a1a' }}>
         <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between">
-          <span className="text-xs uppercase tracking-widest text-gray-500 font-cinzel font-semibold">
-            Forums
-          </span>
-          {canManage && (
-            <button
-              onClick={() => setShowNewCategory(true)}
-              className="text-gray-500 hover:text-[#dc2626] text-lg leading-none transition-colors"
-              title="Nouvelle catégorie"
-            >
+          <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Forums</span>
+          {isAdmin && (
+            <button onClick={() => setCreateCategoryModal('root')}
+              className="text-gray-700 hover:text-[#dc2626] transition-colors text-xl leading-none">
               +
             </button>
           )}
         </div>
 
         {catLoading ? (
-          <p className="text-gray-600 text-xs font-cinzel px-4 py-3 animate-pulse">Chargement...</p>
+          <p className="text-xs text-gray-600 px-4 py-3 animate-pulse">Chargement...</p>
         ) : (
-          <nav className="flex flex-col py-2 overflow-y-auto flex-1">
-            {categories.map((cat) => {
-              const active = selectedCat?.id === cat.id
+          <nav className="flex flex-col py-2 flex-1">
+            {categories.map(cat => {
+              const active = activeCategory === cat.id
+              const expanded = expandedCategories.includes(cat.id)
               return (
-                <div key={cat.id} className="group flex items-center mx-2 mb-1">
-                  <button
-                    onClick={() => setSelectedCat(cat)}
-                    className={`
-                      flex-1 flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-150
-                      ${active
-                        ? 'bg-[#dc2626]/10 border border-[#dc2626]/30 text-white'
-                        : 'text-gray-400 hover:bg-[#1a1a1a] hover:text-gray-200 border border-transparent'
-                      }
-                    `}
-                  >
-                    <span className="text-base leading-none flex-shrink-0">{cat.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-xs font-cinzel uppercase tracking-wide truncate font-medium ${active ? 'text-white' : ''}`}>
-                        {cat.name}
-                      </p>
-                      {cat.description && (
-                        <p className="text-xs text-gray-600 truncate">{cat.description}</p>
+                <div key={cat.id} className="mx-2 my-0.5">
+                  <div className="relative group">
+                    <button
+                      onClick={() => { toggleExpand(cat.id); handleSelectCategory(cat.id) }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-left hover:scale-[1.02] hover:bg-[#151515] ${
+                        active ? 'bg-[#151515] border border-[#dc2626]/20' : 'border border-transparent'
+                      }`}
+                    >
+                      {active && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 rounded-r"
+                          style={{ backgroundColor: cat.color || '#dc2626' }} />
+                      )}
+                      <span className="text-lg flex-shrink-0">{cat.icon}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold truncate transition-colors ${active ? 'text-white' : 'text-gray-400 group-hover:text-gray-200'}`}>
+                          {cat.name}
+                        </p>
+                        {cat.description && <p className="text-[10px] text-gray-600 truncate">{cat.description}</p>}
+                      </div>
+                      {cat.subcategories?.length > 0 && (
+                        <svg className={`w-3 h-3 text-gray-600 transition-transform duration-200 flex-shrink-0 ${expanded ? 'rotate-90' : ''}`}
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      )}
+                    </button>
+                    {isAdmin && (
+                      <button onClick={() => handleDeleteCategory(cat.id)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-hover:flex w-5 h-5 items-center justify-center text-gray-600 hover:text-red-400 transition-colors text-xs">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {expanded && (
+                    <div className="ml-4 mt-1 space-y-0.5 border-l border-[#1a1a1a] pl-3">
+                      {(cat.subcategories || []).map(sub => (
+                        <button key={sub.id}
+                          onClick={() => handleSelectCategory(sub.id)}
+                          className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all duration-150 hover:bg-[#151515] hover:scale-[1.01] ${
+                            activeCategory === sub.id ? 'bg-[#151515] text-white' : 'text-gray-500'
+                          }`}>
+                          <span className="text-sm">{sub.icon || '▸'}</span>
+                          <span className="text-xs font-medium truncate">{sub.name}</span>
+                        </button>
+                      ))}
+                      {(isAdmin || cat.allow_member_subcategories) && (
+                        <button onClick={() => setCreateCategoryModal(cat.id)}
+                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:text-gray-400 transition-colors text-xs">
+                          + Sous-catégorie
+                        </button>
                       )}
                     </div>
-                  </button>
-                  {canManage && isAdmin && (
-                    <button
-                      onClick={() => handleDeleteCategory(cat.id)}
-                      className="hidden group-hover:flex items-center justify-center w-5 h-5 ml-1 text-gray-600 hover:text-red-400 transition-colors text-xs flex-shrink-0"
-                      title="Supprimer la catégorie"
-                    >
-                      ✕
-                    </button>
                   )}
                 </div>
               )
@@ -462,120 +881,104 @@ function ForumDiscord({ user }) {
         )}
       </aside>
 
-      {/* Zone contenu */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {selectedCat ? (
+      {/* ── Zone centrale ── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {activePostId ? (
+          <PostView
+            postId={activePostId}
+            onBack={() => setActivePostId(null)}
+            onDeleted={(id) => setPosts(prev => prev.filter(p => p.id !== id))}
+          />
+        ) : activeCat ? (
           <>
-            {/* Header catégorie */}
-            <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid #1a1a1a' }}>
+            <div className="border-b border-[#1a1a1a] px-6 py-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-3">
-                <span className="text-2xl">{selectedCat.icon}</span>
+                <span className="text-2xl">{activeCat.icon}</span>
                 <div>
-                  <h1 className="text-sm font-bold font-cinzel text-white uppercase tracking-wide">
-                    {selectedCat.name}
-                  </h1>
-                  {selectedCat.description && (
-                    <p className="text-xs text-gray-500">{selectedCat.description}</p>
-                  )}
+                  <h2 className="text-base font-bold text-white uppercase tracking-wide">{activeCat.name}</h2>
+                  {activeCat.description && <p className="text-xs text-gray-500">{activeCat.description}</p>}
                 </div>
               </div>
               {user && (
-                <button
-                  onClick={() => setShowNewPost(true)}
-                  className="flex items-center gap-2 px-4 py-2 text-white text-xs font-cinzel uppercase tracking-wide rounded-lg transition-colors"
-                  style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)' }}
-                >
+                <button onClick={() => setShowCreatePost(true)}
+                  className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-colors">
                   + Nouveau post
                 </button>
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto py-3 px-2">
-              {error && <p className="text-red-400 text-xs font-cinzel mb-3 px-2">{error}</p>}
-
+            <div className="flex-1 overflow-y-auto py-2">
               {postsLoading && (
-                <p className="text-gray-600 text-xs font-cinzel animate-pulse text-center py-10">Chargement...</p>
+                <div className="flex justify-center py-16">
+                  <div className="w-6 h-6 border-2 border-[#dc2626] border-t-transparent rounded-full animate-spin" />
+                </div>
               )}
-
               {!postsLoading && posts.length === 0 && (
-                <p className="text-gray-600 text-xs font-cinzel text-center py-10 uppercase tracking-wider">
-                  Aucun post dans cette catégorie
-                </p>
+                <div className="text-center py-16">
+                  <p className="text-gray-600 text-xs uppercase tracking-widest">Aucun post dans cette catégorie</p>
+                  {user && <p className="text-xs text-gray-700 mt-2">Sois le premier à publier ↑</p>}
+                </div>
               )}
-
-              <div className="flex flex-col gap-2">
-                {posts.map((post) => (
-                  <button
+              <div className="flex flex-col gap-2 px-4 py-2">
+                {posts.map(post => (
+                  <div
                     key={post.id}
-                    onClick={() => setSelectedPost(post)}
-                    className="group mx-2 p-4 rounded-xl text-left w-full transition-all duration-200"
-                    style={{ background: '#111111', border: '1px solid #1f1f1f' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'rgba(220,38,38,0.4)'
-                      e.currentTarget.style.background = '#151515'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = '#1f1f1f'
-                      e.currentTarget.style.background = '#111111'
-                    }}
+                    onClick={() => setActivePostId(post.id)}
+                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 hover:scale-[1.005] ${
+                      post.is_pinned
+                        ? 'border-[#f59e0b]/40 bg-gradient-to-r from-[#111111] to-[#0d0d0d]'
+                        : 'border-[#1f1f1f] bg-[#111111] hover:border-[#dc2626]/30'
+                    }`}
                   >
-                    {/* Header post */}
-                    <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex items-center gap-2 flex-wrap min-w-0">
-                        {post.is_pinned && (
-                          <span className="text-xs bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
-                            📌 Épinglé
-                          </span>
-                        )}
-                        <h3 className="text-sm font-semibold text-white group-hover:text-[#ef4444] transition-colors line-clamp-1 font-cinzel">
-                          {post.title}
-                        </h3>
+                    {post.is_pinned && (
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: post.pin_color || '#f59e0b' }} />
+                        <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: post.pin_color || '#f59e0b' }}>
+                          Post épinglé
+                        </span>
                       </div>
-                      <span className="text-xs text-gray-600 whitespace-nowrap flex-shrink-0">
-                        {timeAgo(post.created_at)}
-                      </span>
-                    </div>
+                    )}
 
-                    {/* Auteur */}
+                    <h3 className="text-sm font-bold text-white mb-2 line-clamp-1">{post.title}</h3>
+
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
-                                      flex items-center justify-center text-xs font-bold text-[#dc2626] flex-shrink-0">
-                        {(post.author?.coc_name || post.author_name || '?').charAt(0).toUpperCase()}
+                                      flex items-center justify-center text-[10px] font-bold text-[#dc2626]">
+                        {post.author_name?.charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-xs text-gray-400 font-medium">
-                        {post.author?.coc_name || post.author_name || 'Inconnu'}
-                      </span>
-                      {post.author?.coc_role && (
-                        <RoleTag role={formatCocRole(post.author.coc_role)} />
+                      <span className="text-xs text-gray-400">{post.author_name}</span>
+                      <RoleBadge role={post.author_coc_role} siteRole={post.author_site_role} />
+                      <span className="text-xs text-gray-700 ml-auto">{formatDate(post.created_at)}</span>
+                    </div>
+
+                    {post.content && (
+                      <p className="text-xs text-gray-500 line-clamp-2 mb-3">{post.content}</p>
+                    )}
+
+                    {post.image_url && (
+                      <img src={post.image_url} alt="" className="w-full max-h-32 object-cover rounded-xl mb-3" />
+                    )}
+
+                    <div className="flex items-center gap-3 pt-2 border-t border-[#1a1a1a]">
+                      {post.reaction_counts && Object.entries(post.reaction_counts).map(([emoji, count]) =>
+                        count > 0 && (
+                          <span key={emoji} className="text-xs text-gray-500">{emoji} {count}</span>
+                        )
+                      )}
+                      {post.allow_comments && (
+                        <span className="text-xs text-gray-600 ml-auto">💬 {post.comment_count || 0}</span>
                       )}
                     </div>
-
-                    {/* Aperçu contenu */}
-                    {post.content && (
-                      <p className="text-xs text-gray-500 line-clamp-2 mb-3 leading-relaxed">{post.content}</p>
-                    )}
-
-                    {/* Image miniature */}
-                    {post.image_url && (
-                      <div className="mb-3 rounded-lg overflow-hidden">
-                        <img src={post.image_url} alt="" className="max-h-32 object-cover rounded-lg" />
-                      </div>
-                    )}
-
-                    {/* Réactions */}
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <ReactionBar postId={post.id} user={null} compact />
-                    </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-gray-600 font-cinzel text-xs uppercase tracking-widest">
+            <p className="text-gray-600 text-xs uppercase tracking-widest">
               {categories.length === 0 && !catLoading
-                ? 'Aucune catégorie — demande à un admin d\'en créer une'
+                ? "Aucune catégorie — un admin peut en créer une"
                 : 'Sélectionne une catégorie'}
             </p>
           </div>
@@ -583,31 +986,30 @@ function ForumDiscord({ user }) {
       </div>
 
       {/* Modals */}
-      {selectedPost && (
-        <PostDetail
-          post={selectedPost}
-          user={user}
-          isAdmin={isAdmin}
-          onClose={() => setSelectedPost(null)}
-          onDelete={handleDelete}
+      {showCreatePost && activeCategory && (
+        <CreatePostModal
+          categoryId={activeCategory}
+          onClose={() => setShowCreatePost(false)}
+          onCreated={(post) => { setPosts(prev => [post, ...prev]); setShowCreatePost(false) }}
         />
       )}
 
-      {showNewPost && selectedCat && (
-        <NewPostForm
-          categoryId={selectedCat.id}
-          user={user}
-          onClose={() => setShowNewPost(false)}
-          onCreated={(post) => setPosts((prev) => [post, ...prev])}
-        />
-      )}
-
-      {showNewCategory && (
-        <NewCategoryForm
-          onClose={() => setShowNewCategory(false)}
+      {createCategoryModal && (
+        <CreateCategoryModal
+          parentId={createCategoryModal === 'root' ? null : createCategoryModal}
+          onClose={() => setCreateCategoryModal(null)}
           onCreated={(cat) => {
-            setCategories((prev) => [...prev, cat])
-            setSelectedCat(cat)
+            if (!cat.parent_id) {
+              setCategories(prev => [...prev, { ...cat, subcategories: [] }])
+              setActiveCategory(cat.id)
+            } else {
+              setCategories(prev => prev.map(c =>
+                c.id === cat.parent_id
+                  ? { ...c, subcategories: [...(c.subcategories || []), cat] }
+                  : c
+              ))
+            }
+            setCreateCategoryModal(null)
           }}
         />
       )}
@@ -615,7 +1017,7 @@ function ForumDiscord({ user }) {
   )
 }
 
-// ── Chat tab ─────────────────────────────────────────────────────────────────
+// ─── ChatTab (inchangé) ───────────────────────────────────────────────────────
 
 function ChatTab({ user }) {
   const { isChief, isAdmin } = useAuth()
@@ -734,7 +1136,7 @@ function ChatTab({ user }) {
   )
 }
 
-// ── Page principale ─────────────────────────────────────────────────────────
+// ─── Page principale ──────────────────────────────────────────────────────────
 
 export default function Forum() {
   const { user } = useAuth()
@@ -742,7 +1144,11 @@ export default function Forum() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12 animate-fade-up">
-      <SectionHeader title="Forum & Tchat" subtitle="Communauté Donjon Rouge" />
+      <div className="mb-6">
+        <p className="text-[10px] uppercase tracking-[0.3em] text-[#dc2626] mb-2">Donjon Rouge</p>
+        <h1 className="text-3xl font-black text-white uppercase tracking-widest">Forum & Tchat</h1>
+      </div>
+
       <div className="flex gap-2 mb-6">
         {[{ key: 'forum', label: 'Forum' }, { key: 'tchat', label: 'Tchat Live' }].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
@@ -754,6 +1160,7 @@ export default function Forum() {
           </button>
         ))}
       </div>
+
       {tab === 'forum' && (
         <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #1a1a1a' }}>
           <ForumDiscord user={user} />
