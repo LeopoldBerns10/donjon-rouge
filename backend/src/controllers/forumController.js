@@ -163,6 +163,8 @@ export async function getPost(req, res) {
 }
 
 export async function createPost(req, res) {
+  console.log('CREATE POST - user:', req.user?.id, req.user?.coc_name)
+  console.log('CREATE POST - body:', req.body)
   const { title, content, category_id, image_url, allow_reactions, allow_comments, reaction_preset } = req.body
   if (!title || !category_id) return res.status(400).json({ error: 'Titre et catégorie requis' })
 
