@@ -15,6 +15,7 @@ import forumRoutes from './routes/forum.js'
 import chatRouter from './routes/chat.js'
 import announcementsRoutes from './routes/announcements.js'
 import warSignupsRoutes from './routes/warSignups.js'
+import warEventsRoutes from './routes/warEvents.js'
 import adminRoutes from './routes/admin.js'
 
 const app = express()
@@ -43,6 +44,7 @@ app.use('/api/forum', forumRoutes)
 app.use('/api/chat', chatRouter(io))
 app.use('/api/announcements', announcementsRoutes)
 app.use('/api/war-signups', warSignupsRoutes)
+app.use('/api/war-events', warEventsRoutes)
 app.use('/api/admin', adminRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
@@ -140,6 +142,23 @@ httpServer.listen(PORT, async () => {
   await syncMembers()
   console.log('✅ Initialisation terminée')
   setInterval(syncMembers, 10 * 60 * 1000)
+
+  // Clôture automatique des événements de guerre expirés
+  const autoCloseEvents = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0]
+      const { error } = await supabase
+        .from('war_events')
+        .update({ status: 'closed' })
+        .eq('status', 'open')
+        .lte('close_date', today)
+      if (error) console.error('autoCloseEvents:', error.message)
+    } catch (err) {
+      console.error('autoCloseEvents:', err.message)
+    }
+  }
+  autoCloseEvents()
+  setInterval(autoCloseEvents, 60 * 60 * 1000)
 
   // Vérification toutes les heures : si guerre en cours depuis > 24h → reset inscriptions
   setInterval(async () => {

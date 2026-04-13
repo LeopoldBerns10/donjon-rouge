@@ -4,8 +4,8 @@ import { useCocClan, useCocMembers, useCocWar, useCocRaids } from '../hooks/useC
 import api from '../lib/api.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
-import { useWarSignups } from '../hooks/useWarSignups.js'
 import { useAuth } from '../hooks/useAuth.jsx'
+import Inscriptions from './Inscriptions.jsx'
 
 // ─── Constantes ligues & rôles ─────────────────────────────────────────────
 
@@ -715,136 +715,7 @@ function RaidsTab({ loading: parentLoading, error: parentError }) {
 // ─── Onglet Inscriptions GDC/LDC ─────────────────────────────────────────
 
 function InscriptionsTab() {
-  const { signups, loading, error, signup, unsignup, reset } = useWarSignups()
-  const { user, isChief, isAdmin } = useAuth()
-  const [warType, setWarType] = useState('GDC')
-
-  const isSignedUp = user && signups.some(s => s.player_id === user.id)
-  const canReset = isChief || isAdmin
-
-  if (loading) return <Spinner />
-  if (error) return <ErrorMsg msg={error} />
-
-  const WAR_TYPE_COLORS = {
-    'GDC':      { bg: '#6B0000', border: '#C41E3A', text: '#ff8080' },
-    'LDC':      { bg: '#1a1a4e', border: '#6366f1', text: '#a5b4fc' },
-    'Les deux': { bg: '#1a3a1a', border: '#22c55e', text: '#86efac' },
-  }
-
-  return (
-    <div>
-      {/* Header compteur */}
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <span className="font-cinzel text-gold-bright uppercase tracking-wider text-sm">
-            ⚔️ Inscrits pour la prochaine guerre
-          </span>
-          <span className="font-cinzel text-gold-light font-bold text-lg">
-            {signups.length}
-          </span>
-        </div>
-        {canReset && signups.length > 0 && (
-          <button
-            onClick={() => window.confirm('Remettre les inscriptions à zéro ?') && reset()}
-            className="px-3 py-1 text-xs font-cinzel uppercase tracking-wider rounded border border-crimson text-crimson hover:bg-crimson/20 transition-all"
-          >
-            🔄 Remettre à zéro
-          </button>
-        )}
-      </div>
-
-      {/* Bouton inscription si connecté */}
-      {user ? (
-        <div className="card-stone p-4 mb-6">
-          {!isSignedUp ? (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="text-bone font-cinzel text-sm">Disponible pour :</span>
-              {['GDC', 'LDC', 'Les deux'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => setWarType(type)}
-                  className="px-3 py-1 text-xs font-cinzel uppercase tracking-wider rounded border transition-all"
-                  style={warType === type
-                    ? { background: WAR_TYPE_COLORS[type].bg, borderColor: WAR_TYPE_COLORS[type].border, color: WAR_TYPE_COLORS[type].text }
-                    : { borderColor: '#333', color: '#777' }
-                  }
-                >
-                  {type}
-                </button>
-              ))}
-              <button
-                onClick={() => signup(warType)}
-                className="px-4 py-1.5 text-xs font-cinzel uppercase tracking-wider rounded text-bone transition-all ml-auto"
-                style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)' }}
-              >
-                ✅ S'inscrire
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <span className="text-green-400 font-cinzel text-sm">
-                ✅ Tu es inscrit(e) — {signups.find(s => s.player_id === user.id)?.war_type}
-              </span>
-              <button
-                onClick={unsignup}
-                className="px-3 py-1 text-xs font-cinzel uppercase tracking-wider rounded border border-fog/40 text-ash hover:text-bone transition-all"
-              >
-                Se désinscrire
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="card-stone p-4 mb-6 text-center">
-          <p className="text-ash font-cinzel text-sm">Connecte-toi pour t'inscrire</p>
-        </div>
-      )}
-
-      {/* Tableau des inscrits */}
-      {signups.length === 0 ? (
-        <p className="text-ash font-cinzel text-center py-10">
-          Aucune inscription pour le moment
-        </p>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-fog/30">
-          <table className="w-full text-sm">
-            <TableHeader cols={[
-              { label: '#',          center: true },
-              { label: 'Joueur',     center: false },
-              { label: 'Type',       center: true },
-              { label: 'Inscrit le', center: true, hidden: 'hidden md:table-cell' },
-            ]} />
-            <tbody>
-              {signups.map((s, i) => {
-                const colors = WAR_TYPE_COLORS[s.war_type] || WAR_TYPE_COLORS['GDC']
-                return (
-                  <tr key={s.id} className="border-b border-fog/20"
-                    style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
-                    <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
-                    <td className="py-2.5 px-3">
-                      <div>
-                        <div className="font-semibold text-bone text-sm">{s.coc_name}</div>
-                        <div className="text-xs text-ash/60">{s.coc_tag}</div>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center">
-                      <span className="text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded border"
-                        style={{ borderColor: colors.border, color: colors.text, background: colors.bg }}>
-                        {s.war_type}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-3 text-center text-ash text-xs hidden md:table-cell">
-                      {new Date(s.signed_at).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
+  return <Inscriptions embedded />
 }
 
 // ─── Page principale ──────────────────────────────────────────────────────
