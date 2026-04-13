@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import multer from 'multer'
+import { createClient } from '@supabase/supabase-js'
 import { requireAuth } from '../middleware/auth.js'
 import supabase from '../lib/supabase.js'
 import {
@@ -12,23 +13,33 @@ import {
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } })
 
+// Client Storage explicitement avec SERVICE_KEY
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+)
+
 // ── Upload image ──────────────────────────────────────────────────────────────
 router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {
     console.log('UPLOAD - supabase url:', process.env.SUPABASE_URL?.slice(0, 10))
     console.log('UPLOAD - file received:', req.file?.originalname, req.file?.size)
+    console.log('UPLOAD - using key type:', process.env.SUPABASE_SERVICE_KEY ? 'service_key OK' : 'MANQUANT')
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier fourni' })
 
     const ext = req.file.originalname.split('.').pop().toLowerCase()
-    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+    const filePath = `forum/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
-    const { error: upErr } = await supabase.storage
+    const { error: upErr } = await supabaseAdmin.storage
       .from('forum-images')
-      .upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: false })
+      .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true })
 
-    if (upErr) return res.status(500).json({ error: upErr.message })
+    if (upErr) {
+      console.log('UPLOAD - storage error:', upErr.message)
+      return res.status(500).json({ error: upErr.message })
+    }
 
-    const { data: urlData } = supabase.storage.from('forum-images').getPublicUrl(path)
+    const { data: urlData } = supabaseAdmin.storage.from('forum-images').getPublicUrl(filePath)
     res.json({ url: urlData.publicUrl })
   } catch (err) {
     res.status(500).json({ error: err.message })
