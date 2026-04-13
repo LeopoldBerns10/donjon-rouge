@@ -1,12 +1,10 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
-import { useWarSignups } from '../hooks/useWarSignups.js'
 import api from '../lib/api.js'
 
 export default function MonProfil() {
   const { user, changePassword, logout } = useAuth()
-  const { signups } = useWarSignups()
   const navigate = useNavigate()
 
   const [tab, setTab] = useState('profil')
@@ -29,8 +27,6 @@ export default function MonProfil() {
       </div>
     )
   }
-
-  const mySignup = signups.find(s => s.coc_tag === user.coc_tag)
 
   async function handleChangePassword(e) {
     e.preventDefault()
@@ -63,12 +59,6 @@ export default function MonProfil() {
     { key: 'securite',  label: '🔒 Sécurité' },
     { key: 'tickets',   label: '🎫 Tickets' },
   ]
-
-  const WAR_TYPE_COLORS = {
-    'GDC':      { border: '#C41E3A', color: '#ff8080', bg: '#6B0000' },
-    'LDC':      { border: '#6366f1', color: '#a5b4fc', bg: '#1a1a4e' },
-    'Les deux': { border: '#22c55e', color: '#86efac', bg: '#1a3a1a' },
-  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10 animate-fade-up">
@@ -127,36 +117,15 @@ export default function MonProfil() {
             <h2 className="font-cinzel text-gold-light text-sm uppercase tracking-wider mb-3">
               ⚔️ Inscription Guerre
             </h2>
-            {mySignup ? (
-              <div className="flex items-center gap-3">
-                <span
-                  className="text-xs font-cinzel font-bold uppercase px-3 py-1 rounded border"
-                  style={{
-                    borderColor: WAR_TYPE_COLORS[mySignup.war_type]?.border,
-                    color: WAR_TYPE_COLORS[mySignup.war_type]?.color,
-                    background: WAR_TYPE_COLORS[mySignup.war_type]?.bg
-                  }}
-                >
-                  {mySignup.war_type}
-                </span>
-                <span className="text-ash text-xs">
-                  Inscrit le {new Date(mySignup.signed_at).toLocaleString('fr-FR', {
-                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                  })}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <p className="text-ash text-sm">Tu n'es pas inscrit pour la prochaine guerre.</p>
-                <Link
-                  to="/guilde"
-                  onClick={() => setTimeout(() => window.dispatchEvent(new CustomEvent('open-war-signups')), 300)}
-                  className="text-xs font-cinzel uppercase tracking-wider text-crimson hover:text-crimson/80 transition-colors"
-                >
-                  S'inscrire →
-                </Link>
-              </div>
-            )}
+            <div className="flex items-center justify-between">
+              <p className="text-ash text-sm">Consulte et gère tes inscriptions aux guerres.</p>
+              <Link
+                to="/guilde"
+                className="text-xs font-cinzel uppercase tracking-wider text-crimson hover:text-crimson/80 transition-colors"
+              >
+                Voir les inscriptions →
+              </Link>
+            </div>
           </div>
 
           {/* Lien tracker */}

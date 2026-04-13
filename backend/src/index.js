@@ -14,7 +14,6 @@ import cocRoutes from './routes/coc.js'
 import forumRoutes from './routes/forum.js'
 import chatRouter from './routes/chat.js'
 import announcementsRoutes from './routes/announcements.js'
-import warSignupsRoutes from './routes/warSignups.js'
 import warEventsRoutes from './routes/warEvents.js'
 import adminRoutes from './routes/admin.js'
 
@@ -43,7 +42,6 @@ app.use('/api/coc', cocRoutes)
 app.use('/api/forum', forumRoutes)
 app.use('/api/chat', chatRouter(io))
 app.use('/api/announcements', announcementsRoutes)
-app.use('/api/war-signups', warSignupsRoutes)
 app.use('/api/war-events', warEventsRoutes)
 app.use('/api/admin', adminRoutes)
 
