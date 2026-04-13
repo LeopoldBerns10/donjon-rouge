@@ -1,5 +1,7 @@
 import { Router } from 'express'
+import multer from 'multer'
 import { requireAuth } from '../middleware/auth.js'
+import supabase from '../lib/supabase.js'
 import {
   getCategories, createCategory, updateCategory, deleteCategory,
   getCategoryPosts, getPost, createPost, updatePost, deletePost, pinPost,
@@ -8,6 +10,28 @@ import {
 } from '../controllers/forumController.js'
 
 const router = Router()
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } })
+
+// ── Upload image ──────────────────────────────────────────────────────────────
+router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'Aucun fichier fourni' })
+
+    const ext = req.file.originalname.split('.').pop().toLowerCase()
+    const path = `forum/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+
+    const { error: upErr } = await supabase.storage
+      .from('forum-images')
+      .upload(path, req.file.buffer, { contentType: req.file.mimetype, upsert: false })
+
+    if (upErr) return res.status(500).json({ error: upErr.message })
+
+    const { data: urlData } = supabase.storage.from('forum-images').getPublicUrl(path)
+    res.json({ url: urlData.publicUrl })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
 
 // ── Catégories ────────────────────────────────────────────────────────────────
 router.get('/categories', getCategories)

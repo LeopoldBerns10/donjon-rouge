@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../lib/api.js'
-import { supabase } from '../lib/supabase.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useSocket } from '../hooks/useSocket.js'
 import { ROLE_COLORS } from '../lib/constants.js'
@@ -554,15 +553,16 @@ function CreatePostModal({ categoryId, onClose, onCreated }) {
     setUploading(true)
 
     let image_url = null
-    if (imageFile && supabase) {
+    if (imageFile) {
       try {
-        const path = `forum/${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
-        const { error: upErr } = await supabase.storage.from('forum-images').upload(path, imageFile)
-        if (upErr) throw upErr
-        const { data: urlData } = supabase.storage.from('forum-images').getPublicUrl(path)
-        image_url = urlData.publicUrl
+        const fd = new FormData()
+        fd.append('file', imageFile)
+        const { data: uploadData } = await api.post('/api/forum/upload', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        image_url = uploadData.url
       } catch (err) {
-        setError('Erreur upload image: ' + err.message)
+        setError('Erreur upload image: ' + (err.response?.data?.error || err.message))
         setUploading(false)
         return
       }
