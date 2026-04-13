@@ -23,12 +23,27 @@ function formatCocRole(role) {
   return map[role] || role || ''
 }
 
-function getCloseDate(type, startDate) {
-  if (!startDate) return ''
-  const d = new Date(startDate)
-  if (type === 'gdc') d.setDate(d.getDate() + 1)
-  if (type === 'gdc_selection' || type === 'ldc') d.setDate(d.getDate() + 3)
+function addDays(dateStr, days) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
   return d.toISOString().split('T')[0]
+}
+
+function calcDates(type, { proposed_date, close_date }) {
+  if (type === 'gdc') return {
+    close_date: addDays(proposed_date, -1),
+    auto_delete_date: addDays(proposed_date, 2)
+  }
+  if (type === 'gdc_selection') return {
+    close_date: addDays(proposed_date, -1),
+    auto_delete_date: addDays(proposed_date, 3)
+  }
+  if (type === 'ldc') return {
+    close_date,
+    auto_delete_date: addDays(proposed_date, 9)
+  }
+  return {}
 }
 
 // ─── TypeBadge ────────────────────────────────────────────────────────────────
@@ -300,9 +315,10 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
         <SignupsList signups={signups[event.id] || []} />
         <AdminActions event={event} onValidate={onValidate} onClose={onClose} />
 
-        <p className="text-[10px] text-gray-700 text-center mt-3 pt-3 border-t border-[#1a1a1a]">
-          Clôture automatique le {formatDate(event.close_date)}
-        </p>
+        <div className="mt-3 pt-3 border-t border-[#1a1a1a] grid grid-cols-2 gap-2 text-[10px] text-gray-700">
+          <span>📅 Clôture inscriptions : <span className="text-gray-500 ml-1">{formatDate(event.close_date)}</span></span>
+          <span>🗑️ Suppression auto : <span className="text-gray-500 ml-1">{formatDate(event.auto_delete_date)}</span></span>
+        </div>
       </div>
     </div>
   )
@@ -312,23 +328,26 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
 
 function CreateEventModal({ type, onClose, onCreated }) {
   const typeLabels = { gdc: 'GDC Classique', gdc_selection: 'GDC Sélection', ldc: 'Ligue de Guerre' }
-  const today = new Date().toISOString().split('T')[0]
+  const isLdc = type === 'ldc'
 
   const [form, setForm] = useState({
     title: '',
     description: '',
     proposed_date: '',
-    post_date: today,
+    close_date: '',      // LDC seulement
+    signup_open_date: '', // LDC seulement
     min_players: type === 'gdc' ? 5 : 0,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  const closeDate = form.proposed_date ? getCloseDate(type, form.proposed_date) : ''
+  // Preview des dates calculées
+  const preview = calcDates(type, { proposed_date: form.proposed_date, close_date: form.close_date })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (!form.title || !form.proposed_date) return
+    if (isLdc && (!form.close_date || !form.signup_open_date)) return
     setLoading(true)
     setError(null)
     try {
@@ -342,13 +361,16 @@ function CreateEventModal({ type, onClose, onCreated }) {
     }
   }
 
+  const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50'
+  const labelCls = 'text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5'
+
   return (
     <div
       className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-lg"
+        className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b border-[#1a1a1a]">
@@ -358,61 +380,101 @@ function CreateEventModal({ type, onClose, onCreated }) {
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          {/* Titre */}
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">Titre *</label>
+            <label className={labelCls}>Titre *</label>
             <input
               type="text"
               required
               value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-700 focus:outline-none focus:border-[#dc2626]/50"
-              placeholder="Ex: GDC du 15 avril"
+              className={inputCls}
+              placeholder={isLdc ? 'Ex: LDC Avril 2026' : 'Ex: GDC du 15 avril'}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* Champs dates selon le type */}
+          {!isLdc ? (
+            /* GDC / GDC Sélection : un seul champ */
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">Date de début *</label>
+              <label className={labelCls}>Date de lancement *</label>
               <input
                 type="date"
                 required
                 value={form.proposed_date}
                 onChange={e => setForm(f => ({ ...f, proposed_date: e.target.value }))}
-                className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50"
+                className={inputCls}
               />
             </div>
-            <div>
-              <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">Mise en ligne</label>
-              <input
-                type="date"
-                value={form.post_date}
-                onChange={e => setForm(f => ({ ...f, post_date: e.target.value }))}
-                className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50"
-              />
-            </div>
-          </div>
-
-          {closeDate && (
-            <p className="text-xs text-gray-600">
-              Clôture automatique : <span className="text-[#dc2626]">{formatDate(closeDate)}</span>
-            </p>
+          ) : (
+            /* LDC : trois champs */
+            <>
+              <div>
+                <label className={labelCls}>Ouverture des inscriptions *</label>
+                <input
+                  type="date"
+                  required
+                  value={form.signup_open_date}
+                  onChange={e => setForm(f => ({ ...f, signup_open_date: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Clôture des inscriptions *</label>
+                <input
+                  type="date"
+                  required
+                  value={form.close_date}
+                  onChange={e => setForm(f => ({ ...f, close_date: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Lancement de la LDC *</label>
+                <input
+                  type="date"
+                  required
+                  value={form.proposed_date}
+                  onChange={e => setForm(f => ({ ...f, proposed_date: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+            </>
           )}
 
+          {/* Preview dates calculées */}
+          {(preview.close_date || preview.auto_delete_date) && (
+            <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-3 space-y-1">
+              {!isLdc && preview.close_date && (
+                <p className="text-xs text-gray-600">
+                  📅 Clôture inscriptions : <span className="text-gray-400">{formatDate(preview.close_date)}</span>
+                </p>
+              )}
+              {preview.auto_delete_date && (
+                <p className="text-xs text-gray-600">
+                  🗑️ Suppression auto : <span className="text-gray-400">{formatDate(preview.auto_delete_date)}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Joueurs minimum (GDC seulement) */}
           {type === 'gdc' && (
             <div>
-              <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">Joueurs minimum</label>
+              <label className={labelCls}>Joueurs minimum</label>
               <input
                 type="number"
                 min="1"
                 value={form.min_players}
                 onChange={e => setForm(f => ({ ...f, min_players: parseInt(e.target.value) || 5 }))}
-                className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50"
+                className={inputCls}
               />
             </div>
           )}
 
+          {/* Description */}
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5">Description (optionnel)</label>
+            <label className={labelCls}>Description (optionnel)</label>
             <textarea
               value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -471,22 +533,34 @@ function LdcWarriorsTable({ warriors, onRemove, canManage, ldcEventId, onAdd }) 
 
       <div className="p-4 space-y-2">
         {warriors.map((w, i) => (
-          <div key={w.id} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-[#0a0a0a] border border-[#1a1a1a] hover:border-[#f59e0b]/20 transition-colors">
+          <div key={w.id} className={`flex items-center gap-4 px-4 py-3 rounded-xl bg-[#0a0a0a] border transition-colors ${
+            w.auto_selected ? 'border-[#f59e0b]/20 hover:border-[#f59e0b]/40' : 'border-[#dc2626]/20 hover:border-[#dc2626]/40'
+          }`}>
             <span className="text-lg font-black text-[#f59e0b] w-8">
               {String(i + 1).padStart(2, '0')}
             </span>
-            <div className="w-8 h-8 rounded-full bg-[#f59e0b]/20 border border-[#f59e0b]/30 flex items-center justify-center text-sm font-bold text-[#f59e0b]">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border"
+                 style={{
+                   background: w.auto_selected ? 'rgba(245,158,11,0.2)' : 'rgba(220,38,38,0.2)',
+                   borderColor: w.auto_selected ? 'rgba(245,158,11,0.3)' : 'rgba(220,38,38,0.3)',
+                   color: w.auto_selected ? '#f59e0b' : '#dc2626'
+                 }}>
               {w.coc_name?.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1">
               <p className="text-sm font-bold text-white">{w.coc_name}</p>
               <p className="text-xs text-gray-600">{w.coc_tag}</p>
             </div>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wide ${
+              w.auto_selected
+                ? 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]'
+                : 'bg-[#dc2626]/10 border-[#dc2626]/30 text-[#dc2626]'
+            }`}>
+              {w.auto_selected ? 'Auto' : 'Manuel'}
+            </span>
+            <span className="text-xs text-gray-500">{formatCocRole(w.coc_role)}</span>
             {canManage && (
-              <button
-                onClick={() => onRemove(w.id)}
-                className="text-xs text-gray-700 hover:text-red-400 transition-colors"
-              >
+              <button onClick={() => onRemove(w.id)} className="text-xs text-gray-700 hover:text-red-400 transition-colors ml-2">
                 ✕
               </button>
             )}
@@ -494,7 +568,7 @@ function LdcWarriorsTable({ warriors, onRemove, canManage, ldcEventId, onAdd }) 
         ))}
 
         {canManage && warriors.length < 5 && ldcEventId && (
-          <AddWarriorRow ldcEventId={ldcEventId} onAdded={onAdd} />
+          <AddWarriorModal ldcEventId={ldcEventId} onAdded={onAdd} />
         )}
 
         {warriors.length === 0 && (
@@ -505,32 +579,42 @@ function LdcWarriorsTable({ warriors, onRemove, canManage, ldcEventId, onAdd }) 
   )
 }
 
-function AddWarriorRow({ ldcEventId, onAdded }) {
+function AddWarriorModal({ ldcEventId, onAdded }) {
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ coc_name: '', coc_tag: '' })
+  const [members, setMembers] = useState([])
+  const [selectedTag, setSelectedTag] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    api.get('/api/coc/clan/members').then(r => {
+      const items = r.data?.items || r.data || []
+      setMembers(items)
+      if (items.length > 0) setSelectedTag(items[0].tag)
+    }).catch(() => {})
+  }, [open])
 
   if (!open) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold uppercase border border-dashed border-[#f59e0b]/30 text-[#f59e0b]/50 hover:border-[#f59e0b]/60 hover:text-[#f59e0b] transition-all duration-200"
+        className="w-full py-2.5 rounded-xl text-sm font-semibold uppercase border border-dashed border-[#dc2626]/30 text-[#dc2626]/50 hover:border-[#dc2626]/60 hover:text-[#dc2626] transition-all duration-200"
       >
-        + Ajouter un guerrier
+        + Ajouter manuellement
       </button>
     )
   }
 
   const handleAdd = async () => {
-    if (!form.coc_name || !form.coc_tag) return
+    const member = members.find(m => m.tag === selectedTag)
+    if (!member) return
     setLoading(true)
     try {
       await api.post('/api/war-events/ldc-warriors', {
         ldc_event_id: ldcEventId,
-        coc_name: form.coc_name,
-        coc_tag: form.coc_tag,
+        coc_name: member.name,
+        coc_tag: member.tag,
       })
-      setForm({ coc_name: '', coc_tag: '' })
       setOpen(false)
       onAdded()
     } catch (err) {
@@ -542,31 +626,25 @@ function AddWarriorRow({ ldcEventId, onAdded }) {
 
   return (
     <div className="flex gap-2 items-center">
-      <input
-        type="text"
-        placeholder="Nom CoC"
-        value={form.coc_name}
-        onChange={e => setForm(f => ({ ...f, coc_name: e.target.value }))}
-        className="flex-1 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f59e0b]/50"
-      />
-      <input
-        type="text"
-        placeholder="#TAG"
-        value={form.coc_tag}
-        onChange={e => setForm(f => ({ ...f, coc_tag: e.target.value }))}
-        className="w-24 bg-[#0a0a0a] border border-[#1a1a1a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f59e0b]/50"
-      />
+      <select
+        value={selectedTag}
+        onChange={e => setSelectedTag(e.target.value)}
+        className="flex-1 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#dc2626]/50"
+      >
+        {members.map(m => (
+          <option key={m.tag} value={m.tag}>
+            {m.name} — {formatCocRole(m.role)}
+          </option>
+        ))}
+      </select>
       <button
         onClick={handleAdd}
-        disabled={loading}
-        className="px-3 py-2 rounded-lg text-xs font-bold bg-[#f59e0b]/20 border border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/30 transition-colors"
+        disabled={loading || !selectedTag}
+        className="px-3 py-2 rounded-lg text-xs font-bold bg-[#dc2626]/20 border border-[#dc2626]/40 text-[#dc2626] hover:bg-[#dc2626]/30 transition-colors disabled:opacity-50"
       >
         OK
       </button>
-      <button
-        onClick={() => setOpen(false)}
-        className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
-      >
+      <button onClick={() => setOpen(false)} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
         ✕
       </button>
     </div>

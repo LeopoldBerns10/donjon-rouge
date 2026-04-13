@@ -145,12 +145,22 @@ httpServer.listen(PORT, async () => {
   const autoCloseEvents = async () => {
     try {
       const today = new Date().toISOString().split('T')[0]
-      const { error } = await supabase
+
+      // Clôturer les inscriptions expirées
+      const { error: closeErr } = await supabase
         .from('war_events')
         .update({ status: 'closed' })
         .eq('status', 'open')
         .lte('close_date', today)
-      if (error) console.error('autoCloseEvents:', error.message)
+      if (closeErr) console.error('autoCloseEvents (close):', closeErr.message)
+
+      // Supprimer les postes dont la date de suppression est dépassée
+      const { error: deleteErr } = await supabase
+        .from('war_events')
+        .delete()
+        .lte('auto_delete_date', today)
+        .in('status', ['closed', 'validated'])
+      if (deleteErr) console.error('autoCloseEvents (delete):', deleteErr.message)
     } catch (err) {
       console.error('autoCloseEvents:', err.message)
     }

@@ -1,16 +1,48 @@
 import { Router } from 'express'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import supabase from '../lib/supabase.js'
+import { getClanMembers } from '../services/cocApiService.js'
 
 const router = Router()
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function getCloseDate(type, startDate) {
-  const d = new Date(startDate)
-  if (type === 'gdc') d.setDate(d.getDate() + 1)
-  if (type === 'gdc_selection' || type === 'ldc') d.setDate(d.getDate() + 3)
+function addDays(dateStr, days) {
+  const d = new Date(dateStr)
+  d.setDate(d.getDate() + days)
   return d.toISOString().split('T')[0]
+}
+
+function today() {
+  return new Date().toISOString().split('T')[0]
+}
+
+function calculateDates(type, body) {
+  const { proposed_date, close_date, signup_open_date } = body
+
+  if (type === 'gdc') {
+    return {
+      post_date: today(),
+      close_date: addDays(proposed_date, -1),
+      auto_delete_date: addDays(proposed_date, 2)
+    }
+  }
+
+  if (type === 'gdc_selection') {
+    return {
+      post_date: today(),
+      close_date: addDays(proposed_date, -1),
+      auto_delete_date: addDays(proposed_date, 3)
+    }
+  }
+
+  if (type === 'ldc') {
+    return {
+      post_date: signup_open_date || today(),
+      close_date: close_date,
+      auto_delete_date: addDays(proposed_date, 9)
+    }
+  }
 }
 
 function canCreateEvent(user, type) {
@@ -26,9 +58,72 @@ function canManageEvent(user) {
     ['leader', 'coLeader'].includes(user?.coc_role)
 }
 
+// ─── Sélection automatique guerriers LDC ─────────────────────────────────────
+
+async function autoSelectWarriors(gdcSelectionEventId) {
+  try {
+    const { data: signups } = await supabase
+      .from('war_signups')
+      .select('user_id, coc_name, coc_tag, coc_role')
+      .eq('event_id', gdcSelectionEventId)
+
+    if (!signups || signups.length === 0) return
+
+    // Récupérer les données CoC du clan
+    const clanData = await getClanMembers(process.env.COC_CLAN_TAG)
+    const cocMembers = clanData?.items || []
+
+    // Scorer chaque inscrit
+    const scored = signups.map(signup => {
+      const coc = cocMembers.find(m => m.tag === signup.coc_tag)
+      return {
+        ...signup,
+        score: (coc?.townHallLevel || 0) * 1000 +
+               (coc?.warStars || 0) * 10 +
+               (coc?.donations || 0)
+      }
+    })
+
+    const top5 = scored.sort((a, b) => b.score - a.score).slice(0, 5)
+
+    // Trouver la LDC active
+    const { data: activeLdc } = await supabase
+      .from('war_events')
+      .select('id')
+      .eq('type', 'ldc')
+      .in('status', ['open', 'validated'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
+
+    if (!activeLdc) return
+
+    // Supprimer les anciens guerriers auto-sélectionnés
+    await supabase
+      .from('ldc_warriors')
+      .delete()
+      .eq('ldc_event_id', activeLdc.id)
+      .eq('auto_selected', true)
+
+    // Insérer le nouveau top 5
+    await supabase
+      .from('ldc_warriors')
+      .insert(top5.map(w => ({
+        ldc_event_id: activeLdc.id,
+        user_id: w.user_id,
+        coc_name: w.coc_name,
+        coc_tag: w.coc_tag,
+        auto_selected: true,
+        score: w.score
+      })))
+  } catch (err) {
+    console.error('autoSelectWarriors:', err.message)
+  }
+}
+
 // ─── War Events ───────────────────────────────────────────────────────────────
 
-// GET /api/war-events — liste tous les événements ouverts ou récents
+// GET /api/war-events
 router.get('/', async (req, res) => {
   try {
     const { data: events, error } = await supabase
@@ -38,7 +133,6 @@ router.get('/', async (req, res) => {
       .order('proposed_date', { ascending: true })
     if (error) throw error
 
-    // Ajouter signup_count pour chaque événement
     const eventsWithCount = await Promise.all(
       events.map(async (ev) => {
         const { count } = await supabase
@@ -55,7 +149,7 @@ router.get('/', async (req, res) => {
   }
 })
 
-// GET /api/war-events/:id — détail d'un événement
+// GET /api/war-events/:id
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -73,7 +167,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/war-events — créer un événement
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { type, title, description, proposed_date, post_date, min_players } = req.body
+    const { type, title, description, proposed_date, close_date, signup_open_date, min_players } = req.body
 
     if (!canCreateEvent(req.user, type)) {
       return res.status(403).json({ error: 'Non autorisé à créer ce type d\'événement' })
@@ -85,7 +179,7 @@ router.post('/', requireAuth, async (req, res) => {
       .eq('id', req.user.id)
       .single()
 
-    const close_date = getCloseDate(type, proposed_date)
+    const dates = calculateDates(type, { proposed_date, close_date, signup_open_date })
 
     const { data, error } = await supabase
       .from('war_events')
@@ -96,8 +190,9 @@ router.post('/', requireAuth, async (req, res) => {
         created_by: req.user.id,
         created_by_name: userData?.coc_name || req.user.username,
         proposed_date,
-        post_date: post_date || new Date().toISOString().split('T')[0],
-        close_date,
+        post_date: dates.post_date,
+        close_date: dates.close_date,
+        auto_delete_date: dates.auto_delete_date,
         min_players: type === 'gdc' ? (min_players || 5) : (min_players || 0),
         status: 'open'
       })
@@ -111,7 +206,7 @@ router.post('/', requireAuth, async (req, res) => {
   }
 })
 
-// POST /api/war-events/:id/signup — s'inscrire
+// POST /api/war-events/:id/signup
 router.post('/:id/signup', requireAuth, async (req, res) => {
   try {
     const { data: event, error: evErr } = await supabase
@@ -150,7 +245,7 @@ router.post('/:id/signup', requireAuth, async (req, res) => {
   }
 })
 
-// POST /api/war-events/:id/validate — valider l'événement
+// POST /api/war-events/:id/validate
 router.post('/:id/validate', requireAuth, async (req, res) => {
   try {
     if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
@@ -169,10 +264,17 @@ router.post('/:id/validate', requireAuth, async (req, res) => {
   }
 })
 
-// POST /api/war-events/:id/close — clôturer manuellement
+// POST /api/war-events/:id/close
 router.post('/:id/close', requireAuth, async (req, res) => {
   try {
     if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+
+    const { data: event, error: evErr } = await supabase
+      .from('war_events')
+      .select('type')
+      .eq('id', req.params.id)
+      .single()
+    if (evErr) throw evErr
 
     const { data, error } = await supabase
       .from('war_events')
@@ -182,13 +284,19 @@ router.post('/:id/close', requireAuth, async (req, res) => {
       .single()
 
     if (error) throw error
+
+    // Sélection automatique guerriers si c'est une GDC sélection
+    if (event.type === 'gdc_selection') {
+      await autoSelectWarriors(req.params.id)
+    }
+
     res.json(data)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
 })
 
-// GET /api/war-events/:id/signups — liste des inscrits
+// GET /api/war-events/:id/signups
 router.get('/:id/signups', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -205,10 +313,9 @@ router.get('/:id/signups', async (req, res) => {
 
 // ─── LDC Warriors ─────────────────────────────────────────────────────────────
 
-// GET /api/ldc-warriors — liste des guerriers sélectionnés LDC actifs
+// GET /api/war-events/ldc-warriors/active
 router.get('/ldc-warriors/active', async (req, res) => {
   try {
-    // Trouver la LDC active (open ou validated)
     const { data: ldcEvent } = await supabase
       .from('war_events')
       .select('id')
@@ -224,7 +331,7 @@ router.get('/ldc-warriors/active', async (req, res) => {
       .from('ldc_warriors')
       .select('*')
       .eq('ldc_event_id', ldcEvent.id)
-      .order('selected_at', { ascending: true })
+      .order('score', { ascending: false })
     if (error) throw error
     res.json(data)
   } catch (err) {
@@ -232,14 +339,14 @@ router.get('/ldc-warriors/active', async (req, res) => {
   }
 })
 
-// POST /api/ldc-warriors — ajouter un guerrier
+// POST /api/war-events/ldc-warriors — ajouter manuellement
 router.post('/ldc-warriors', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { ldc_event_id, user_id, coc_name, coc_tag } = req.body
 
     const { data, error } = await supabase
       .from('ldc_warriors')
-      .insert({ ldc_event_id, user_id, coc_name, coc_tag, selected_by: req.user.id })
+      .insert({ ldc_event_id, user_id, coc_name, coc_tag, selected_by: req.user.id, auto_selected: false, score: 0 })
       .select()
       .single()
 
@@ -250,7 +357,7 @@ router.post('/ldc-warriors', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
-// DELETE /api/ldc-warriors/:id — retirer un guerrier
+// DELETE /api/war-events/ldc-warriors/:id
 router.delete('/ldc-warriors/:id', requireAuth, requireAdmin, async (req, res) => {
   try {
     const { error } = await supabase
