@@ -299,6 +299,10 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
 
         <SignupsList signups={signups[event.id] || []} />
         <AdminActions event={event} onValidate={onValidate} onClose={onClose} />
+
+        <p className="text-[10px] text-gray-700 text-center mt-3 pt-3 border-t border-[#1a1a1a]">
+          Clôture automatique le {formatDate(event.close_date)}
+        </p>
       </div>
     </div>
   )
