@@ -683,13 +683,25 @@ function EditEventModal({ event, onClose, onSaved }) {
 
 // ─── LdcBoard (tableau permanent) ────────────────────────────────────────────
 
-function LdcBoard({ canManage }) {
+function LdcBoard({ canManage, onRefreshEvents }) {
+  const { user } = useAuth()
+  const isAdmin = ['superadmin', 'admin'].includes(user?.site_role)
+
   const [board, setBoard] = useState({ title: 'Guerriers Sélectionnés — LDC' })
   const [warriors, setWarriors] = useState([])
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [boardTitle, setBoardTitle] = useState('')
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [showAdd, setShowAdd] = useState(false)
+  const [showLaunchModal, setShowLaunchModal] = useState(false)
+  const [launchForm, setLaunchForm] = useState({
+    signup_open_date: new Date().toISOString().split('T')[0],
+    close_date: '',
+    proposed_date: ''
+  })
+  const [launchLoading, setLaunchLoading] = useState(false)
+  const [launchError, setLaunchError] = useState(null)
+  const [toast, setToast] = useState(null)
 
   const fetchBoard = useCallback(async () => {
     try {
@@ -703,6 +715,13 @@ function LdcBoard({ canManage }) {
   }, [])
 
   useEffect(() => { fetchBoard() }, [fetchBoard])
+
+  useEffect(() => {
+    if (toast) {
+      const t = setTimeout(() => setToast(null), 4000)
+      return () => clearTimeout(t)
+    }
+  }, [toast])
 
   const saveTitle = async () => {
     setIsEditingTitle(false)
@@ -724,8 +743,35 @@ function LdcBoard({ canManage }) {
     fetchBoard()
   }
 
+  const handleLaunch = async () => {
+    if (!launchForm.close_date || !launchForm.proposed_date) return
+    setLaunchLoading(true)
+    setLaunchError(null)
+    try {
+      const { data } = await api.post('/api/ldc-board/launch', launchForm)
+      setShowLaunchModal(false)
+      setLaunchForm({ signup_open_date: new Date().toISOString().split('T')[0], close_date: '', proposed_date: '' })
+      setToast(`✅ LDC lancée ! ${data.signup_count} guerrier${data.signup_count > 1 ? 's' : ''} inscrit${data.signup_count > 1 ? 's' : ''} automatiquement.`)
+      if (onRefreshEvents) onRefreshEvents()
+    } catch (err) {
+      setLaunchError(err.response?.data?.error || err.message)
+    } finally {
+      setLaunchLoading(false)
+    }
+  }
+
+  const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#f59e0b]/50'
+  const labelCls = 'text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5'
+
   return (
     <div className="mt-10 bg-gradient-to-br from-[#111111] to-[#0d0d0d] border border-[#f59e0b]/30 rounded-2xl overflow-hidden">
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-[9999] bg-green-900/90 border border-green-600/50 text-green-300 text-sm font-semibold px-5 py-3 rounded-xl shadow-xl">
+          {toast}
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-6 py-4 border-b border-[#f59e0b]/20 bg-gradient-to-r from-[#78350f]/20 to-transparent flex items-center justify-between">
         <div className="flex items-center gap-3 flex-1">
@@ -803,6 +849,14 @@ function LdcBoard({ canManage }) {
         )}
 
         {showAdd && <AddToBoardRow onAdded={fetchBoard} onClose={() => setShowAdd(false)} />}
+
+        {/* Bouton Lancer la LDC */}
+        {isAdmin && warriors.length > 0 && (
+          <button onClick={() => setShowLaunchModal(true)}
+            className="w-full py-3 mt-4 rounded-xl text-sm font-bold uppercase tracking-wide bg-gradient-to-r from-[#78350f] to-[#dc2626] border border-[#f59e0b]/30 text-[#f59e0b] hover:from-[#92400e] hover:to-[#b91c1c] transition-all duration-200 shadow-lg">
+            ⚔️ Lancer la LDC
+          </button>
+        )}
       </div>
 
       {/* Modal confirmation CLEAR */}
@@ -822,6 +876,57 @@ function LdcBoard({ canManage }) {
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-all">
                 Vider le tableau
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Lancer la LDC */}
+      {showLaunchModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setShowLaunchModal(false)}>
+          <div className="bg-[#111111] border border-[#f59e0b]/40 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-5 border-b border-[#f59e0b]/20 text-center">
+              <p className="text-lg font-black text-white uppercase tracking-widest">⚔️ Lancer la LDC</p>
+              <p className="text-xs text-[#f59e0b] mt-1">
+                Les {warriors.length} guerrier{warriors.length > 1 ? 's' : ''} du tableau seront automatiquement inscrits dans une nouvelle LDC.
+              </p>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className={labelCls}>Ouverture des inscriptions</label>
+                <input type="date" value={launchForm.signup_open_date}
+                  onChange={e => setLaunchForm(f => ({ ...f, signup_open_date: e.target.value }))}
+                  className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Clôture des inscriptions *</label>
+                <input type="date" required value={launchForm.close_date}
+                  onChange={e => setLaunchForm(f => ({ ...f, close_date: e.target.value }))}
+                  className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Date de lancement LDC *</label>
+                <input type="date" required value={launchForm.proposed_date}
+                  onChange={e => setLaunchForm(f => ({ ...f, proposed_date: e.target.value }))}
+                  className={inputCls} />
+              </div>
+              {launchForm.proposed_date && (
+                <p className="text-xs text-gray-600">
+                  🗑️ Suppression auto : <span className="text-gray-400">{formatDate(addDays(launchForm.proposed_date, 9))}</span>
+                </p>
+              )}
+              {launchError && <p className="text-xs text-[#dc2626]">{launchError}</p>}
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowLaunchModal(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+                  Annuler
+                </button>
+                <button onClick={handleLaunch}
+                  disabled={launchLoading || !launchForm.close_date || !launchForm.proposed_date}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-gradient-to-r from-[#78350f] to-[#dc2626] border border-[#f59e0b]/30 text-[#f59e0b] hover:from-[#92400e] hover:to-[#b91c1c] disabled:opacity-50 transition-all">
+                  {launchLoading ? 'Lancement...' : 'Lancer la LDC'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1028,7 +1133,7 @@ export default function Inscriptions({ embedded = false }) {
         )}
 
         {/* Tableau guerriers LDC permanent */}
-        <LdcBoard canManage={canManage} />
+        <LdcBoard canManage={canManage} onRefreshEvents={fetchAll} />
       </div>
 
       {createModal && (

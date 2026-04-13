@@ -163,6 +163,23 @@ httpServer.listen(PORT, async () => {
         .lte('auto_delete_date', today)
         .in('status', ['closed', 'validated'])
       if (deleteErr) console.error('autoCloseEvents (delete):', deleteErr.message)
+
+      // Vider le tableau ldc_board si la LDC liée est clôturée depuis 7j
+      const sevenDaysAgo = new Date()
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+      const { data: closedLdc } = await supabase
+        .from('war_events')
+        .select('id')
+        .eq('type', 'ldc')
+        .eq('status', 'closed')
+        .lte('updated_at', sevenDaysAgo.toISOString())
+      if (closedLdc?.length > 0) {
+        await supabase
+          .from('ldc_board_warriors')
+          .delete()
+          .neq('id', '00000000-0000-0000-0000-000000000000')
+        console.log('✅ Tableau ldc_board_warriors vidé (LDC clôturée depuis >7j)')
+      }
     } catch (err) {
       console.error('autoCloseEvents:', err.message)
     }
