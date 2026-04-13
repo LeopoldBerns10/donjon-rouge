@@ -245,6 +245,67 @@ router.post('/:id/signup', requireAuth, async (req, res) => {
   }
 })
 
+// POST /api/war-events/:id/signup-admin
+router.post('/:id/signup-admin', requireAuth, async (req, res) => {
+  try {
+    if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+
+    const { coc_tag } = req.body
+    if (!coc_tag) return res.status(400).json({ error: 'coc_tag requis' })
+
+    const { data: event, error: evErr } = await supabase
+      .from('war_events')
+      .select('id')
+      .eq('id', req.params.id)
+      .single()
+    if (evErr || !event) return res.status(404).json({ error: 'Événement introuvable' })
+
+    const { data: userData, error: userErr } = await supabase
+      .from('users')
+      .select('id, coc_name, coc_tag, coc_role')
+      .eq('coc_tag', coc_tag)
+      .single()
+    if (userErr || !userData) return res.status(404).json({ error: 'Joueur introuvable dans la base' })
+
+    const { data, error } = await supabase
+      .from('war_signups')
+      .insert({
+        event_id: req.params.id,
+        user_id: userData.id,
+        coc_name: userData.coc_name,
+        coc_tag: userData.coc_tag,
+        coc_role: userData.coc_role
+      })
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === '23505') return res.status(400).json({ error: 'Ce joueur est déjà inscrit' })
+      throw error
+    }
+    res.json(data)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// DELETE /api/war-events/:id/signup/:userId
+router.delete('/:id/signup/:userId', requireAuth, async (req, res) => {
+  try {
+    if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+
+    const { error } = await supabase
+      .from('war_signups')
+      .delete()
+      .eq('event_id', req.params.id)
+      .eq('user_id', req.params.userId)
+    if (error) throw error
+    res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // POST /api/war-events/:id/validate
 router.post('/:id/validate', requireAuth, async (req, res) => {
   try {

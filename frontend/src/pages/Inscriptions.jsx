@@ -164,7 +164,9 @@ function SignupButton({ event, isSignedUp, onSignup }) {
 
 // ─── SignupsList ──────────────────────────────────────────────────────────────
 
-function SignupsList({ signups }) {
+function SignupsList({ signups, canManage, eventId, onRemove }) {
+  const [confirmRemove, setConfirmRemove] = useState(null) // { id, name, userId }
+
   if (!signups || signups.length === 0) {
     return (
       <div className="mt-2">
@@ -204,6 +206,12 @@ function SignupsList({ signups }) {
               )}
               <span className="text-[10px] text-gray-600">{formatCocRole(s.coc_role)}</span>
               <span className="text-[10px] text-gray-700">{formatDateTime(s.signed_up_at)}</span>
+              {canManage && (
+                <button onClick={() => setConfirmRemove({ id: s.id, name: s.coc_name, userId: s.user_id })}
+                  className="ml-1 text-[11px] text-gray-700 hover:text-red-400 transition-colors leading-none">
+                  ✕
+                </button>
+              )}
             </div>
           )
         })}
@@ -215,13 +223,34 @@ function SignupsList({ signups }) {
           </div>
         )}
       </div>
+
+      {confirmRemove && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setConfirmRemove(null)}>
+          <div className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <p className="text-white font-bold text-center mb-2">Retirer un joueur</p>
+            <p className="text-sm text-gray-400 text-center mb-6">
+              Retirer <span className="text-white font-semibold">{confirmRemove.name}</span> de cet événement ?
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmRemove(null)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+                Annuler
+              </button>
+              <button onClick={() => { onRemove(eventId, confirmRemove.userId); setConfirmRemove(null) }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-all">
+                Retirer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
 // ─── AdminActions ─────────────────────────────────────────────────────────────
 
-function AdminActions({ event, onValidate, onClose, onEdit }) {
+function AdminActions({ event, onValidate, onClose, onEdit, onAddSignup }) {
   const { user } = useAuth()
   const canManage = ['superadmin', 'admin'].includes(user?.site_role) ||
     ['leader', 'coLeader'].includes(user?.coc_role)
@@ -251,13 +280,19 @@ function AdminActions({ event, onValidate, onClose, onEdit }) {
           ✏️ Modifier
         </button>
       )}
+      {canManage && (
+        <button onClick={() => onAddSignup(event)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#6366f1]/50 hover:text-[#818cf8] transition-colors">
+          ➕ Inscrire un joueur
+        </button>
+      )}
     </div>
   )
 }
 
 // ─── EventCard ────────────────────────────────────────────────────────────────
 
-function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onEdit }) {
+function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onEdit, onAddSignup, onRemoveSignup, canManage }) {
   const isSignedUp = userSignedUpEventIds.has(event.id)
   const borderClass =
     event.type === 'ldc' ? 'border-[#f59e0b]/40' :
@@ -328,12 +363,79 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
           </div>
         </div>
 
-        <SignupsList signups={signups[event.id] || []} />
-        <AdminActions event={event} onValidate={onValidate} onClose={onClose} onEdit={onEdit} />
+        <SignupsList signups={signups[event.id] || []} canManage={canManage} eventId={event.id} onRemove={onRemoveSignup} />
+        <AdminActions event={event} onValidate={onValidate} onClose={onClose} onEdit={onEdit} onAddSignup={onAddSignup} />
 
         <div className="mt-3 pt-3 border-t border-[#1a1a1a] grid grid-cols-2 gap-2 text-[10px] text-gray-700">
           <span>📅 Clôture inscriptions : <span className="text-gray-500 ml-1">{formatDate(event.close_date)}</span></span>
           <span>🗑️ Suppression auto : <span className="text-gray-500 ml-1">{formatDate(event.auto_delete_date)}</span></span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── AddSignupModal ───────────────────────────────────────────────────────────
+
+function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
+  const [members, setMembers] = useState([])
+  const [selectedTag, setSelectedTag] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    api.get('/api/coc/clan/members').then(r => {
+      const items = r.data?.items || r.data || []
+      const signedTags = new Set((currentSignups || []).map(s => s.coc_tag))
+      const filtered = items.filter(m => !signedTags.has(m.tag))
+      setMembers(filtered)
+      if (filtered.length > 0) setSelectedTag(filtered[0].tag)
+    }).catch(() => {})
+  }, [currentSignups])
+
+  const handleConfirm = async () => {
+    if (!selectedTag) return
+    setLoading(true)
+    setError(null)
+    try {
+      await api.post(`/api/war-events/${event.id}/signup-admin`, { coc_tag: selectedTag })
+      onAdded()
+      onClose()
+    } catch (err) {
+      setError(err.response?.data?.error || err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111111] border border-[#6366f1]/40 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+        <p className="text-white font-bold text-center mb-1">Inscrire un joueur</p>
+        <p className="text-xs text-gray-500 text-center mb-5 uppercase tracking-wide">{event.title}</p>
+
+        {members.length === 0 ? (
+          <p className="text-sm text-gray-600 text-center py-4">Tous les membres sont déjà inscrits</p>
+        ) : (
+          <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)}
+            className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#6366f1]/50 mb-4">
+            {members.map(m => (
+              <option key={m.tag} value={m.tag}>{m.name} — {formatCocRole(m.role)}</option>
+            ))}
+          </select>
+        )}
+
+        {error && <p className="text-xs text-[#dc2626] mb-3 text-center">{error}</p>}
+
+        <div className="flex gap-3">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+            Annuler
+          </button>
+          <button onClick={handleConfirm} disabled={loading || members.length === 0}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#6366f1] hover:bg-[#4f46e5] text-white disabled:opacity-50 transition-all">
+            {loading ? 'Inscription...' : 'Inscrire'}
+          </button>
         </div>
       </div>
     </div>
@@ -784,6 +886,7 @@ export default function Inscriptions({ embedded = false }) {
   const [loading, setLoading] = useState(true)
   const [createModal, setCreateModal] = useState(null)
   const [editModal, setEditModal] = useState(null)
+  const [addSignupModal, setAddSignupModal] = useState(null) // event object
   const [userSignedUpEventIds, setUserSignedUpEventIds] = useState(new Set())
 
   const canManage = user && (
@@ -841,6 +944,15 @@ export default function Inscriptions({ embedded = false }) {
     if (!window.confirm('Clôturer cet événement ?')) return
     await api.post(`/api/war-events/${eventId}/close`)
     await fetchAll()
+  }
+
+  const handleRemoveSignup = async (eventId, userId) => {
+    try {
+      await api.delete(`/api/war-events/${eventId}/signup/${userId}`)
+      await fetchAll()
+    } catch (err) {
+      console.error(err.response?.data?.error || err.message)
+    }
   }
 
   return (
@@ -907,6 +1019,9 @@ export default function Inscriptions({ embedded = false }) {
                 onValidate={handleValidate}
                 onClose={handleClose}
                 onEdit={setEditModal}
+                onAddSignup={setAddSignupModal}
+                onRemoveSignup={handleRemoveSignup}
+                canManage={canManage}
               />
             ))}
           </div>
@@ -921,6 +1036,14 @@ export default function Inscriptions({ embedded = false }) {
       )}
       {editModal && (
         <EditEventModal event={editModal} onClose={() => setEditModal(null)} onSaved={fetchAll} />
+      )}
+      {addSignupModal && (
+        <AddSignupModal
+          event={addSignupModal}
+          currentSignups={signups[addSignupModal.id] || []}
+          onClose={() => setAddSignupModal(null)}
+          onAdded={fetchAll}
+        />
       )}
     </div>
   )
