@@ -296,6 +296,51 @@ router.post('/:id/close', requireAuth, async (req, res) => {
   }
 })
 
+// PUT /api/war-events/:id — modifier titre/dates
+router.put('/:id', requireAuth, async (req, res) => {
+  try {
+    const { proposed_date, close_date, title, description } = req.body
+
+    const { data: event, error: evErr } = await supabase
+      .from('war_events')
+      .select('*')
+      .eq('id', req.params.id)
+      .single()
+    if (evErr || !event) return res.status(404).json({ error: 'Événement introuvable' })
+
+    const isAuthor = event.created_by === req.user.id
+    const isAdmin = ['superadmin', 'admin'].includes(req.user.site_role)
+    const isChief = ['leader', 'coLeader'].includes(req.user.coc_role)
+    if (!isAuthor && !isAdmin && !isChief) {
+      return res.status(403).json({ error: 'Permission refusée' })
+    }
+
+    const dates = calculateDates(event.type, {
+      proposed_date: proposed_date || event.proposed_date,
+      close_date: close_date || event.close_date,
+      signup_open_date: event.post_date
+    })
+
+    const { data, error } = await supabase
+      .from('war_events')
+      .update({
+        proposed_date: proposed_date || event.proposed_date,
+        close_date: dates.close_date,
+        auto_delete_date: dates.auto_delete_date,
+        title: title || event.title,
+        description: description !== undefined ? description : event.description
+      })
+      .eq('id', req.params.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    res.json(data)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/war-events/:id/signups
 router.get('/:id/signups', async (req, res) => {
   try {

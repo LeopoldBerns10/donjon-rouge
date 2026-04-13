@@ -9,7 +9,7 @@ function formatDate(d) {
   return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
-function formatTime(d) {
+function formatDateTime(d) {
   if (!d) return ''
   const dt = new Date(d)
   const day = String(dt.getDate()).padStart(2, '0')
@@ -44,6 +44,17 @@ function calcDates(type, { proposed_date, close_date }) {
     auto_delete_date: addDays(proposed_date, 9)
   }
   return {}
+}
+
+function getCurrentTier(count) {
+  const tiers = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+  const reached = tiers.filter(t => count >= t)
+  return reached.length > 0 ? Math.max(...reached) : 0
+}
+
+function getNextTier(count) {
+  const tiers = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+  return tiers.find(t => t > count) || 50
 }
 
 // ─── TypeBadge ────────────────────────────────────────────────────────────────
@@ -84,29 +95,17 @@ function StatusBadge({ status }) {
 function WarningModal({ type, onConfirm, onCancel }) {
   const isLdc = type === 'ldc'
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl shadow-[#dc2626]/20 w-full max-w-md"
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onCancel}>
+      <div className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl shadow-[#dc2626]/20 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-8 pb-2">
-          <div className="w-16 h-16 rounded-full bg-[#dc2626]/10 border-2 border-[#dc2626]/40 flex items-center justify-center text-3xl">
-            ⚔️
-          </div>
+          <div className="w-16 h-16 rounded-full bg-[#dc2626]/10 border-2 border-[#dc2626]/40 flex items-center justify-center text-3xl">⚔️</div>
         </div>
-
         <div className="px-6 pb-2 text-center">
-          <h3 className="text-lg font-bold text-white uppercase tracking-wide">
-            Inscription Officielle
-          </h3>
+          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Inscription Officielle</h3>
           <p className="text-xs text-[#dc2626] uppercase tracking-widest mt-1">
             {isLdc ? 'Ligue de Guerre de Clans' : 'GDC Sélection Guerriers'}
           </p>
         </div>
-
         <div className="px-6 py-4">
           <div className="bg-[#dc2626]/5 border border-[#dc2626]/20 rounded-xl p-4">
             <p className="text-sm text-gray-300 leading-relaxed text-center">
@@ -121,20 +120,9 @@ function WarningModal({ type, onConfirm, onCancel }) {
             </ul>
           </div>
         </div>
-
         <div className="px-6 pb-6 flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:border-[#555] hover:text-white transition-all duration-150"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={onConfirm}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-all duration-200 shadow-lg shadow-[#dc2626]/20"
-          >
-            Je confirme
-          </button>
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:border-[#555] hover:text-white transition-all duration-150">Annuler</button>
+          <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-all duration-200 shadow-lg shadow-[#dc2626]/20">Je confirme</button>
         </div>
       </div>
     </div>
@@ -147,26 +135,15 @@ function SignupButton({ event, isSignedUp, onSignup }) {
   const { user } = useAuth()
   const [showWarning, setShowWarning] = useState(false)
   const [loading, setLoading] = useState(false)
-
   const needsWarning = event.type === 'gdc_selection' || event.type === 'ldc'
 
   if (!user) return null
-
-  if (isSignedUp) {
-    return (
-      <span className="px-4 py-2 rounded-xl text-sm font-semibold bg-green-500/10 border border-green-500/30 text-green-400">
-        ✓ Inscrit
-      </span>
-    )
-  }
-
+  if (isSignedUp) return (
+    <span className="px-4 py-2 rounded-xl text-sm font-semibold bg-green-500/10 border border-green-500/30 text-green-400">✓ Inscrit</span>
+  )
   if (event.status !== 'open') return null
 
-  const handleClick = () => {
-    if (needsWarning) setShowWarning(true)
-    else confirmSignup()
-  }
-
+  const handleClick = () => needsWarning ? setShowWarning(true) : confirmSignup()
   const confirmSignup = async () => {
     setLoading(true)
     await onSignup(event.id)
@@ -176,17 +153,11 @@ function SignupButton({ event, isSignedUp, onSignup }) {
 
   return (
     <>
-      <button
-        onClick={handleClick}
-        disabled={loading}
-        className="px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-[#dc2626]/20"
-      >
+      <button onClick={handleClick} disabled={loading}
+        className="px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-[#dc2626]/20">
         {loading ? 'Inscription...' : "S'inscrire"}
       </button>
-
-      {showWarning && (
-        <WarningModal type={event.type} onConfirm={confirmSignup} onCancel={() => setShowWarning(false)} />
-      )}
+      {showWarning && <WarningModal type={event.type} onConfirm={confirmSignup} onCancel={() => setShowWarning(false)} />}
     </>
   )
 }
@@ -203,23 +174,46 @@ function SignupsList({ signups }) {
     )
   }
 
+  const currentTier = getCurrentTier(signups.length)
+
   return (
     <div className="mt-2">
       <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-2">Joueurs inscrits</p>
-      <div className="space-y-1 max-h-48 overflow-y-auto">
-        {signups.map((s, i) => (
-          <div key={s.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#0a0a0a] border border-[#1a1a1a]">
-            <span className="text-xs text-[#dc2626] font-bold w-5 text-center">
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <div className="w-6 h-6 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30 flex items-center justify-center text-[10px] font-bold text-[#dc2626]">
-              {s.coc_name?.charAt(0).toUpperCase()}
+      <div className="space-y-1 max-h-52 overflow-y-auto">
+        {signups.map((s, i) => {
+          const isInTier = i < currentTier
+          return (
+            <div key={s.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-all duration-300 ${
+              isInTier ? 'bg-green-500/5 border-green-500/20' : 'bg-[#0a0a0a] border-[#1a1a1a]'
+            }`}>
+              <span className={`text-xs font-bold w-5 text-center ${isInTier ? 'text-green-400' : 'text-[#dc2626]'}`}>
+                {String(i + 1).padStart(2, '0')}
+              </span>
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border ${
+                isInTier ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-[#dc2626]/20 border-[#dc2626]/30 text-[#dc2626]'
+              }`}>
+                {s.coc_name?.charAt(0).toUpperCase()}
+              </div>
+              <span className={`text-sm font-medium flex-1 ${isInTier ? 'text-green-300' : 'text-gray-200'}`}>
+                {s.coc_name}
+              </span>
+              {isInTier ? (
+                <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full uppercase">✓ Confirmé</span>
+              ) : (
+                <span className="text-[10px] bg-[#1a1a1a] border border-[#2a2a2a] text-gray-600 px-2 py-0.5 rounded-full uppercase">En attente</span>
+              )}
+              <span className="text-[10px] text-gray-600">{formatCocRole(s.coc_role)}</span>
+              <span className="text-[10px] text-gray-700">{formatDateTime(s.signed_up_at)}</span>
             </div>
-            <span className="text-sm text-gray-200 font-medium flex-1">{s.coc_name}</span>
-            <span className="text-[10px] text-gray-600">{formatCocRole(s.coc_role)}</span>
-            <span className="text-[10px] text-gray-700">{formatTime(s.signed_up_at)}</span>
+          )
+        })}
+        {signups.length > currentTier && currentTier > 0 && (
+          <div className="flex items-center gap-2 py-1">
+            <div className="flex-1 h-px bg-[#1a1a1a]" />
+            <span className="text-[10px] text-gray-700 uppercase tracking-wide">En attente du prochain palier</span>
+            <div className="flex-1 h-px bg-[#1a1a1a]" />
           </div>
-        ))}
+        )}
       </div>
     </div>
   )
@@ -227,29 +221,34 @@ function SignupsList({ signups }) {
 
 // ─── AdminActions ─────────────────────────────────────────────────────────────
 
-function AdminActions({ event, onValidate, onClose }) {
+function AdminActions({ event, onValidate, onClose, onEdit }) {
   const { user } = useAuth()
   const canManage = ['superadmin', 'admin'].includes(user?.site_role) ||
     ['leader', 'coLeader'].includes(user?.coc_role)
+  const canEdit = event.created_by === user?.id ||
+    ['superadmin', 'admin'].includes(user?.site_role) ||
+    ['leader', 'coLeader'].includes(user?.coc_role)
 
-  if (!canManage) return null
+  if (!canManage && !canEdit) return null
 
   return (
     <div className="mt-4 pt-4 border-t border-[#1a1a1a] flex gap-2 flex-wrap">
-      {event.status === 'open' && event.signup_count >= (event.min_players || 0) && (
-        <button
-          onClick={() => onValidate(event.id)}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-green-900/30 border border-green-700/50 text-green-400 hover:bg-green-900/50 transition-colors"
-        >
+      {canManage && event.status === 'open' && event.signup_count >= (event.min_players || 0) && event.min_players > 0 && (
+        <button onClick={() => onValidate(event.id)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-green-900/30 border border-green-700/50 text-green-400 hover:bg-green-900/50 transition-colors">
           ✓ Valider la guerre
         </button>
       )}
-      {event.status !== 'closed' && (
-        <button
-          onClick={() => onClose(event.id)}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#dc2626] hover:text-white transition-colors"
-        >
+      {canManage && event.status !== 'closed' && (
+        <button onClick={() => onClose(event.id)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#dc2626] hover:text-white transition-colors">
           Clôturer
+        </button>
+      )}
+      {canEdit && event.status !== 'closed' && (
+        <button onClick={() => onEdit(event)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#f59e0b]/50 hover:text-[#f59e0b] transition-colors">
+          ✏️ Modifier
         </button>
       )}
     </div>
@@ -258,21 +257,22 @@ function AdminActions({ event, onValidate, onClose }) {
 
 // ─── EventCard ────────────────────────────────────────────────────────────────
 
-function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose }) {
+function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onEdit }) {
   const isSignedUp = userSignedUpEventIds.has(event.id)
   const borderClass =
     event.type === 'ldc' ? 'border-[#f59e0b]/40' :
     event.type === 'gdc_selection' ? 'border-[#dc2626]/40' :
     'border-[#1f1f1f]'
 
+  const signupCount = event.signup_count || 0
+  const currentTier = getCurrentTier(signupCount)
+  const nextTier = getNextTier(signupCount)
+  const progress = signupCount >= 50 ? 100 : ((signupCount % 5) / 5) * 100
+
   return (
     <div className={`relative rounded-2xl border overflow-hidden bg-gradient-to-br from-[#111111] to-[#0d0d0d] transition-all duration-300 hover:shadow-lg hover:shadow-[#dc2626]/10 ${borderClass}`}>
-      <div className="absolute top-4 left-4">
-        <TypeBadge type={event.type} />
-      </div>
-      <div className="absolute top-4 right-4">
-        <StatusBadge status={event.status} />
-      </div>
+      <div className="absolute top-4 left-4"><TypeBadge type={event.type} /></div>
+      <div className="absolute top-4 right-4"><StatusBadge status={event.status} /></div>
 
       <div className="px-6 pt-14 pb-6">
         <h3 className="text-lg font-bold text-white uppercase tracking-wide mb-1">{event.title}</h3>
@@ -295,25 +295,41 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
           <p className="text-sm text-gray-400 mb-4 leading-relaxed">{event.description}</p>
         )}
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-bold text-white">{event.signup_count}</span>
-            <div>
-              <p className="text-xs text-gray-400 leading-tight">joueurs inscrits</p>
-              {event.type === 'gdc' && event.min_players > 0 && (
-                <p className="text-xs text-gray-600">
-                  {event.signup_count >= event.min_players
-                    ? '✅ Minimum atteint'
-                    : `⏳ ${event.min_players - event.signup_count} de plus requis`}
-                </p>
-              )}
+        {/* Compteur + paliers */}
+        <div className="mb-4">
+          <div className="flex items-end gap-2 mb-2">
+            <span className="text-3xl font-black text-white">{signupCount}</span>
+            <span className="text-sm text-gray-500 mb-1">inscrits</span>
+            {currentTier > 0 && (
+              <span className="ml-2 text-xs bg-green-500/10 border border-green-500/30 text-green-400 px-2 py-0.5 rounded-full uppercase tracking-wide mb-1">
+                ✓ Palier {currentTier} atteint
+              </span>
+            )}
+            <div className="ml-auto">
+              <SignupButton event={event} isSignedUp={isSignedUp} onSignup={onSignup} />
             </div>
           </div>
-          <SignupButton event={event} isSignedUp={isSignedUp} onSignup={onSignup} />
+
+          <div className="relative">
+            <div className="h-1.5 bg-[#1a1a1a] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[#dc2626] to-[#f59e0b] rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-1">
+              <span className="text-[10px] text-gray-700">
+                {currentTier > 0 ? `Palier ${currentTier}` : 'Début'}
+              </span>
+              <span className="text-[10px] text-gray-600">
+                {signupCount < 50 ? `${nextTier - signupCount} avant palier ${nextTier}` : 'Palier max atteint'}
+              </span>
+            </div>
+          </div>
         </div>
 
         <SignupsList signups={signups[event.id] || []} />
-        <AdminActions event={event} onValidate={onValidate} onClose={onClose} />
+        <AdminActions event={event} onValidate={onValidate} onClose={onClose} onEdit={onEdit} />
 
         <div className="mt-3 pt-3 border-t border-[#1a1a1a] grid grid-cols-2 gap-2 text-[10px] text-gray-700">
           <span>📅 Clôture inscriptions : <span className="text-gray-500 ml-1">{formatDate(event.close_date)}</span></span>
@@ -334,14 +350,13 @@ function CreateEventModal({ type, onClose, onCreated }) {
     title: '',
     description: '',
     proposed_date: '',
-    close_date: '',      // LDC seulement
-    signup_open_date: '', // LDC seulement
+    close_date: '',
+    signup_open_date: '',
     min_players: type === 'gdc' ? 5 : 0,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // Preview des dates calculées
   const preview = calcDates(type, { proposed_date: form.proposed_date, close_date: form.close_date })
 
   const handleSubmit = async (e) => {
@@ -365,140 +380,87 @@ function CreateEventModal({ type, onClose, onCreated }) {
   const labelCls = 'text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5'
 
   return (
-    <div
-      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-5 border-b border-[#1a1a1a]">
-          <h3 className="text-lg font-bold text-white uppercase tracking-wide">
-            Créer — {typeLabels[type]}
-          </h3>
+          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Créer — {typeLabels[type]}</h3>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
-          {/* Titre */}
           <div>
             <label className={labelCls}>Titre *</label>
-            <input
-              type="text"
-              required
-              value={form.title}
+            <input type="text" required value={form.title}
               onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-              className={inputCls}
-              placeholder={isLdc ? 'Ex: LDC Avril 2026' : 'Ex: GDC du 15 avril'}
-            />
+              className={inputCls} placeholder={isLdc ? 'Ex: LDC Avril 2026' : 'Ex: GDC du 15 avril'} />
           </div>
 
-          {/* Champs dates selon le type */}
           {!isLdc ? (
-            /* GDC / GDC Sélection : un seul champ */
             <div>
               <label className={labelCls}>Date de lancement *</label>
-              <input
-                type="date"
-                required
-                value={form.proposed_date}
+              <input type="date" required value={form.proposed_date}
                 onChange={e => setForm(f => ({ ...f, proposed_date: e.target.value }))}
-                className={inputCls}
-              />
+                className={inputCls} />
             </div>
           ) : (
-            /* LDC : trois champs */
             <>
               <div>
                 <label className={labelCls}>Ouverture des inscriptions *</label>
-                <input
-                  type="date"
-                  required
-                  value={form.signup_open_date}
+                <input type="date" required value={form.signup_open_date}
                   onChange={e => setForm(f => ({ ...f, signup_open_date: e.target.value }))}
-                  className={inputCls}
-                />
+                  className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Clôture des inscriptions *</label>
-                <input
-                  type="date"
-                  required
-                  value={form.close_date}
+                <input type="date" required value={form.close_date}
                   onChange={e => setForm(f => ({ ...f, close_date: e.target.value }))}
-                  className={inputCls}
-                />
+                  className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Lancement de la LDC *</label>
-                <input
-                  type="date"
-                  required
-                  value={form.proposed_date}
+                <input type="date" required value={form.proposed_date}
                   onChange={e => setForm(f => ({ ...f, proposed_date: e.target.value }))}
-                  className={inputCls}
-                />
+                  className={inputCls} />
               </div>
             </>
           )}
 
-          {/* Preview dates calculées */}
           {(preview.close_date || preview.auto_delete_date) && (
             <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-3 space-y-1">
               {!isLdc && preview.close_date && (
-                <p className="text-xs text-gray-600">
-                  📅 Clôture inscriptions : <span className="text-gray-400">{formatDate(preview.close_date)}</span>
-                </p>
+                <p className="text-xs text-gray-600">📅 Clôture inscriptions : <span className="text-gray-400">{formatDate(preview.close_date)}</span></p>
               )}
               {preview.auto_delete_date && (
-                <p className="text-xs text-gray-600">
-                  🗑️ Suppression auto : <span className="text-gray-400">{formatDate(preview.auto_delete_date)}</span>
-                </p>
+                <p className="text-xs text-gray-600">🗑️ Suppression auto : <span className="text-gray-400">{formatDate(preview.auto_delete_date)}</span></p>
               )}
             </div>
           )}
 
-          {/* Joueurs minimum (GDC seulement) */}
           {type === 'gdc' && (
             <div>
               <label className={labelCls}>Joueurs minimum</label>
-              <input
-                type="number"
-                min="1"
-                value={form.min_players}
+              <input type="number" min="1" value={form.min_players}
                 onChange={e => setForm(f => ({ ...f, min_players: parseInt(e.target.value) || 5 }))}
-                className={inputCls}
-              />
+                className={inputCls} />
             </div>
           )}
 
-          {/* Description */}
           <div>
             <label className={labelCls}>Description (optionnel)</label>
-            <textarea
-              value={form.description}
+            <textarea value={form.description}
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-              rows={3}
-              className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-700 focus:outline-none focus:border-[#dc2626]/50 resize-none"
-              placeholder="Informations complémentaires..."
-            />
+              rows={3} className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-700 focus:outline-none focus:border-[#dc2626]/50 resize-none"
+              placeholder="Informations complémentaires..." />
           </div>
 
           {error && <p className="text-xs text-[#dc2626]">{error}</p>}
 
           <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:border-[#555] hover:text-white transition-all"
-            >
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:border-[#555] hover:text-white transition-all">
               Annuler
             </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 transition-all shadow-lg shadow-[#dc2626]/20"
-            >
+            <button type="submit" disabled={loading}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 transition-all shadow-lg shadow-[#dc2626]/20">
               {loading ? 'Création...' : 'Créer'}
             </button>
           </div>
@@ -508,145 +470,307 @@ function CreateEventModal({ type, onClose, onCreated }) {
   )
 }
 
-// ─── LdcWarriorsTable ─────────────────────────────────────────────────────────
+// ─── EditEventModal ───────────────────────────────────────────────────────────
 
-function LdcWarriorsTable({ warriors, onRemove, canManage, ldcEventId, onAdd }) {
-  if (!warriors || (warriors.length === 0 && !canManage)) return null
+function EditEventModal({ event, onClose, onSaved }) {
+  const isLdc = event.type === 'ldc'
+  const [form, setForm] = useState({
+    title: event.title || '',
+    description: event.description || '',
+    proposed_date: event.proposed_date || '',
+    close_date: event.close_date || '',
+  })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const preview = calcDates(event.type, { proposed_date: form.proposed_date, close_date: form.close_date })
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    try {
+      await api.put(`/api/war-events/${event.id}`, form)
+      onSaved()
+      onClose()
+    } catch (err) {
+      setError(err.response?.data?.error || err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#f59e0b]/50'
+  const labelCls = 'text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5'
 
   return (
-    <div className="mt-8 bg-gradient-to-br from-[#111111] to-[#0d0d0d] border border-[#f59e0b]/30 rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-[#f59e0b]/20 bg-gradient-to-r from-[#78350f]/20 to-transparent">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-[#f59e0b] uppercase tracking-widest">
-              👑 Guerriers Sélectionnés — LDC
-            </h3>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Top 5 sélectionnés pour la Ligue de Guerre
-            </p>
-          </div>
-          <span className="text-xs bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] px-3 py-1 rounded-full uppercase tracking-wide">
-            LDC en cours
-          </span>
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111111] border border-[#f59e0b]/30 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-5 border-b border-[#1a1a1a]">
+          <h3 className="text-lg font-bold text-white uppercase tracking-wide">✏️ Modifier l'événement</h3>
+          <p className="text-xs text-gray-600 mt-1">Les inscriptions existantes ne seront pas affectées.</p>
         </div>
-      </div>
 
-      <div className="p-4 space-y-2">
-        {warriors.map((w, i) => (
-          <div key={w.id} className={`flex items-center gap-4 px-4 py-3 rounded-xl bg-[#0a0a0a] border transition-colors ${
-            w.auto_selected ? 'border-[#f59e0b]/20 hover:border-[#f59e0b]/40' : 'border-[#dc2626]/20 hover:border-[#dc2626]/40'
-          }`}>
-            <span className="text-lg font-black text-[#f59e0b] w-8">
-              {String(i + 1).padStart(2, '0')}
-            </span>
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border"
-                 style={{
-                   background: w.auto_selected ? 'rgba(245,158,11,0.2)' : 'rgba(220,38,38,0.2)',
-                   borderColor: w.auto_selected ? 'rgba(245,158,11,0.3)' : 'rgba(220,38,38,0.3)',
-                   color: w.auto_selected ? '#f59e0b' : '#dc2626'
-                 }}>
-              {w.coc_name?.charAt(0).toUpperCase()}
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-bold text-white">{w.coc_name}</p>
-              <p className="text-xs text-gray-600">{w.coc_tag}</p>
-            </div>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wide ${
-              w.auto_selected
-                ? 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]'
-                : 'bg-[#dc2626]/10 border-[#dc2626]/30 text-[#dc2626]'
-            }`}>
-              {w.auto_selected ? 'Auto' : 'Manuel'}
-            </span>
-            <span className="text-xs text-gray-500">{formatCocRole(w.coc_role)}</span>
-            {canManage && (
-              <button onClick={() => onRemove(w.id)} className="text-xs text-gray-700 hover:text-red-400 transition-colors ml-2">
-                ✕
-              </button>
-            )}
+        <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+          <div>
+            <label className={labelCls}>Titre</label>
+            <input type="text" value={form.title}
+              onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+              className={inputCls} />
           </div>
-        ))}
 
-        {canManage && warriors.length < 5 && ldcEventId && (
-          <AddWarriorModal ldcEventId={ldcEventId} onAdded={onAdd} />
-        )}
+          {!isLdc ? (
+            <div>
+              <label className={labelCls}>Date de lancement</label>
+              <input type="date" value={form.proposed_date}
+                onChange={e => setForm(f => ({ ...f, proposed_date: e.target.value }))}
+                className={inputCls} />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className={labelCls}>Clôture des inscriptions</label>
+                <input type="date" value={form.close_date}
+                  onChange={e => setForm(f => ({ ...f, close_date: e.target.value }))}
+                  className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Lancement de la LDC</label>
+                <input type="date" value={form.proposed_date}
+                  onChange={e => setForm(f => ({ ...f, proposed_date: e.target.value }))}
+                  className={inputCls} />
+              </div>
+            </>
+          )}
 
-        {warriors.length === 0 && (
-          <p className="text-xs text-gray-700 text-center py-3">Aucun guerrier sélectionné</p>
-        )}
+          {(preview.close_date || preview.auto_delete_date) && (
+            <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl p-3 space-y-1">
+              {!isLdc && preview.close_date && (
+                <p className="text-xs text-gray-600">📅 Nouvelle clôture : <span className="text-[#f59e0b]">{formatDate(preview.close_date)}</span></p>
+              )}
+              {preview.auto_delete_date && (
+                <p className="text-xs text-gray-600">🗑️ Nouvelle suppression : <span className="text-[#f59e0b]">{formatDate(preview.auto_delete_date)}</span></p>
+              )}
+            </div>
+          )}
+
+          <div>
+            <label className={labelCls}>Description (optionnel)</label>
+            <textarea value={form.description}
+              onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+              rows={3} className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-700 focus:outline-none focus:border-[#f59e0b]/50 resize-none" />
+          </div>
+
+          {error && <p className="text-xs text-[#dc2626]">{error}</p>}
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:border-[#555] hover:text-white transition-all">
+              Annuler
+            </button>
+            <button type="submit" disabled={loading}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#f59e0b] hover:bg-[#d97706] text-black disabled:opacity-50 transition-all">
+              {loading ? 'Sauvegarde...' : 'Sauvegarder'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )
 }
 
-function AddWarriorModal({ ldcEventId, onAdded }) {
-  const [open, setOpen] = useState(false)
+// ─── LdcBoard (tableau permanent) ────────────────────────────────────────────
+
+function LdcBoard({ canManage }) {
+  const [board, setBoard] = useState({ title: 'Guerriers Sélectionnés — LDC' })
+  const [warriors, setWarriors] = useState([])
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [boardTitle, setBoardTitle] = useState('')
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
+  const [showAdd, setShowAdd] = useState(false)
+
+  const fetchBoard = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/ldc-board')
+      setBoard(data.board)
+      setBoardTitle(data.board.title)
+      setWarriors(data.warriors || [])
+    } catch (err) {
+      console.error('LdcBoard fetch:', err.message)
+    }
+  }, [])
+
+  useEffect(() => { fetchBoard() }, [fetchBoard])
+
+  const saveTitle = async () => {
+    setIsEditingTitle(false)
+    if (boardTitle === board.title) return
+    try {
+      await api.put('/api/ldc-board/title', { title: boardTitle })
+      setBoard(b => ({ ...b, title: boardTitle }))
+    } catch (err) { console.error(err) }
+  }
+
+  const handleClear = async () => {
+    await api.delete('/api/ldc-board/clear')
+    setShowClearConfirm(false)
+    fetchBoard()
+  }
+
+  const removeWarrior = async (id) => {
+    await api.delete(`/api/ldc-board/warriors/${id}`)
+    fetchBoard()
+  }
+
+  return (
+    <div className="mt-10 bg-gradient-to-br from-[#111111] to-[#0d0d0d] border border-[#f59e0b]/30 rounded-2xl overflow-hidden">
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-[#f59e0b]/20 bg-gradient-to-r from-[#78350f]/20 to-transparent flex items-center justify-between">
+        <div className="flex items-center gap-3 flex-1">
+          <span className="text-xl">👑</span>
+          {isEditingTitle ? (
+            <input
+              value={boardTitle}
+              onChange={e => setBoardTitle(e.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={e => e.key === 'Enter' && saveTitle()}
+              autoFocus
+              className="bg-transparent border-b border-[#f59e0b]/50 text-[#f59e0b] font-bold text-sm uppercase tracking-widest outline-none flex-1 max-w-xs"
+            />
+          ) : (
+            <h3 className="text-sm font-bold text-[#f59e0b] uppercase tracking-widest">{board.title}</h3>
+          )}
+          {canManage && !isEditingTitle && (
+            <button onClick={() => setIsEditingTitle(true)} className="text-gray-700 hover:text-[#f59e0b] transition-colors text-xs">✏️</button>
+          )}
+        </div>
+        {canManage && (
+          <div className="flex gap-2">
+            <button onClick={() => setShowAdd(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] hover:bg-[#f59e0b]/20 transition-colors">
+              + Ajouter
+            </button>
+            <button onClick={() => setShowClearConfirm(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#7f1d1d]/20 border border-[#dc2626]/30 text-[#dc2626] hover:bg-[#7f1d1d]/40 transition-colors">
+              Vider
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Liste */}
+      <div className="p-4 space-y-2">
+        {warriors.length === 0 ? (
+          <p className="text-center text-gray-700 text-sm py-6">Aucun guerrier sélectionné pour le moment</p>
+        ) : (
+          warriors.map((w, i) => (
+            <div key={w.id} className={`flex items-center gap-4 px-4 py-3 rounded-xl bg-[#0a0a0a] border transition-colors ${
+              w.auto_selected ? 'border-[#f59e0b]/20' : 'border-[#dc2626]/20'
+            }`}>
+              <span className="text-lg font-black text-[#f59e0b] w-8">{String(i + 1).padStart(2, '0')}</span>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border"
+                style={{
+                  background: w.auto_selected ? 'rgba(245,158,11,0.2)' : 'rgba(220,38,38,0.2)',
+                  borderColor: w.auto_selected ? 'rgba(245,158,11,0.3)' : 'rgba(220,38,38,0.3)',
+                  color: w.auto_selected ? '#f59e0b' : '#dc2626'
+                }}>
+                {w.coc_name?.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-white">{w.coc_name}</p>
+                <p className="text-xs text-gray-600">{w.coc_tag}</p>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border uppercase tracking-wide ${
+                w.auto_selected ? 'bg-[#f59e0b]/10 border-[#f59e0b]/30 text-[#f59e0b]' : 'bg-[#dc2626]/10 border-[#dc2626]/30 text-[#dc2626]'
+              }`}>
+                {w.auto_selected ? 'Auto' : 'Manuel'}
+              </span>
+              <span className="text-xs text-gray-500">{formatCocRole(w.coc_role)}</span>
+              {canManage && (
+                <button onClick={() => removeWarrior(w.id)} className="text-xs text-gray-700 hover:text-red-400 transition-colors">✕</button>
+              )}
+            </div>
+          ))
+        )}
+
+        {canManage && warriors.length < 5 && !showAdd && (
+          <button onClick={() => setShowAdd(true)}
+            className="w-full py-2.5 rounded-xl text-sm font-semibold uppercase border border-dashed border-[#f59e0b]/30 text-[#f59e0b]/50 hover:border-[#f59e0b]/60 hover:text-[#f59e0b] transition-all duration-200">
+            + Ajouter un guerrier
+          </button>
+        )}
+
+        {showAdd && <AddToBoardRow onAdded={fetchBoard} onClose={() => setShowAdd(false)} />}
+      </div>
+
+      {/* Modal confirmation CLEAR */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setShowClearConfirm(false)}>
+          <div className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
+            <p className="text-white font-bold text-center mb-2">⚠️ Vider le tableau</p>
+            <p className="text-sm text-gray-400 text-center mb-6">
+              Vider le tableau supprimera tous les guerriers sélectionnés. Cette action est irréversible.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowClearConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+                Annuler
+              </button>
+              <button onClick={handleClear}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-all">
+                Vider le tableau
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AddToBoardRow({ onAdded, onClose }) {
   const [members, setMembers] = useState([])
   const [selectedTag, setSelectedTag] = useState('')
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!open) return
     api.get('/api/coc/clan/members').then(r => {
       const items = r.data?.items || r.data || []
       setMembers(items)
       if (items.length > 0) setSelectedTag(items[0].tag)
     }).catch(() => {})
-  }, [open])
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full py-2.5 rounded-xl text-sm font-semibold uppercase border border-dashed border-[#dc2626]/30 text-[#dc2626]/50 hover:border-[#dc2626]/60 hover:text-[#dc2626] transition-all duration-200"
-      >
-        + Ajouter manuellement
-      </button>
-    )
-  }
+  }, [])
 
   const handleAdd = async () => {
     const member = members.find(m => m.tag === selectedTag)
     if (!member) return
     setLoading(true)
     try {
-      await api.post('/api/war-events/ldc-warriors', {
-        ldc_event_id: ldcEventId,
+      await api.post('/api/ldc-board/warriors', {
         coc_name: member.name,
         coc_tag: member.tag,
+        coc_role: member.role,
+        auto_selected: false,
+        score: 0,
       })
-      setOpen(false)
+      onClose()
       onAdded()
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { console.error(err) } finally { setLoading(false) }
   }
 
   return (
     <div className="flex gap-2 items-center">
-      <select
-        value={selectedTag}
-        onChange={e => setSelectedTag(e.target.value)}
-        className="flex-1 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#dc2626]/50"
-      >
+      <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)}
+        className="flex-1 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#f59e0b]/50">
         {members.map(m => (
-          <option key={m.tag} value={m.tag}>
-            {m.name} — {formatCocRole(m.role)}
-          </option>
+          <option key={m.tag} value={m.tag}>{m.name} — {formatCocRole(m.role)}</option>
         ))}
       </select>
-      <button
-        onClick={handleAdd}
-        disabled={loading || !selectedTag}
-        className="px-3 py-2 rounded-lg text-xs font-bold bg-[#dc2626]/20 border border-[#dc2626]/40 text-[#dc2626] hover:bg-[#dc2626]/30 transition-colors disabled:opacity-50"
-      >
+      <button onClick={handleAdd} disabled={loading || !selectedTag}
+        className="px-3 py-2 rounded-lg text-xs font-bold bg-[#f59e0b]/20 border border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#f59e0b]/30 transition-colors disabled:opacity-50">
         OK
       </button>
-      <button onClick={() => setOpen(false)} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
-        ✕
-      </button>
+      <button onClick={onClose} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">✕</button>
     </div>
   )
 }
@@ -656,11 +780,10 @@ function AddWarriorModal({ ldcEventId, onAdded }) {
 export default function Inscriptions({ embedded = false }) {
   const { user } = useAuth()
   const [events, setEvents] = useState([])
-  const [signups, setSignups] = useState({})          // eventId → [signups]
-  const [warriors, setWarriors] = useState([])
-  const [ldcEventId, setLdcEventId] = useState(null)
+  const [signups, setSignups] = useState({})
   const [loading, setLoading] = useState(true)
-  const [createModal, setCreateModal] = useState(null) // type string ou null
+  const [createModal, setCreateModal] = useState(null)
+  const [editModal, setEditModal] = useState(null)
   const [userSignedUpEventIds, setUserSignedUpEventIds] = useState(new Set())
 
   const canManage = user && (
@@ -674,7 +797,6 @@ export default function Inscriptions({ embedded = false }) {
       const { data: evData } = await api.get('/api/war-events')
       setEvents(evData || [])
 
-      // Fetch signups pour chaque événement
       const signupMap = {}
       await Promise.all(
         (evData || []).map(async (ev) => {
@@ -684,24 +806,12 @@ export default function Inscriptions({ embedded = false }) {
       )
       setSignups(signupMap)
 
-      // Identifier les événements où l'utilisateur est inscrit
       if (user) {
         const signedIds = new Set()
         for (const [evId, sups] of Object.entries(signupMap)) {
           if (sups.some(s => s.user_id === user.id)) signedIds.add(evId)
         }
         setUserSignedUpEventIds(signedIds)
-      }
-
-      // LDC warriors
-      const ldcEv = (evData || []).find(e => e.type === 'ldc')
-      if (ldcEv) {
-        setLdcEventId(ldcEv.id)
-        const { data: wData } = await api.get('/api/war-events/ldc-warriors/active')
-        setWarriors(wData || [])
-      } else {
-        setLdcEventId(null)
-        setWarriors([])
       }
     } catch (err) {
       console.error('Erreur chargement inscriptions:', err.message)
@@ -733,15 +843,8 @@ export default function Inscriptions({ embedded = false }) {
     await fetchAll()
   }
 
-  const handleRemoveWarrior = async (warriorId) => {
-    if (!window.confirm('Retirer ce guerrier ?')) return
-    await api.delete(`/api/war-events/ldc-warriors/${warriorId}`)
-    await fetchAll()
-  }
-
   return (
     <div className={embedded ? '' : 'min-h-screen'} style={embedded ? {} : { background: '#0d0d0d' }}>
-      {/* Header — masqué en mode intégré */}
       {!embedded && (
         <div className="relative py-16 px-6 text-center overflow-hidden border-b border-[#1a1a1a]">
           <div className="absolute inset-0 bg-gradient-to-b from-[#dc2626]/5 to-transparent pointer-events-none" />
@@ -760,27 +863,21 @@ export default function Inscriptions({ embedded = false }) {
 
       <div className={embedded ? 'py-4' : 'max-w-4xl mx-auto px-4 py-8'}>
 
-        {/* Boutons créer un événement */}
+        {/* Boutons créer */}
         {user && (
           <div className="flex gap-3 flex-wrap mb-8">
-            <button
-              onClick={() => setCreateModal('gdc')}
-              className="px-4 py-2 rounded-xl text-sm font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-300 hover:border-[#dc2626] hover:text-white transition-all"
-            >
+            <button onClick={() => setCreateModal('gdc')}
+              className="px-4 py-2 rounded-xl text-sm font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-300 hover:border-[#dc2626] hover:text-white transition-all">
               + Proposer une GDC
             </button>
             {['superadmin', 'admin'].includes(user.site_role) && (
               <>
-                <button
-                  onClick={() => setCreateModal('gdc_selection')}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold uppercase bg-[#7f1d1d]/20 border border-[#dc2626]/40 text-[#ef4444] hover:bg-[#7f1d1d]/40 transition-all"
-                >
+                <button onClick={() => setCreateModal('gdc_selection')}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold uppercase bg-[#7f1d1d]/20 border border-[#dc2626]/40 text-[#ef4444] hover:bg-[#7f1d1d]/40 transition-all">
                   + GDC Sélection
                 </button>
-                <button
-                  onClick={() => setCreateModal('ldc')}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold uppercase bg-[#78350f]/20 border border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#78350f]/40 transition-all"
-                >
+                <button onClick={() => setCreateModal('ldc')}
+                  className="px-4 py-2 rounded-xl text-sm font-semibold uppercase bg-[#78350f]/20 border border-[#f59e0b]/40 text-[#f59e0b] hover:bg-[#78350f]/40 transition-all">
                   + Lancer LDC
                 </button>
               </>
@@ -788,7 +885,7 @@ export default function Inscriptions({ embedded = false }) {
           </div>
         )}
 
-        {/* Événements ouverts */}
+        {/* Événements */}
         {loading ? (
           <div className="text-center py-16">
             <div className="inline-block w-8 h-8 border-2 border-[#dc2626] border-t-transparent rounded-full animate-spin" />
@@ -796,9 +893,7 @@ export default function Inscriptions({ embedded = false }) {
         ) : events.length === 0 ? (
           <div className="text-center py-16 border border-[#1a1a1a] rounded-2xl">
             <p className="text-gray-600 uppercase tracking-widest text-sm">Aucun événement ouvert</p>
-            {user && (
-              <p className="text-xs text-gray-700 mt-2">Sois le premier à proposer une GDC ↑</p>
-            )}
+            {user && <p className="text-xs text-gray-700 mt-2">Sois le premier à proposer une GDC ↑</p>}
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
@@ -811,30 +906,21 @@ export default function Inscriptions({ embedded = false }) {
                 onSignup={handleSignup}
                 onValidate={handleValidate}
                 onClose={handleClose}
+                onEdit={setEditModal}
               />
             ))}
           </div>
         )}
 
-        {/* Tableau guerriers LDC */}
-        {(ldcEventId || warriors.length > 0) && (
-          <LdcWarriorsTable
-            warriors={warriors}
-            canManage={canManage}
-            ldcEventId={ldcEventId}
-            onRemove={handleRemoveWarrior}
-            onAdd={fetchAll}
-          />
-        )}
+        {/* Tableau guerriers LDC permanent */}
+        <LdcBoard canManage={canManage} />
       </div>
 
-      {/* Modal création événement */}
       {createModal && (
-        <CreateEventModal
-          type={createModal}
-          onClose={() => setCreateModal(null)}
-          onCreated={fetchAll}
-        />
+        <CreateEventModal type={createModal} onClose={() => setCreateModal(null)} onCreated={fetchAll} />
+      )}
+      {editModal && (
+        <EditEventModal event={editModal} onClose={() => setEditModal(null)} onSaved={fetchAll} />
       )}
     </div>
   )

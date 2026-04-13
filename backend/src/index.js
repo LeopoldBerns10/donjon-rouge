@@ -15,6 +15,7 @@ import forumRoutes from './routes/forum.js'
 import chatRouter from './routes/chat.js'
 import announcementsRoutes from './routes/announcements.js'
 import warEventsRoutes from './routes/warEvents.js'
+import ldcBoardRoutes from './routes/ldcBoard.js'
 import adminRoutes from './routes/admin.js'
 
 const app = express()
@@ -43,6 +44,7 @@ app.use('/api/forum', forumRoutes)
 app.use('/api/chat', chatRouter(io))
 app.use('/api/announcements', announcementsRoutes)
 app.use('/api/war-events', warEventsRoutes)
+app.use('/api/ldc-board', ldcBoardRoutes)
 app.use('/api/admin', adminRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
