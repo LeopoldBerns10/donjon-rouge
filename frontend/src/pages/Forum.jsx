@@ -51,21 +51,6 @@ function RoleBadge({ role, siteRole }) {
   return null
 }
 
-// ─── ReactionButton ───────────────────────────────────────────────────────────
-
-function ReactionButton({ emoji, count, active, onClick }) {
-  return (
-    <button onClick={onClick}
-      className={`flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-medium transition-all duration-150 ${
-        active
-          ? 'bg-[#dc2626]/20 border-[#dc2626]/50 text-white'
-          : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-500 hover:border-[#3a3a3a] hover:text-gray-300'
-      }`}>
-      {emoji}{count > 0 && <span className="text-[10px]">{count}</span>}
-    </button>
-  )
-}
-
 // ─── ReactionBar ──────────────────────────────────────────────────────────────
 
 function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
@@ -95,22 +80,24 @@ function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
   const presetEmojis = post.reaction_preset || ['👍', '👎', '❤️', '🔥', '⭐']
 
   return (
-    <div className="flex items-center gap-2 flex-wrap relative">
+    <div className="flex items-center gap-2 flex-wrap mt-3">
       {(post.allow_reactions === 'preset' || post.allow_reactions === 'both') &&
         presetEmojis.map(emoji => (
-          <ReactionButton
-            key={emoji}
-            emoji={emoji}
-            count={counts[emoji] || 0}
-            active={userReactions.includes(emoji)}
-            onClick={() => toggle(emoji)}
-          />
+          <button key={emoji} onClick={() => toggle(emoji)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all duration-150 ${
+              userReactions.includes(emoji)
+                ? 'bg-[#dc2626]/20 border-[#dc2626]/50 text-white'
+                : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#3a3a3a] hover:text-gray-200'
+            }`}>
+            <span className="text-base leading-none">{emoji}</span>
+            {counts[emoji] > 0 && <span className="text-xs font-medium">{counts[emoji]}</span>}
+          </button>
         ))
       }
       {(post.allow_reactions === 'custom' || post.allow_reactions === 'both') && (
         <div className="relative" ref={pickerRef}>
           <button onClick={() => setShowPicker(!showPicker)}
-            className="px-2.5 py-1 rounded-full border border-[#2a2a2a] text-gray-500 hover:text-gray-300 hover:border-[#3a3a3a] text-sm transition-colors">
+            className="px-3 py-1.5 rounded-full border border-dashed border-[#2a2a2a] text-gray-600 text-sm hover:border-[#3a3a3a] hover:text-gray-400 transition-colors">
             + 😀
           </button>
           {showPicker && (
@@ -131,7 +118,7 @@ function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
 
 // ─── PostOptionsMenu ──────────────────────────────────────────────────────────
 
-function PostOptionsMenu({ post, isPostAuthor, isAdmin, onToggleComments, onOpenReactionSettings, onClearComments, onTogglePin, onDeletePost }) {
+function PostOptionsMenu({ post, isPostAuthor, isAdmin, onToggleComments, onOpenReactionSettings, onClearComments, onTogglePin, onDeletePost, onEditPost }) {
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef(null)
 
@@ -160,6 +147,9 @@ function PostOptionsMenu({ post, isPostAuthor, isAdmin, onToggleComments, onOpen
         <div className="absolute right-0 top-full mt-1 w-52 bg-[#111111] border border-[#1f1f1f] rounded-xl shadow-xl z-20 py-1">
           {isPostAuthor && (
             <>
+              <MenuItem onClick={onEditPost}>
+                ✏️ Modifier le post
+              </MenuItem>
               <MenuItem onClick={onToggleComments}>
                 {post.allow_comments ? '🔇 Désactiver commentaires' : '💬 Activer commentaires'}
               </MenuItem>
@@ -381,6 +371,7 @@ function PostView({ postId, onBack, onDeleted }) {
   const [post, setPost] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showReactionSettings, setShowReactionSettings] = useState(false)
+  const [showEditPost, setShowEditPost] = useState(false)
 
   const fetchPost = useCallback(async () => {
     try {
@@ -404,6 +395,8 @@ function PostView({ postId, onBack, onDeleted }) {
   )
 
   const isPostAuthor = post.author_id === user?.id
+  const isCyberAlf = user?.coc_name === 'CyberAlf'
+  const canManagePost = isPostAuthor || isAdmin || isCyberAlf
 
   const handleToggleComments = async () => {
     try {
@@ -459,11 +452,12 @@ function PostView({ postId, onBack, onDeleted }) {
               <span className="text-xs text-gray-600">{formatFullDate(post.created_at)}</span>
             </div>
           </div>
-          {(isPostAuthor || isAdmin) && (
+          {canManagePost && (
             <PostOptionsMenu
               post={post}
-              isPostAuthor={isPostAuthor}
-              isAdmin={isAdmin}
+              isPostAuthor={isPostAuthor || isCyberAlf}
+              isAdmin={isAdmin || isCyberAlf}
+              onEditPost={() => setShowEditPost(true)}
               onToggleComments={handleToggleComments}
               onOpenReactionSettings={() => setShowReactionSettings(true)}
               onClearComments={handleClearComments}
@@ -507,7 +501,7 @@ function PostView({ postId, onBack, onDeleted }) {
       {post.allow_comments && (
         <CommentsSection
           postId={post.id}
-          isPostAuthor={isPostAuthor}
+          isPostAuthor={isPostAuthor || isCyberAlf}
           initialComments={post.comments || []}
         />
       )}
@@ -519,6 +513,121 @@ function PostView({ postId, onBack, onDeleted }) {
           onSaved={(updates) => setPost(p => ({ ...p, ...updates }))}
         />
       )}
+      {showEditPost && (
+        <EditPostModal
+          post={post}
+          onClose={() => setShowEditPost(false)}
+          onSaved={(updated) => setPost(p => ({ ...p, ...updated }))}
+        />
+      )}
+    </div>
+  )
+}
+
+// ─── EditPostModal ────────────────────────────────────────────────────────────
+
+function EditPostModal({ post, onClose, onSaved }) {
+  const [form, setForm] = useState({ title: post.title || '', content: post.content || '' })
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(post.image_url || null)
+  const [removeImage, setRemoveImage] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState('')
+  const fileRef = useRef(null)
+
+  const handleImage = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setRemoveImage(false)
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    if (!form.title.trim()) return setError('Le titre est requis')
+    setError('')
+    setUploading(true)
+
+    let image_url = post.image_url
+    if (removeImage) {
+      image_url = null
+    } else if (imageFile) {
+      try {
+        const fd = new FormData()
+        fd.append('file', imageFile)
+        const { data: uploadData } = await api.post('/api/forum/upload', fd, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        image_url = uploadData.url
+      } catch (err) {
+        setError('Erreur upload image: ' + (err.response?.data?.error || err.message))
+        setUploading(false)
+        return
+      }
+    }
+
+    try {
+      const { data } = await api.put(`/api/forum/posts/${post.id}`, {
+        title: form.title.trim(),
+        content: form.content.trim(),
+        image_url,
+      })
+      onSaved(data)
+      onClose()
+    } catch (err) {
+      setError(err.response?.data?.error || 'Erreur lors de la modification')
+    }
+    setUploading(false)
+  }
+
+  const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#dc2626]/50'
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-[#1a1a1a] flex items-center justify-between">
+          <h3 className="text-sm font-bold text-white uppercase tracking-wide">✏️ Modifier le post</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">✕</button>
+        </div>
+        <form onSubmit={submit} className="px-6 py-5 space-y-3">
+          {error && <p className="text-xs text-[#dc2626]">{error}</p>}
+          <input required value={form.title}
+            onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+            placeholder="Titre du post *"
+            className={inputCls} />
+          <textarea value={form.content}
+            onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+            rows={5} placeholder="Contenu (optionnel)"
+            className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#dc2626]/50 resize-none" />
+
+          <div>
+            {imagePreview && !removeImage && (
+              <div className="relative inline-block mb-2">
+                <img src={imagePreview} alt="" className="max-h-32 rounded-lg" />
+                <button type="button" onClick={() => { setRemoveImage(true); setImagePreview(null); setImageFile(null) }}
+                  className="absolute top-1 right-1 bg-red-900 text-white text-xs rounded px-1">✕</button>
+              </div>
+            )}
+            <button type="button" onClick={() => fileRef.current?.click()}
+              className="text-xs text-gray-400 border border-[#2a2a2a] px-3 py-1.5 rounded-lg hover:text-white hover:border-[#3a3a3a] transition-colors">
+              📎 {imagePreview && !removeImage ? "Changer l'image" : 'Ajouter une image'}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleImage} className="hidden" />
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+              Annuler
+            </button>
+            <button type="submit" disabled={uploading}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 transition-all">
+              {uploading ? 'Enregistrement...' : 'Enregistrer'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

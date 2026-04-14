@@ -199,15 +199,19 @@ export async function createPost(req, res) {
 
 export async function updatePost(req, res) {
   const { id } = req.params
-  const { title, content, allow_reactions, allow_comments, reaction_preset } = req.body
+  const { title, content, image_url, allow_reactions, allow_comments, reaction_preset } = req.body
 
   const { data: post } = await supabase.from('forum_posts').select('id, author_id').eq('id', id).single()
   if (!post) return res.status(404).json({ error: 'Post introuvable' })
-  if (post.author_id !== req.user.id && !isPrivileged(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+
+  const isCyberAlf = req.user?.coc_name === 'CyberAlf'
+  const canManage = post.author_id === req.user.id || isPrivileged(req.user) || isCyberAlf
+  if (!canManage) return res.status(403).json({ error: 'Non autorisé' })
 
   const updates = { updated_at: new Date().toISOString() }
   if (title !== undefined) updates.title = title
   if (content !== undefined) updates.content = content
+  if (image_url !== undefined) updates.image_url = image_url
   if (allow_reactions !== undefined) updates.allow_reactions = allow_reactions
   if (allow_comments !== undefined) updates.allow_comments = allow_comments
   if (reaction_preset !== undefined) updates.reaction_preset = reaction_preset
@@ -221,7 +225,10 @@ export async function deletePost(req, res) {
   const { id } = req.params
   const { data: post } = await supabase.from('forum_posts').select('id, author_id').eq('id', id).single()
   if (!post) return res.status(404).json({ error: 'Post introuvable' })
-  if (post.author_id !== req.user.id && !isPrivileged(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+
+  const isCyberAlf = req.user?.coc_name === 'CyberAlf'
+  const canManage = post.author_id === req.user.id || isPrivileged(req.user) || isCyberAlf
+  if (!canManage) return res.status(403).json({ error: 'Non autorisé' })
 
   const { error } = await supabase.from('forum_posts').delete().eq('id', id)
   if (error) return res.status(500).json({ error: error.message })
@@ -229,7 +236,8 @@ export async function deletePost(req, res) {
 }
 
 export async function pinPost(req, res) {
-  if (!isPrivileged(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+  const isCyberAlf = req.user?.coc_name === 'CyberAlf'
+  if (!isPrivileged(req.user) && !isCyberAlf) return res.status(403).json({ error: 'Non autorisé' })
 
   const { id } = req.params
   const { pin_color } = req.body
@@ -287,8 +295,9 @@ export async function deleteComment(req, res) {
   const { data: post } = await supabase.from('forum_posts').select('author_id').eq('id', comment.post_id).single()
   const isPostAuthor = post?.author_id === req.user.id
   const isCommentAuthor = comment.author_id === req.user.id
+  const isCyberAlf = req.user?.coc_name === 'CyberAlf'
 
-  if (!isCommentAuthor && !isPostAuthor && !isPrivileged(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+  if (!isCommentAuthor && !isPostAuthor && !isPrivileged(req.user) && !isCyberAlf) return res.status(403).json({ error: 'Non autorisé' })
 
   const { error } = await supabase.from('forum_comments').delete().eq('id', id)
   if (error) return res.status(500).json({ error: error.message })
@@ -299,7 +308,8 @@ export async function clearComments(req, res) {
   const { id: postId } = req.params
   const { data: post } = await supabase.from('forum_posts').select('author_id').eq('id', postId).single()
   if (!post) return res.status(404).json({ error: 'Post introuvable' })
-  if (post.author_id !== req.user.id && !isPrivileged(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+  const isCyberAlf = req.user?.coc_name === 'CyberAlf'
+  if (post.author_id !== req.user.id && !isPrivileged(req.user) && !isCyberAlf) return res.status(403).json({ error: 'Non autorisé' })
 
   const { error } = await supabase.from('forum_comments').delete().eq('post_id', postId)
   if (error) return res.status(500).json({ error: error.message })
