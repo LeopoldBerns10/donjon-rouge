@@ -94,6 +94,22 @@ function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
           </button>
         ))
       }
+      {/* Boutons pour emojis custom déjà réactionnés */}
+      {(post.allow_reactions === 'custom' || post.allow_reactions === 'both') &&
+        Object.keys(counts)
+          .filter(e => !presetEmojis.includes(e) && (counts[e] > 0 || userReactions.includes(e)))
+          .map(emoji => (
+            <button key={`custom-${emoji}`} onClick={() => toggle(emoji)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all duration-150 ${
+                userReactions.includes(emoji)
+                  ? 'bg-[#dc2626]/20 border-[#dc2626]/50 text-white'
+                  : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#3a3a3a] hover:text-gray-200'
+              }`}>
+              <span className="text-base leading-none">{emoji}</span>
+              {counts[emoji] > 0 && <span className="text-xs font-medium">{counts[emoji]}</span>}
+            </button>
+          ))
+      }
       {(post.allow_reactions === 'custom' || post.allow_reactions === 'both') && (
         <div className="relative" ref={pickerRef}>
           <button onClick={() => setShowPicker(!showPicker)}
@@ -104,7 +120,9 @@ function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
             <div className="absolute bottom-full mb-2 left-0 bg-[#111111] border border-[#1f1f1f] rounded-xl p-3 shadow-xl z-20 grid grid-cols-8 gap-1">
               {COMMON_EMOJIS.map(e => (
                 <button key={e} onClick={() => { toggle(e); setShowPicker(false) }}
-                  className="w-8 h-8 hover:bg-[#1a1a1a] rounded-lg text-lg transition-colors flex items-center justify-center">
+                  className={`w-8 h-8 rounded-lg text-lg transition-colors flex items-center justify-center ${
+                    userReactions.includes(e) ? 'bg-[#dc2626]/20' : 'hover:bg-[#1a1a1a]'
+                  }`}>
                   {e}
                 </button>
               ))}
@@ -820,8 +838,8 @@ function CreateCategoryModal({ parentId, onClose, onCreated }) {
             <div className="flex items-center justify-between">
               <label className="text-xs text-gray-400">Membres peuvent créer des sous-catégories</label>
               <button type="button" onClick={() => setForm(f => ({ ...f, allow_member_subcategories: !f.allow_member_subcategories }))}
-                className={`w-10 h-5 rounded-full transition-colors relative ${form.allow_member_subcategories ? 'bg-[#dc2626]' : 'bg-[#2a2a2a]'}`}>
-                <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.allow_member_subcategories ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.allow_member_subcategories ? 'bg-[#dc2626]' : 'bg-[#2a2a2a]'}`}>
+                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm ${form.allow_member_subcategories ? 'translate-x-7' : 'translate-x-1'}`} />
               </button>
             </div>
           )}
@@ -846,6 +864,7 @@ function CreateCategoryModal({ parentId, onClose, onCreated }) {
 function ForumDiscord({ user }) {
   const isAdmin = ['superadmin', 'admin'].includes(user?.site_role)
   const isPrivileged = isAdmin || ['leader', 'coLeader'].includes(user?.coc_role)
+  const isCyberAlf = user?.coc_name === 'CyberAlf'
 
   const [categories, setCategories] = useState([])
   const [catLoading, setCatLoading] = useState(true)
@@ -856,6 +875,7 @@ function ForumDiscord({ user }) {
   const [activePostId, setActivePostId] = useState(null)
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [createCategoryModal, setCreateCategoryModal] = useState(null) // null | 'root' | parentId
+  const [editingPost, setEditingPost] = useState(null)
 
   const fetchCategories = useCallback(async () => {
     setCatLoading(true)
@@ -899,6 +919,23 @@ function ForumDiscord({ user }) {
       await api.delete(`/api/forum/categories/${catId}`)
       setCategories(prev => prev.filter(c => c.id !== catId && c.parent_id !== catId))
       if (activeCategory === catId) setActiveCategory(null)
+    } catch {}
+  }
+
+  const handleTogglePinFromList = async (post, e) => {
+    e.stopPropagation()
+    try {
+      const { data } = await api.post(`/api/forum/posts/${post.id}/pin`)
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, is_pinned: data.is_pinned } : p))
+    } catch {}
+  }
+
+  const handleDeleteFromList = async (postId, e) => {
+    e.stopPropagation()
+    if (!window.confirm('Supprimer ce post ?')) return
+    try {
+      await api.delete(`/api/forum/posts/${postId}`)
+      setPosts(prev => prev.filter(p => p.id !== postId))
     } catch {}
   }
 
@@ -977,7 +1014,7 @@ function ForumDiscord({ user }) {
                       ))}
                       {(isAdmin || cat.allow_member_subcategories) && (
                         <button onClick={() => setCreateCategoryModal(cat.id)}
-                          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-gray-700 hover:text-gray-400 transition-colors text-xs">
+                          className="flex items-center gap-2 px-3 py-2 mx-0 mt-1 rounded-lg text-xs font-semibold uppercase tracking-wide bg-[#1a1a1a] border border-dashed border-[#333] text-gray-500 hover:border-[#dc2626]/50 hover:text-[#dc2626] transition-all duration-200 w-full">
                           + Sous-catégorie
                         </button>
                       )}
@@ -1078,6 +1115,26 @@ function ForumDiscord({ user }) {
                         <span className="text-xs text-gray-600 ml-auto">💬 {post.comment_count || 0}</span>
                       )}
                     </div>
+
+                    {/* Boutons d'action — visibles pour canManagePost */}
+                    {(post.author_id === user?.id || isAdmin || isCyberAlf) && (
+                      <div className="flex gap-2 mt-3 pt-3 border-t border-[#1a1a1a]" onClick={e => e.stopPropagation()}>
+                        <button onClick={e => { e.stopPropagation(); setEditingPost(post) }}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400 hover:border-[#f59e0b]/50 hover:text-[#f59e0b] transition-all duration-150">
+                          ✏️ Modifier
+                        </button>
+                        {(isAdmin || isCyberAlf) && (
+                          <button onClick={e => handleTogglePinFromList(post, e)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400 hover:border-[#f59e0b]/50 hover:text-[#f59e0b] transition-all duration-150">
+                            📌 {post.is_pinned ? 'Désépingler' : 'Épingler'}
+                          </button>
+                        )}
+                        <button onClick={e => handleDeleteFromList(post.id, e)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide bg-[#7f1d1d]/20 border border-[#dc2626]/30 text-[#dc2626] hover:bg-[#7f1d1d]/40 transition-all duration-150 ml-auto">
+                          🗑️ Supprimer
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1119,6 +1176,17 @@ function ForumDiscord({ user }) {
               ))
             }
             setCreateCategoryModal(null)
+          }}
+        />
+      )}
+
+      {editingPost && (
+        <EditPostModal
+          post={editingPost}
+          onClose={() => setEditingPost(null)}
+          onSaved={(updated) => {
+            setPosts(prev => prev.map(p => p.id === editingPost.id ? { ...p, ...updated } : p))
+            setEditingPost(null)
           }}
         />
       )}
