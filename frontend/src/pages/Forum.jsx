@@ -117,10 +117,10 @@ function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
             + 😀
           </button>
           {showPicker && (
-            <div className="absolute bottom-full mb-2 left-0 bg-[#111111] border border-[#1f1f1f] rounded-xl p-3 shadow-xl z-20 grid grid-cols-8 gap-1">
+            <div className="absolute bottom-full mb-2 left-0 bg-[#111111] border border-[#1f1f1f] rounded-xl p-4 shadow-2xl z-50 w-72 grid grid-cols-8 gap-2">
               {COMMON_EMOJIS.map(e => (
                 <button key={e} onClick={() => { toggle(e); setShowPicker(false) }}
-                  className={`w-8 h-8 rounded-lg text-lg transition-colors flex items-center justify-center ${
+                  className={`w-8 h-8 rounded-lg text-xl flex items-center justify-center transition-all hover:scale-125 ${
                     userReactions.includes(e) ? 'bg-[#dc2626]/20' : 'hover:bg-[#1a1a1a]'
                   }`}>
                   {e}
@@ -835,12 +835,34 @@ function CreateCategoryModal({ parentId, onClose, onCreated }) {
           <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             placeholder="Description (optionnel)" className={inputCls} />
           {!parentId && (
-            <div className="flex items-center justify-between">
-              <label className="text-xs text-gray-400">Membres peuvent créer des sous-catégories</label>
-              <button type="button" onClick={() => setForm(f => ({ ...f, allow_member_subcategories: !f.allow_member_subcategories }))}
-                className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${form.allow_member_subcategories ? 'bg-[#dc2626]' : 'bg-[#2a2a2a]'}`}>
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 shadow-sm ${form.allow_member_subcategories ? 'translate-x-7' : 'translate-x-1'}`} />
-              </button>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs uppercase tracking-wide text-gray-500 font-medium">
+                Sous-catégories membres
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, allow_member_subcategories: false }))}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold uppercase border transition-all duration-150 ${
+                    !form.allow_member_subcategories
+                      ? 'bg-[#dc2626]/20 border-[#dc2626]/50 text-white'
+                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-500'
+                  }`}
+                >
+                  ✕ Non
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, allow_member_subcategories: true }))}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold uppercase border transition-all duration-150 ${
+                    form.allow_member_subcategories
+                      ? 'bg-green-500/20 border-green-500/50 text-green-400'
+                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-500'
+                  }`}
+                >
+                  ✓ Oui
+                </button>
+              </div>
             </div>
           )}
           <div className="flex gap-3 pt-2">
@@ -948,15 +970,17 @@ function ForumDiscord({ user }) {
       {/* ── Sidebar ── */}
       <aside className="flex-shrink-0 flex flex-col overflow-y-auto"
         style={{ width: 288, background: '#080808', borderRight: '1px solid #1a1a1a' }}>
-        <div className="px-4 py-3 border-b border-[#1a1a1a] flex items-center justify-between">
+        <div className="px-4 py-3 border-b border-[#1a1a1a]">
           <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Forums</span>
-          {isAdmin && (
-            <button onClick={() => setCreateCategoryModal('root')}
-              className="text-gray-700 hover:text-[#dc2626] transition-colors text-xl leading-none">
-              +
-            </button>
-          )}
         </div>
+        {isAdmin && (
+          <div className="px-2 pt-2">
+            <button onClick={() => setCreateCategoryModal('root')}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide bg-[#dc2626]/10 border border-[#dc2626]/30 text-[#dc2626] hover:bg-[#dc2626]/20 transition-all duration-200 w-full">
+              + Nouvelle catégorie
+            </button>
+          </div>
+        )}
 
         {catLoading ? (
           <p className="text-xs text-gray-600 px-4 py-3 animate-pulse">Chargement...</p>
