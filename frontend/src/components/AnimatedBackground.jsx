@@ -4,82 +4,82 @@ import { useEffect, useRef } from 'react'
 
 const VARIANTS = {
   home: {
-    count: 120,
+    count: 200,
     bgColor: '#0a0101',
     particleColors: ['#ff4500', '#ff6a00', '#ff8c00', '#ffd700', '#ff2200'],
-    minSize: 1,
-    maxSize: 3,
-    speed: 1.5,
+    minSize: 1.5,
+    maxSize: 4,
+    speed: 2.0,
     drift: 0.8,
-    opacity: 0.9,
-    glowColor: 'rgba(220, 38, 38, 0.08)',
+    opacity: 1.0,
+    glowColor: 'rgba(220, 38, 38, 0.2)',
   },
   members: {
-    count: 50,
+    count: 100,
     bgColor: '#080808',
     particleColors: ['#dc2626', '#7f1d1d', '#991b1b', '#b91c1c'],
-    minSize: 0.5,
-    maxSize: 1.5,
-    speed: 0.4,
+    minSize: 1,
+    maxSize: 2.5,
+    speed: 0.8,
     drift: 0.3,
-    opacity: 0.4,
-    glowColor: 'rgba(220, 38, 38, 0.04)',
+    opacity: 0.8,
+    glowColor: 'rgba(220, 38, 38, 0.12)',
   },
   wars: {
-    count: 80,
+    count: 150,
     bgColor: '#0a0000',
     particleColors: ['#8b0000', '#dc143c', '#ff0000', '#b22222', '#ff4444'],
-    minSize: 1,
-    maxSize: 4,
-    speed: 1.2,
+    minSize: 1.5,
+    maxSize: 5,
+    speed: 1.8,
     drift: 1.0,
-    opacity: 0.7,
-    glowColor: 'rgba(139, 0, 0, 0.1)',
+    opacity: 0.9,
+    glowColor: 'rgba(139, 0, 0, 0.2)',
   },
   stats: {
-    count: 30,
+    count: 80,
     bgColor: '#050505',
     particleColors: ['#dc2626', '#ef4444', '#ff6b6b'],
     minSize: 1,
-    maxSize: 2,
-    speed: 0.3,
+    maxSize: 2.5,
+    speed: 0.6,
     drift: 0.1,
-    opacity: 0.6,
-    glowColor: 'rgba(220, 38, 38, 0.05)',
+    opacity: 0.8,
+    glowColor: 'rgba(220, 38, 38, 0.12)',
     grid: true,
   },
   vitrine: {
-    count: 100,
+    count: 180,
     bgColor: '#080400',
     particleColors: ['#ffd700', '#ff8c00', '#ff6a00', '#ffa500', '#ffcc00'],
-    minSize: 1,
-    maxSize: 3,
-    speed: 1.0,
+    minSize: 1.5,
+    maxSize: 4,
+    speed: 1.5,
     drift: 0.7,
-    opacity: 0.8,
-    glowColor: 'rgba(255, 165, 0, 0.08)',
+    opacity: 1.0,
+    glowColor: 'rgba(255, 165, 0, 0.2)',
   },
   forum: {
-    count: 60,
+    count: 120,
     bgColor: '#050008',
     particleColors: ['#7c3aed', '#dc2626', '#9f1239', '#6d28d9', '#be185d'],
-    minSize: 0.5,
-    maxSize: 2,
-    speed: 0.5,
+    minSize: 1,
+    maxSize: 3,
+    speed: 0.9,
     drift: 0.4,
-    opacity: 0.5,
-    glowColor: 'rgba(124, 58, 237, 0.05)',
+    opacity: 0.8,
+    glowColor: 'rgba(124, 58, 237, 0.15)',
   },
   admin: {
-    count: 20,
+    count: 60,
     bgColor: '#040404',
     particleColors: ['#dc2626', '#7f1d1d'],
-    minSize: 0.5,
-    maxSize: 1,
-    speed: 0.2,
+    minSize: 0.8,
+    maxSize: 1.5,
+    speed: 0.4,
     drift: 0.1,
-    opacity: 0.3,
-    glowColor: 'rgba(220, 38, 38, 0.03)',
+    opacity: 0.6,
+    glowColor: 'rgba(220, 38, 38, 0.1)',
     grid: true,
   },
 }
@@ -117,7 +117,7 @@ const updateParticle = (p, canvas, config) => {
 const drawParticle = (ctx, p) => {
   ctx.save()
   ctx.globalAlpha = p.opacity
-  ctx.shadowBlur = p.size * 4
+  ctx.shadowBlur = p.size * 8
   ctx.shadowColor = p.color
   ctx.beginPath()
   ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
@@ -129,12 +129,17 @@ const drawParticle = (ctx, p) => {
 const drawBackground = (ctx, canvas, variant) => {
   const config = VARIANTS[variant]
 
-  // Lueur centrale subtile
+  // Lueur centrale — alpha doublé au centre
+  const boostedGlow = config.glowColor.replace(
+    /rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/,
+    (_, r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${Math.min(1, parseFloat(a) * 2)})`
+  )
   const gradient = ctx.createRadialGradient(
     canvas.width / 2, canvas.height / 2, 0,
     canvas.width / 2, canvas.height / 2, canvas.width * 0.7
   )
-  gradient.addColorStop(0, config.glowColor)
+  gradient.addColorStop(0, boostedGlow)
+  gradient.addColorStop(0.4, config.glowColor)
   gradient.addColorStop(1, 'transparent')
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, canvas.width, canvas.height)
