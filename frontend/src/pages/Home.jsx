@@ -124,7 +124,7 @@ export default function Home() {
         <section className="relative z-10 max-w-5xl mx-auto px-4 pb-20 animate-fade-up">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard icon="📍" label="Localisation" value="France" />
-            <StatCard icon="💎" label="Ligue clan" value="Crystal II" />
+            <StatCard icon="💎" label="Ligue clan" value={clan?.warLeague?.name || '—'} />
             <StatCard icon="⚔️" label="Guerres gagnées" value={clan.warWins || '—'} />
             <StatCard icon="⭐" label="Niveau clan" value={`Niv. ${clan.clanLevel || '—'}`} />
           </div>
