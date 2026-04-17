@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import DragonBackground from '../components/DragonBackground.jsx'
-import StatCard from '../components/StatCard.jsx'
 import { useCocClan } from '../hooks/useCocApi.js'
 import FireIntro from '../components/FireIntro.jsx'
 
@@ -84,72 +83,69 @@ export default function Home() {
         </div>
 
         {/* CTA Buttons */}
-        <div className="flex flex-wrap gap-4 justify-center mt-4">
-          <Link
-            to="/tracker"
-            className="px-6 py-3 font-cinzel uppercase tracking-wider font-bold text-bone rounded transition-all hover:scale-105"
-            style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)', boxShadow: '0 0 20px rgba(196,30,58,0.4)' }}
-          >
-            Tracker Stats
+        <div className="flex flex-wrap justify-center gap-3 mt-6">
+          <Link to="/tracker"
+            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white border border-[#dc2626] transition-all duration-200 hover:scale-[1.02]">
+            ⚔️ Tracker Stats
           </Link>
-          <Link
-            to="/forum"
-            className="px-6 py-3 font-cinzel uppercase tracking-wider font-bold text-bone rounded border border-crimson/50 hover:border-crimson transition-all hover:scale-105"
-            style={{ background: 'rgba(107,0,0,0.2)' }}
-          >
-            Forum
+          <Link to="/forum"
+            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#333] text-gray-300 hover:border-[#dc2626]/50 hover:text-white transition-all duration-200 hover:scale-[1.02]">
+            💬 Forum
           </Link>
-          <Link
-            to="/guilde"
-            state={{ openTab: 'inscriptions' }}
-            className="px-6 py-3 font-cinzel uppercase tracking-wider font-bold text-bone rounded border border-gold/50 hover:border-gold transition-all hover:scale-105"
-            style={{ background: 'rgba(180,130,0,0.15)' }}
-          >
+          <Link to="/guilde" state={{ openTab: 'inscriptions' }}
+            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#8b6914] text-[#f59e0b] hover:bg-[#f59e0b]/10 transition-all duration-200 hover:scale-[1.02]">
             ⚔️ Inscriptions GDC/LDC
           </Link>
-          <a
-            href="https://discord.gg/GQ5a6q6X"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-6 py-3 font-cinzel uppercase tracking-wider font-bold text-white rounded transition-all hover:scale-105"
-            style={{ background: '#5865F2', boxShadow: '0 0 20px rgba(88,101,242,0.4)' }}
-          >
+          <a href="https://discord.gg/CXZcs4umFP" target="_blank" rel="noopener noreferrer"
+            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#5865F2] hover:bg-[#4752c4] text-white border border-[#5865F2] transition-all duration-200 hover:scale-[1.02]">
             Discord
           </a>
         </div>
       </section>
 
-      {/* Stats section */}
+      {/* Stats + War section */}
       {clan && (
-        <section className="relative z-10 max-w-5xl mx-auto px-4 pb-20 animate-fade-up">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard icon="📍" label="Localisation" value="France" />
-            <StatCard icon="💎" label="Ligue clan" value={clan?.warLeague?.name || '—'} />
-            <StatCard icon="⚔️" label="Guerres gagnées" value={clan.warWins || '—'} />
-            <StatCard icon="⭐" label="Niveau clan" value={`Niv. ${clan.clanLevel || '—'}`} />
+        <section className="relative z-10 max-w-4xl mx-auto px-4 pb-20 animate-fade-up">
+
+          {/* 4 stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+            {[
+              { icon: '📍', label: 'Localisation',   value: 'France' },
+              { icon: '💎', label: 'Ligue clan',      value: clan?.warLeague?.name || '—' },
+              { icon: '⚔️', label: 'Guerres gagnées', value: clan.warWins || '—' },
+              { icon: '⭐', label: 'Niveau clan',     value: `Niv. ${clan.clanLevel || '—'}` },
+            ].map(({ icon, label, value }) => (
+              <div key={label}
+                className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 hover:shadow-lg hover:shadow-[#dc2626]/5 transition-all duration-200">
+                <span className="text-2xl">{icon}</span>
+                <p className="text-base font-bold text-white uppercase tracking-wide text-center">{value}</p>
+                <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">{label}</p>
+              </div>
+            ))}
           </div>
 
-          {/* War status banner */}
+          {/* War status */}
           {clan.isWarLogPublic !== undefined && (
-            <div className="mt-8 card-stone p-5 flex items-center gap-4">
-              <span className="text-3xl">⚔️</span>
-              <div>
-                <p className="font-cinzel text-sm uppercase tracking-widest text-gold-bright">
-                  Prochaine guerre
-                </p>
-                <p className="text-bone mt-1">
-                  {clan.isWarLogPublic
-                    ? 'Journal de guerre public — consultez le Tracker pour les détails.'
-                    : 'Journal de guerre privé.'}
-                </p>
+            <div className="mt-6 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl">⚔️</span>
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-[#dc2626] font-semibold">
+                      Prochaine Guerre
+                    </p>
+                    <p className="text-sm text-gray-400 mt-0.5">
+                      {clan.isWarLogPublic
+                        ? 'Journal de guerre public — consultez le Tracker pour les détails.'
+                        : 'Journal de guerre privé.'}
+                    </p>
+                  </div>
+                </div>
+                <Link to="/guilde" state={{ openTab: 'gdcldc' }}
+                  className="text-xs uppercase tracking-wide text-[#dc2626] hover:text-white transition-colors font-semibold ml-4 flex-shrink-0">
+                  Voir →
+                </Link>
               </div>
-              <Link
-                to="/guilde"
-                state={{ openTab: 'gdcldc' }}
-                className="ml-auto text-crimson text-sm font-cinzel uppercase hover:text-ember transition-colors"
-              >
-                Voir →
-              </Link>
             </div>
           )}
         </section>
