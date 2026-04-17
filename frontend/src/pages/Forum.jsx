@@ -1219,34 +1219,90 @@ function ForumDiscord({ user }) {
   )
 }
 
-// ─── ChatTab (inchangé) ───────────────────────────────────────────────────────
+// ─── ChatTab ──────────────────────────────────────────────────────────────────
+
+const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '⚔️', '👑']
+
+const getNameColor = (cocRole, siteRole) => {
+  if (siteRole === 'superadmin') return 'text-[#dc2626]'
+  if (siteRole === 'admin') return 'text-[#f97316]'
+  if (cocRole === 'leader') return 'text-[#f59e0b]'
+  if (cocRole === 'coLeader') return 'text-[#d97706]'
+  if (cocRole === 'admin') return 'text-[#a8a29e]'
+  return 'text-gray-300'
+}
+
+const formatTime = (d) => {
+  if (!d) return ''
+  return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function MessageActions({ msgId, reactions, onReply, toggleReaction }) {
+  const [showEmojis, setShowEmojis] = useState(false)
+
+  return (
+    <div className="flex items-center gap-1 mt-1 relative flex-wrap">
+      {reactions && Object.entries(reactions).map(([emoji, count]) =>
+        count > 0 && (
+          <button key={emoji}
+                  onClick={() => toggleReaction(msgId, emoji)}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full
+                             bg-[#1a1a1a] border border-[#2a2a2a] text-xs
+                             hover:border-[#dc2626]/40 transition-colors">
+            {emoji} <span className="text-gray-500">{count}</span>
+          </button>
+        )
+      )}
+      <button onClick={() => setShowEmojis(!showEmojis)}
+              className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#2a2a2a]
+                         text-gray-600 hover:text-gray-300 hover:border-[#3a3a3a]
+                         text-xs flex items-center justify-center transition-colors">
+        +
+      </button>
+      <button onClick={onReply}
+              className="text-[10px] text-gray-700 hover:text-gray-400 transition-colors px-1">
+        ↩
+      </button>
+      {showEmojis && (
+        <div className="absolute bottom-full mb-1 left-0 flex gap-1 p-2
+                        bg-[#111111] border border-[#1f1f1f] rounded-xl shadow-xl z-20">
+          {QUICK_EMOJIS.map(e => (
+            <button key={e}
+                    onClick={() => { toggleReaction(msgId, e); setShowEmojis(false) }}
+                    className="text-lg hover:scale-125 transition-transform p-1">
+              {e}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function ChatTab({ user }) {
   const { isChief, isAdmin } = useAuth()
   const { messages, connected, sendMessage, setMessages } = useSocket('général', user)
-  const [input, setInput] = useState('')
-  const [editingId, setEditingId] = useState(null)
-  const [editContent, setEditContent] = useState('')
+  const [message, setMessage] = useState('')
+  const [replyTo, setReplyTo] = useState(null)
   const bottomRef = useRef(null)
 
   useEffect(() => {
     api.get('/api/chat/messages/général').then((r) => {
-      setMessages(r.data.map((m) => ({
-        id: m.id, authorId: m.author_id,
-        author: m.author?.coc_name || 'Inconnu',
-        role: m.author?.coc_role || 'member',
-        content: m.content, time: m.created_at,
-      })))
+      setMessages(r.data)
     }).catch(() => {})
   }, [])
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
-  function handleSend(e) {
-    e.preventDefault()
-    if (!input.trim() || !user) return
-    sendMessage(input.trim())
-    setInput('')
+  function handleSend() {
+    if (!message.trim() || !user) return
+    sendMessage(message.trim(), replyTo ? {
+      id: replyTo.id,
+      name: replyTo.author_name,
+      content: replyTo.content,
+    } : null)
+    setMessage('')
+    setReplyTo(null)
   }
 
   async function handleDelete(id) {
@@ -1256,79 +1312,154 @@ function ChatTab({ user }) {
     } catch {}
   }
 
-  async function handleEdit(e, id) {
-    e.preventDefault()
-    if (!editContent.trim()) return
+  async function toggleReaction(msgId, emoji) {
     try {
-      await api.patch(`/api/chat/messages/${id}`, { content: editContent.trim() })
-      setMessages((prev) => prev.map((m) => m.id === id ? { ...m, content: editContent.trim() } : m))
-      setEditingId(null)
+      const { data } = await api.post(`/api/chat/messages/${msgId}/reaction`, { emoji })
+      setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, reactions: data.reactions } : m))
     } catch {}
   }
 
-  const canDelete = (msg) => user && (msg.authorId === user.id || isChief || isAdmin)
-  const canEdit = (msg) => user && msg.authorId === user.id
+  const isOwn = (msg) => user && msg.author_id === user.id
+  const canDelete = (msg) => user && (msg.author_id === user.id || isChief || isAdmin)
 
   return (
-    <div className="flex flex-col h-[60vh]">
+    <div className="flex flex-col h-[65vh]">
+      {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <span className="font-cinzel text-xs uppercase text-gray-500 tracking-widest"># général</span>
         <span className="text-xs text-yellow-400 font-cinzel">{connected} connecté{connected > 1 ? 's' : ''}</span>
       </div>
-      <div className="flex-1 overflow-y-auto flex flex-col gap-2 rounded-lg p-3 border border-[#1a1a1a]" style={{ background: '#0a0a0a' }}>
-        {messages.map((msg, i) => (
-          <div key={msg.id || i} className="flex items-start gap-2 group">
-            <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-              style={{ background: '#1a1a1a', color: ROLE_COLORS[msg.role] || '#777' }}>
-              {msg.author?.slice(0, 1).toUpperCase()}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold" style={{ color: ROLE_COLORS[msg.role] || '#777' }}>{msg.author}</span>
-                <span className="text-xs text-gray-600">{new Date(msg.time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
-                <div className="ml-auto hidden group-hover:flex items-center gap-1">
-                  {canEdit(msg) && (
-                    <button onClick={() => { setEditingId(msg.id); setEditContent(msg.content) }}
-                      className="text-gray-500 hover:text-white text-xs px-1.5 py-0.5 rounded hover:bg-[#1a1a1a]">✎</button>
-                  )}
-                  {canDelete(msg) && (
-                    <button onClick={() => handleDelete(msg.id)}
-                      className="text-gray-500 hover:text-red-400 text-xs px-1.5 py-0.5 rounded hover:bg-[#1a1a1a]">✕</button>
-                  )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto rounded-xl border border-[#1a1a1a] px-3 py-4"
+           style={{ background: '#0a0a0a' }}>
+        {messages.map((msg, i) => {
+          const own = isOwn(msg)
+          return (
+            <div key={msg.id || i} className={`flex items-start gap-3 mb-4 ${own ? 'flex-row-reverse' : ''}`}>
+              {/* Avatar */}
+              {own ? (
+                <div className="w-9 h-9 rounded-full bg-[#dc2626]/30 border border-[#dc2626]/50
+                                flex items-center justify-center text-sm font-bold text-[#dc2626] flex-shrink-0">
+                  {user?.coc_name?.charAt(0).toUpperCase()}
                 </div>
-              </div>
-              {editingId === msg.id ? (
-                <form onSubmit={(e) => handleEdit(e, msg.id)} className="flex gap-1 mt-1">
-                  <input value={editContent} onChange={(e) => setEditContent(e.target.value)}
-                    className="flex-1 rounded px-2 py-0.5 text-white text-sm focus:outline-none"
-                    style={{ background: '#111', border: '1px solid #dc2626' }} autoFocus />
-                  <button type="submit" className="text-xs px-2 py-0.5 font-cinzel text-white rounded"
-                    style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)' }}>OK</button>
-                  <button type="button" onClick={() => setEditingId(null)}
-                    className="text-xs px-2 py-0.5 text-gray-400 border border-[#2a2a2a] rounded hover:text-white">✕</button>
-                </form>
               ) : (
-                <p className="text-white text-sm mt-0.5 break-words">{msg.content}</p>
+                <div className="relative flex-shrink-0 group/avatar">
+                  <div className="w-9 h-9 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
+                                  flex items-center justify-center text-sm font-bold text-[#dc2626] cursor-pointer">
+                    {msg.author_name?.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="absolute left-0 bottom-full mb-1 px-2 py-1 rounded-lg
+                                  bg-[#1a1a1a] border border-[#2a2a2a] text-xs text-gray-300
+                                  whitespace-nowrap opacity-0 group-hover/avatar:opacity-100
+                                  transition-opacity z-10 pointer-events-none">
+                    {formatCocRole(msg.author_coc_role)} — HV{msg.author_hdv || '?'}
+                    {msg.author_site_role === 'admin' && ' 🛡️ Admin'}
+                    {msg.author_coc_name === 'CyberAlf' && ' 👑 Chef'}
+                  </div>
+                </div>
               )}
+
+              <div className={`flex flex-col max-w-[70%] ${own ? 'items-end' : ''}`}>
+                {/* Nom + heure */}
+                {!own && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs font-bold ${getNameColor(msg.author_coc_role, msg.author_site_role)}`}>
+                      {msg.author_name}
+                    </span>
+                    <span className="text-[10px] text-gray-700">{formatTime(msg.created_at)}</span>
+                    {canDelete(msg) && (
+                      <button onClick={() => handleDelete(msg.id)}
+                              className="text-[10px] text-gray-700 hover:text-red-400 transition-colors ml-1 opacity-0 group-hover:opacity-100">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+                {own && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] text-gray-700">{formatTime(msg.created_at)}</span>
+                    {canDelete(msg) && (
+                      <button onClick={() => handleDelete(msg.id)}
+                              className="text-[10px] text-gray-700 hover:text-red-400 transition-colors">
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Citation si réponse */}
+                {msg.reply_to && (
+                  <div className={`mb-1 px-3 py-1.5 rounded-lg bg-[#0a0a0a] text-xs text-gray-500 line-clamp-1
+                                   ${own ? 'border-r-2 border-[#dc2626]/50 text-right' : 'border-l-2 border-[#dc2626]/50'}`}>
+                    ↩ {msg.reply_to_name} : {msg.reply_to_content}
+                  </div>
+                )}
+
+                {/* Bulle message */}
+                <div className={`px-4 py-2.5 text-sm leading-relaxed break-words
+                                  ${own
+                                    ? 'rounded-2xl rounded-tr-sm bg-[#dc2626]/20 border border-[#dc2626]/30 text-gray-100'
+                                    : 'rounded-2xl rounded-tl-sm bg-[#1a1a1a] border border-[#2a2a2a] text-gray-200'
+                                  }`}>
+                  {msg.content}
+                </div>
+
+                {/* Réactions */}
+                <MessageActions
+                  msgId={msg.id}
+                  reactions={msg.reactions}
+                  onReply={() => setReplyTo(msg)}
+                  toggleReaction={toggleReaction}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         <div ref={bottomRef} />
       </div>
+
+      {/* Barre de réponse */}
+      {replyTo && (
+        <div className="mx-0 mt-2 px-3 py-2 rounded-xl bg-[#0a0a0a]
+                        border border-[#dc2626]/30 flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-gray-400">
+            <span className="text-[#dc2626]">↩ Réponse à</span>
+            <span className="font-bold text-white">{replyTo.author_name}</span>
+            <span className="text-gray-600 line-clamp-1">: {replyTo.content}</span>
+          </div>
+          <button onClick={() => setReplyTo(null)}
+                  className="text-gray-600 hover:text-gray-300 transition-colors ml-2">✕</button>
+        </div>
+      )}
+
+      {/* Zone de saisie */}
       {user ? (
-        <form onSubmit={handleSend} className="flex gap-2 mt-3">
-          <input value={input} onChange={(e) => setInput(e.target.value)}
-            placeholder="Envoyer un message..."
-            className="flex-1 rounded-lg px-3 py-2 text-white text-sm focus:outline-none transition-colors"
-            style={{ background: '#0a0a0a', border: '1px solid #1a1a1a' }}
-            onFocus={(e) => e.target.style.borderColor = '#dc2626'}
-            onBlur={(e) => e.target.style.borderColor = '#1a1a1a'}
-          />
-          <button type="submit" className="px-4 py-2 font-cinzel text-xs uppercase text-white rounded-lg"
-            style={{ background: 'linear-gradient(135deg, #6B0000, #C41E3A)' }}>
-            Envoyer
-          </button>
-        </form>
+        <div className="pt-3">
+          <div className="flex gap-3 items-end">
+            <div className="w-8 h-8 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
+                            flex items-center justify-center text-xs font-bold text-[#dc2626] flex-shrink-0">
+              {user?.coc_name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 relative">
+              <input
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+                placeholder={replyTo ? `Répondre à ${replyTo.author_name}...` : 'Envoyer un message...'}
+                className="w-full px-4 py-3 rounded-2xl bg-[#111111] border border-[#2a2a2a]
+                           text-sm text-white placeholder-gray-600
+                           focus:outline-none focus:border-[#dc2626]/50 transition-colors pr-12"
+              />
+              <button onClick={handleSend}
+                      className="absolute right-2 top-1/2 -translate-y-1/2
+                                 w-8 h-8 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c]
+                                 flex items-center justify-center transition-colors">
+                <span className="text-white text-sm">→</span>
+              </button>
+            </div>
+          </div>
+        </div>
       ) : (
         <p className="text-center text-gray-600 text-xs font-cinzel mt-3 uppercase tracking-wider">
           Connectez-vous pour envoyer des messages

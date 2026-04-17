@@ -30,6 +30,10 @@ export function useSocket(channel, user) {
       setMessages((prev) => prev.map((m) => m.id === id ? { ...m, content } : m))
     })
 
+    socket.on('message_reaction', ({ id, reactions }) => {
+      setMessages((prev) => prev.map((m) => m.id === id ? { ...m, reactions } : m))
+    })
+
     socket.on('connected_count', (count) => {
       setConnected(count)
     })
@@ -39,10 +43,9 @@ export function useSocket(channel, user) {
     }
   }, [channel])
 
-  function sendMessage(content) {
+  function sendMessage(content, replyTo = null) {
     if (!socketRef.current || !content.trim()) return
-    console.log('sendMessage user:', JSON.stringify(user))
-    socketRef.current.emit('send_message', { channel, content, user })
+    socketRef.current.emit('send_message', { channel, content, user, replyTo })
   }
 
   return { messages, connected, sendMessage, setMessages }

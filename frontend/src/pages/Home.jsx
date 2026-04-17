@@ -48,7 +48,7 @@ export default function Home() {
             transform: 'translate(-50%, -50%)',
             width: '70%',
             maxWidth: '600px',
-            opacity: 0.18,
+            opacity: 0.4,
             zIndex: 0,
             pointerEvents: 'none',
             userSelect: 'none',

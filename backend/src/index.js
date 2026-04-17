@@ -65,20 +65,31 @@ io.on('connection', (socket) => {
     }
   })
 
-  socket.on('send_message', async ({ channel, content, user }) => {
+  socket.on('send_message', async ({ channel, content, user, replyTo }) => {
     if (!channel || !content || !user?.id) return
 
     const { data: userData } = await supabase
       .from('users')
-      .select('coc_name, coc_role')
+      .select('coc_name, coc_role, site_role')
       .eq('id', user.id)
       .single()
 
     if (!userData) return
 
+    const insertData = {
+      author_id: user.id,
+      channel,
+      content,
+      ...(replyTo?.id && {
+        reply_to_id: replyTo.id,
+        reply_to_name: replyTo.name,
+        reply_to_content: replyTo.content,
+      }),
+    }
+
     const { data: saved, error: insertError } = await supabase
       .from('chat_messages')
-      .insert({ author_id: user.id, channel, content })
+      .insert(insertData)
       .select('id')
       .single()
 
@@ -86,11 +97,18 @@ io.on('connection', (socket) => {
 
     const message = {
       id: saved?.id || Date.now(),
-      authorId: user.id,
-      author: userData.coc_name,
-      role: userData.coc_role,
+      author_id: user.id,
+      author_name: userData.coc_name,
+      author_coc_role: userData.coc_role,
+      author_site_role: userData.site_role || null,
+      author_coc_name: userData.coc_name,
+      author_hdv: null,
       content,
-      time: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      reply_to: replyTo?.id ? true : null,
+      reply_to_name: replyTo?.name || null,
+      reply_to_content: replyTo?.content || null,
+      reactions: {},
     }
 
     io.to(channel).emit('new_message', message)
