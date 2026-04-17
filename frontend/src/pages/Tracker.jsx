@@ -77,10 +77,11 @@ export default function Tracker() {
             <button
               key={s.key}
               onClick={() => setSortBy(s.key)}
-              className={`px-3 py-1 text-xs font-cinzel uppercase tracking-wider rounded border transition-all ${
-                sortBy === s.key ? 'text-bone border-crimson' : 'text-ash border-fog/40 hover:text-bone'
+              className={`px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wide border transition-all duration-150 ${
+                sortBy === s.key
+                  ? 'bg-[#dc2626] border-[#dc2626] text-white'
+                  : 'bg-[#111111] border-[#2a2a2a] text-gray-400 hover:border-[#dc2626]/40 hover:text-white'
               }`}
-              style={sortBy === s.key ? { background: 'linear-gradient(135deg, #6B0000, #C41E3A)' } : {}}
             >
               {s.label}
             </button>

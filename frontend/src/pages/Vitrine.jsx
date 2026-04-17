@@ -182,17 +182,25 @@ export default function Vitrine() {
 
       {/* SECTION 2 — Hymne du clan */}
       <section className="mb-14">
-        <h2 className="font-cinzel text-xs uppercase tracking-widest mb-4" style={{ color: '#666' }}>
-          HYMNE DU CLAN
-        </h2>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
+            Hymne du Clan
+          </span>
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+        </div>
         <AudioPlayer />
       </section>
 
       {/* SECTION 3 — Affiche Recrutement */}
       <section className="mb-14">
-        <h2 className="font-cinzel text-xs uppercase tracking-widest mb-6" style={{ color: '#dc2626' }}>
-          NOUS RECRUTONS
-        </h2>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
+            Nous Recrutons
+          </span>
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+        </div>
         <div
           className="rounded-xl p-8"
           style={{
@@ -245,9 +253,13 @@ export default function Vitrine() {
 
       {/* SECTION 4 — Règlement (accordéons) */}
       <section className="mb-14">
-        <h2 className="font-cinzel text-xs uppercase tracking-widest mb-6" style={{ color: '#666' }}>
-          RÈGLEMENT OFFICIEL
-        </h2>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
+            Règlement Officiel
+          </span>
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+        </div>
         <div className="flex flex-col gap-2">
 
           <Accordion icon="📋" title="Règlement Général">
@@ -329,9 +341,13 @@ export default function Vitrine() {
 
       {/* SECTION 5 — Système de cartons */}
       <section className="mb-14">
-        <h2 className="font-cinzel text-xs uppercase tracking-widest mb-6" style={{ color: '#666' }}>
-          SYSTÈME DE CARTONS
-        </h2>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
+            Système de Cartons
+          </span>
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+        </div>
         <div className="grid md:grid-cols-2 gap-4">
           {/* LDC */}
           <div className="rounded-lg p-6" style={{ background: '#111111', borderTop: '3px solid #f59e0b' }}>
@@ -381,9 +397,13 @@ export default function Vitrine() {
 
       {/* SECTION 6 — Identité visuelle */}
       <section>
-        <h2 className="font-cinzel text-xs uppercase tracking-widest mb-6" style={{ color: '#666' }}>
-          IDENTITÉ VISUELLE
-        </h2>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
+            Identité Visuelle
+          </span>
+          <div className="h-px flex-1 bg-[#1a1a1a]" />
+        </div>
         <div className="grid md:grid-cols-2 gap-4">
           {/* Logo */}
           <div

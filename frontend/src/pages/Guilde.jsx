@@ -788,10 +788,11 @@ export default function Guilde() {
       <div className="flex gap-2 mb-6 flex-wrap">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-4 py-2 font-cinzel uppercase text-xs tracking-wider rounded transition-all ${
-              tab === t.key ? 'text-bone' : 'text-ash border border-fog hover:text-bone'
-            }`}
-            style={tab === t.key ? { background: 'linear-gradient(135deg, #6B0000, #C41E3A)' } : {}}>
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold uppercase tracking-wide border transition-all duration-150 ${
+              tab === t.key
+                ? 'bg-[#dc2626] border-[#dc2626] text-white'
+                : 'bg-[#111111] border-[#2a2a2a] text-gray-400 hover:border-[#dc2626]/40 hover:text-white'
+            }`}>
             {t.label}
           </button>
         ))}

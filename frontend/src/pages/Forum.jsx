@@ -1356,10 +1356,11 @@ export default function Forum() {
       <div className="flex gap-2 mb-6">
         {[{ key: 'forum', label: 'Forum' }, { key: 'tchat', label: 'Tchat Live' }].map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`px-6 py-2 font-cinzel uppercase text-sm tracking-wider rounded-lg transition-all ${
-              tab === key ? 'text-white' : 'text-gray-500 border border-[#1a1a1a] hover:text-white hover:border-[#2a2a2a]'
-            }`}
-            style={tab === key ? { background: 'linear-gradient(135deg, #6B0000, #C41E3A)' } : {}}>
+            className={`px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide border transition-all duration-150 ${
+              tab === key
+                ? 'bg-[#dc2626] border-[#dc2626] text-white'
+                : 'bg-[#111111] border-[#2a2a2a] text-gray-400 hover:border-[#dc2626]/40 hover:text-white'
+            }`}>
             {label}
           </button>
         ))}
