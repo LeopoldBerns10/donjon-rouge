@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
+import { ChatMessage } from '../components/ChatMessage.jsx'
 import api from '../lib/api.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useSocket } from '../hooks/useSocket.js'
@@ -1221,64 +1222,6 @@ function ForumDiscord({ user }) {
 
 // ─── ChatTab ──────────────────────────────────────────────────────────────────
 
-const QUICK_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🔥', '⚔️', '👑']
-
-const getNameColor = (cocRole, siteRole) => {
-  if (siteRole === 'superadmin') return 'text-[#dc2626]'
-  if (siteRole === 'admin') return 'text-[#f97316]'
-  if (cocRole === 'leader') return 'text-[#f59e0b]'
-  if (cocRole === 'coLeader') return 'text-[#d97706]'
-  if (cocRole === 'admin') return 'text-[#a8a29e]'
-  return 'text-gray-300'
-}
-
-const formatTime = (d) => {
-  if (!d) return ''
-  return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-}
-
-function MessageActions({ msgId, reactions, onReply, toggleReaction }) {
-  const [showEmojis, setShowEmojis] = useState(false)
-
-  return (
-    <div className="flex items-center gap-1 mt-1 relative flex-wrap">
-      {reactions && Object.entries(reactions).map(([emoji, count]) =>
-        count > 0 && (
-          <button key={emoji}
-                  onClick={() => toggleReaction(msgId, emoji)}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full
-                             bg-[#1a1a1a] border border-[#2a2a2a] text-xs
-                             hover:border-[#dc2626]/40 transition-colors">
-            {emoji} <span className="text-gray-500">{count}</span>
-          </button>
-        )
-      )}
-      <button onClick={() => setShowEmojis(!showEmojis)}
-              className="w-6 h-6 rounded-full bg-[#1a1a1a] border border-[#2a2a2a]
-                         text-gray-600 hover:text-gray-300 hover:border-[#3a3a3a]
-                         text-xs flex items-center justify-center transition-colors">
-        +
-      </button>
-      <button onClick={onReply}
-              className="text-[10px] text-gray-700 hover:text-gray-400 transition-colors px-1">
-        ↩
-      </button>
-      {showEmojis && (
-        <div className="absolute bottom-full mb-1 left-0 flex gap-1 p-2
-                        bg-[#111111] border border-[#1f1f1f] rounded-xl shadow-xl z-20">
-          {QUICK_EMOJIS.map(e => (
-            <button key={e}
-                    onClick={() => { toggleReaction(msgId, e); setShowEmojis(false) }}
-                    className="text-lg hover:scale-125 transition-transform p-1">
-              {e}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 function ChatTab({ user }) {
   const { isChief, isAdmin } = useAuth()
   const { messages, connected, sendMessage, setMessages } = useSocket('général', user)
@@ -1297,9 +1240,7 @@ function ChatTab({ user }) {
   function handleSend() {
     if (!message.trim() || !user) return
     sendMessage(message.trim(), replyTo ? {
-      id: replyTo.id,
-      name: replyTo.author_name,
-      content: replyTo.content,
+      id: replyTo.id, name: replyTo.author_name, content: replyTo.content,
     } : null)
     setMessage('')
     setReplyTo(null)
@@ -1319,8 +1260,7 @@ function ChatTab({ user }) {
     } catch {}
   }
 
-  const isOwn = (msg) => user && msg.author_id === user.id
-  const canDelete = (msg) => user && (msg.author_id === user.id || isChief || isAdmin)
+  const canDeleteMsg = (msg) => !!(user && (msg.author_id === user.id || isChief || isAdmin))
 
   return (
     <div className="flex flex-col h-[65vh]">
@@ -1333,89 +1273,17 @@ function ChatTab({ user }) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto rounded-xl border border-[#1a1a1a] px-3 py-4"
            style={{ background: '#0a0a0a' }}>
-        {messages.map((msg, i) => {
-          const own = isOwn(msg)
-          return (
-            <div key={msg.id || i} className={`flex items-start gap-3 mb-4 ${own ? 'flex-row-reverse' : ''}`}>
-              {/* Avatar */}
-              {own ? (
-                <div className="w-9 h-9 rounded-full bg-[#dc2626]/30 border border-[#dc2626]/50
-                                flex items-center justify-center text-sm font-bold text-[#dc2626] flex-shrink-0">
-                  {user?.coc_name?.charAt(0).toUpperCase()}
-                </div>
-              ) : (
-                <div className="relative flex-shrink-0 group/avatar">
-                  <div className="w-9 h-9 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
-                                  flex items-center justify-center text-sm font-bold text-[#dc2626] cursor-pointer">
-                    {msg.author_name?.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="absolute left-0 bottom-full mb-1 px-2 py-1 rounded-lg
-                                  bg-[#1a1a1a] border border-[#2a2a2a] text-xs text-gray-300
-                                  whitespace-nowrap opacity-0 group-hover/avatar:opacity-100
-                                  transition-opacity z-10 pointer-events-none">
-                    {formatCocRole(msg.author_coc_role)} — HV{msg.author_hdv || '?'}
-                    {msg.author_site_role === 'admin' && ' 🛡️ Admin'}
-                    {msg.author_coc_name === 'CyberAlf' && ' 👑 Chef'}
-                  </div>
-                </div>
-              )}
-
-              <div className={`flex flex-col max-w-[70%] ${own ? 'items-end' : ''}`}>
-                {/* Nom + heure */}
-                {!own && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs font-bold ${getNameColor(msg.author_coc_role, msg.author_site_role)}`}>
-                      {msg.author_name}
-                    </span>
-                    <span className="text-[10px] text-gray-700">{formatTime(msg.created_at)}</span>
-                    {canDelete(msg) && (
-                      <button onClick={() => handleDelete(msg.id)}
-                              className="text-[10px] text-gray-700 hover:text-red-400 transition-colors ml-1 opacity-0 group-hover:opacity-100">
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                )}
-                {own && (
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] text-gray-700">{formatTime(msg.created_at)}</span>
-                    {canDelete(msg) && (
-                      <button onClick={() => handleDelete(msg.id)}
-                              className="text-[10px] text-gray-700 hover:text-red-400 transition-colors">
-                        ✕
-                      </button>
-                    )}
-                  </div>
-                )}
-
-                {/* Citation si réponse */}
-                {msg.reply_to && (
-                  <div className={`mb-1 px-3 py-1.5 rounded-lg bg-[#0a0a0a] text-xs text-gray-500 line-clamp-1
-                                   ${own ? 'border-r-2 border-[#dc2626]/50 text-right' : 'border-l-2 border-[#dc2626]/50'}`}>
-                    ↩ {msg.reply_to_name} : {msg.reply_to_content}
-                  </div>
-                )}
-
-                {/* Bulle message */}
-                <div className={`px-4 py-2.5 text-sm leading-relaxed break-words
-                                  ${own
-                                    ? 'rounded-2xl rounded-tr-sm bg-[#dc2626]/20 border border-[#dc2626]/30 text-gray-100'
-                                    : 'rounded-2xl rounded-tl-sm bg-[#1a1a1a] border border-[#2a2a2a] text-gray-200'
-                                  }`}>
-                  {msg.content}
-                </div>
-
-                {/* Réactions */}
-                <MessageActions
-                  msgId={msg.id}
-                  reactions={msg.reactions}
-                  onReply={() => setReplyTo(msg)}
-                  toggleReaction={toggleReaction}
-                />
-              </div>
-            </div>
-          )
-        })}
+        {messages.map((msg, i) => (
+          <ChatMessage
+            key={msg.id || i}
+            msg={msg}
+            currentUser={user}
+            onReply={setReplyTo}
+            onDelete={handleDelete}
+            canDelete={canDeleteMsg(msg)}
+            toggleReaction={toggleReaction}
+          />
+        ))}
         <div ref={bottomRef} />
       </div>
 

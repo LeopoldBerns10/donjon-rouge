@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 import { useToast } from './components/Toast.jsx'
 import ChangePasswordModal from './components/ChangePasswordModal.jsx'
+import { FloatingChat } from './components/FloatingChat.jsx'
 import api from './lib/api.js'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
@@ -67,6 +68,24 @@ function AppContent() {
       addToast(`Bienvenue ${welcomeData.name} !`, 'success')
     }
     clearWelcomeData()
+
+    // Toast messages non lus au login
+    const checkUnread = async () => {
+      try {
+        const res = await api.get('/api/chat/messages/général?limit=50')
+        const msgs = res.data
+        if (user?.last_seen_chat_at) {
+          const lastSeen = new Date(user.last_seen_chat_at)
+          const unread = msgs.filter(m => new Date(m.created_at) > lastSeen)
+          if (unread.length > 0) {
+            setTimeout(() => {
+              addToast(`💬 ${unread.length} nouveau${unread.length > 1 ? 'x' : ''} message${unread.length > 1 ? 's' : ''} dans le tchat !`, 'info')
+            }, 1500)
+          }
+        }
+      } catch {}
+    }
+    checkUnread()
   }, [welcomeData])
 
   return (
@@ -96,6 +115,7 @@ function AppContent() {
         </Routes>
       </main>
       <Footer />
+      <FloatingChat />
     </div>
   )
 }

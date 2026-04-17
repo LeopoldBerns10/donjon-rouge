@@ -15,7 +15,7 @@ export default function chatRouter(io) {
       .select('id, author_id, content, created_at, reply_to_id, reply_to_name, reply_to_content, reactions')
       .eq('channel', channel)
       .order('created_at', { ascending: false })
-      .limit(100)
+      .limit(Math.min(parseInt(req.query.limit) || 100, 200))
 
     if (error) return res.status(500).json({ error: error.message })
 
@@ -118,6 +118,14 @@ export default function chatRouter(io) {
 
     io.emit('message_reaction', { id, reactions: counts })
     res.json({ reactions: counts })
+  })
+
+  router.post('/mark-read', authMiddleware, async (req, res) => {
+    await supabase
+      .from('users')
+      .update({ last_seen_chat_at: new Date().toISOString() })
+      .eq('id', req.user.id)
+    res.json({ success: true })
   })
 
   router.delete('/messages/:id', authMiddleware, async (req, res) => {
