@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 
 // ─── Player Audio Custom ──────────────────────────────────────────────────────
 function AudioPlayer() {
@@ -153,7 +154,9 @@ const RL = () => (
 // ─── Page Vitrine ─────────────────────────────────────────────────────────────
 export default function Vitrine() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 animate-fade-up" style={{ background: '#0d0d0d' }}>
+    <>
+      <AnimatedBackground variant="vitrine" />
+      <div className="relative z-10 max-w-4xl mx-auto px-4 py-12 animate-fade-up" style={{ background: 'transparent' }}>
 
       {/* SECTION 1 — Hero Banner */}
       <section className="relative rounded-xl overflow-hidden mb-14 flex flex-col items-center py-16 px-4">
@@ -431,5 +434,6 @@ export default function Vitrine() {
       </section>
 
     </div>
+    </>
   )
 }

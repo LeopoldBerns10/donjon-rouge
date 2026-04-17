@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import api from '../lib/api.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import { useSocket } from '../hooks/useSocket.js'
@@ -1344,7 +1345,9 @@ export default function Forum() {
   const [tab, setTab] = useState('forum')
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-12 animate-fade-up">
+    <>
+      <AnimatedBackground variant="forum" />
+      <div className="relative z-10 max-w-6xl mx-auto px-4 py-12 animate-fade-up">
       <div className="mb-6">
         <p className="text-[10px] uppercase tracking-[0.3em] text-[#dc2626] mb-2">Donjon Rouge</p>
         <h1 className="text-3xl font-black text-white uppercase tracking-widest">Forum & Tchat</h1>
@@ -1373,5 +1376,6 @@ export default function Forum() {
         </div>
       )}
     </div>
+    </>
   )
 }

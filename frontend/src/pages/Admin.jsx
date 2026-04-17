@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
+import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { formatCocRole } from '../utils/roles.js'
 
@@ -322,7 +323,9 @@ export default function Admin() {
   if (!isAdmin) return null
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 animate-fade-up">
+    <>
+      <AnimatedBackground variant="admin" />
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-12 animate-fade-up">
       {/* Header */}
       <div style={{ borderTop: '2px solid #dc2626' }} className="pt-6 mb-8">
         <SectionHeader title="Zone Administration" subtitle="Donjon Rouge · Panneau de contrôle" />
@@ -370,5 +373,6 @@ export default function Admin() {
         loading={usersLoading}
       />
     </div>
+    </>
   )
 }

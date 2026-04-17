@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import DragonBackground from '../components/DragonBackground.jsx'
 import { useCocClan } from '../hooks/useCocApi.js'
 import FireIntro from '../components/FireIntro.jsx'
+import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 
 function useCountUp(target, duration = 1500) {
   const [count, setCount] = useState(0)
@@ -30,6 +31,7 @@ export default function Home() {
 
   return (
     <div className="relative min-h-screen overflow-hidden">
+      <AnimatedBackground variant="home" />
       <FireIntro />
       <DragonBackground />
 

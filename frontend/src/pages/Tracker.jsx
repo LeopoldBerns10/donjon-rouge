@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCocMembers } from '../hooks/useCocApi.js'
 import SectionHeader from '../components/SectionHeader.jsx'
+import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
 
 const LEAGUE_ORDER = {
@@ -53,7 +54,9 @@ export default function Tracker() {
   })
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-12 animate-fade-up">
+    <>
+      <AnimatedBackground variant="stats" />
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-12 animate-fade-up">
       <SectionHeader title="Classement du Clan" subtitle="Donjon Rouge · #29292QPRC" />
 
       {/* Search */}
@@ -187,5 +190,6 @@ export default function Tracker() {
         </div>
       )}
     </div>
+    </>
   )
 }

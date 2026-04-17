@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useCocClan, useCocMembers, useCocWar, useCocRaids } from '../hooks/useCocApi.js'
 import api from '../lib/api.js'
 import SectionHeader from '../components/SectionHeader.jsx'
+import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Inscriptions from './Inscriptions.jsx'
@@ -749,7 +750,9 @@ export default function Guilde() {
   }, [location.state])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10 animate-fade-up">
+    <>
+      <AnimatedBackground variant="members" />
+      <div className="relative z-10 max-w-7xl mx-auto px-4 py-10 animate-fade-up">
       <SectionHeader title="La Guilde" subtitle="Donjon Rouge · #29292QPRC" />
 
       {/* Clan header */}
@@ -805,5 +808,6 @@ export default function Guilde() {
       {tab === 'raids'        && <RaidsTab        loading={false} error={null} />}
       {tab === 'inscriptions' && <InscriptionsTab />}
     </div>
+    </>
   )
 }
