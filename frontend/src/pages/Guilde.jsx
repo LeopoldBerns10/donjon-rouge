@@ -881,17 +881,33 @@ export default function Guilde() {
           </div>
           {/* Description */}
           {clan.description && (
-            <div className="px-4 md:px-6 -mt-2 mb-4">
-              <p className={`text-sm text-gray-400 leading-relaxed ${!descExpanded ? 'line-clamp-3' : ''}`}>
-                {clan.description}
-              </p>
-              {clan.description.length > 150 && (
-                <button onClick={() => setDescExpanded(!descExpanded)}
-                        className="text-xs text-[#dc2626] mt-1 hover:underline">
-                  {descExpanded ? 'Voir moins ↑' : 'Voir plus ↓'}
-                </button>
-              )}
-            </div>
+            <>
+              {/* Mobile : 2 lignes max */}
+              <div className="md:hidden px-4 mb-3">
+                <p className={`text-xs text-gray-500 leading-relaxed ${!descExpanded ? 'line-clamp-2' : ''}`}>
+                  {clan.description}
+                </p>
+                {clan.description.length > 80 && (
+                  <button
+                    onClick={() => setDescExpanded(!descExpanded)}
+                    className="text-[10px] text-[#dc2626] mt-0.5 hover:underline">
+                    {descExpanded ? '↑ Réduire' : '↓ Voir plus'}
+                  </button>
+                )}
+              </div>
+              {/* Desktop : 3 lignes max */}
+              <div className="hidden md:block px-6 -mt-2 mb-4">
+                <p className={`text-sm text-gray-400 leading-relaxed ${!descExpanded ? 'line-clamp-3' : ''}`}>
+                  {clan.description}
+                </p>
+                {clan.description.length > 150 && (
+                  <button onClick={() => setDescExpanded(!descExpanded)}
+                          className="text-xs text-[#dc2626] mt-1 hover:underline">
+                    {descExpanded ? 'Voir moins ↑' : 'Voir plus ↓'}
+                  </button>
+                )}
+              </div>
+            </>
           )}
           {/* Stats cards */}
           <div className="grid grid-cols-2 gap-3 px-4 pb-4 md:flex md:flex-wrap md:gap-4 md:px-6 md:pb-6 md:justify-start">

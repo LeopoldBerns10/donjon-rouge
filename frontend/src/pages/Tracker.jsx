@@ -72,12 +72,12 @@ export default function Tracker() {
 
       {/* Sort buttons */}
       {!loading && !error && (
-        <div className="flex flex-wrap gap-2 mb-6">
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 mb-6 md:flex-wrap">
           {TRACKER_SORTS.map(s => (
             <button
               key={s.key}
               onClick={() => setSortBy(s.key)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wide border transition-all duration-150 ${
+              className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-semibold uppercase tracking-wide border transition-all duration-150 ${
                 sortBy === s.key
                   ? 'bg-[#dc2626] border-[#dc2626] text-white'
                   : 'bg-[#111111] border-[#2a2a2a] text-gray-400 hover:border-[#dc2626]/40 hover:text-white'
@@ -102,93 +102,156 @@ export default function Tracker() {
       )}
 
       {!loading && !error && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-fog text-ash font-cinzel uppercase text-xs tracking-widest">
-                <th className="py-3 px-3 text-left">Rang</th>
-                <th className="py-3 px-3 text-left">Joueur</th>
-                <th className="py-3 px-3 text-center">Trophées</th>
-                <th className="py-3 px-3 text-center">Dons</th>
-                <th className="py-3 px-3 text-center">Rôle</th>
-                <th className="py-3 px-3 text-center">Ligue</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member, i) => {
-                const leagueName = getLeagueName(member)
-
-                return (
-                  <tr
-                    key={member.tag}
-                    onClick={() => navigate(`/tracker/${encodeURIComponent(member.tag)}`)}
-                    className="border-b border-fog/30 hover:bg-stone-light cursor-pointer transition-colors group"
-                  >
-                    <td className="py-3 px-3 font-bold text-center w-12">
-                      <span className="text-lg">{medalForRank(i + 1)}</span>
-                    </td>
-                    <td className="py-3 px-3">
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-shrink-0">
-                          <img
-                            src={getTownHallImageUrl(member.townHallLevel)}
-                            alt={`HDV${member.townHallLevel}`}
-                            className="w-10 h-10 object-contain"
-                            onError={(e) => { e.target.style.display = 'none' }}
-                          />
-                          <span
-                            className="absolute -bottom-1 -right-1 text-xs font-bold text-white px-1 rounded"
-                            style={{ background: '#C41E3A', fontSize: '9px' }}
-                          >
-                            {member.townHallLevel}
-                          </span>
-                        </div>
-                        <div>
-                          <div className="font-semibold text-bone group-hover:text-gold-light transition-colors">
-                            {member.name}
-                          </div>
-                          <div className="text-xs text-ash">{member.tag}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-3 text-center font-cinzel text-gold-light">
-                      {member.trophies?.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-3 text-center text-ash">
-                      {member.donations?.toLocaleString()}
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(member.role)}`}>
+        <>
+          {/* Liste compacte mobile */}
+          <div className="md:hidden rounded-lg border border-fog/30 overflow-hidden mb-4">
+            {members.map((member, i) => {
+              const leagueName = getLeagueName(member)
+              return (
+                <div key={member.tag}
+                     onClick={() => navigate(`/tracker/${encodeURIComponent(member.tag)}`)}
+                     className="flex items-center gap-3 px-4 py-3 border-b border-[#1a1a1a] last:border-0 hover:bg-[#111111] transition-colors cursor-pointer"
+                     style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                  <div className="w-7 flex-shrink-0 text-center">
+                    {i === 0 && <span className="text-lg">🥇</span>}
+                    {i === 1 && <span className="text-lg">🥈</span>}
+                    {i === 2 && <span className="text-lg">🥉</span>}
+                    {i > 2 && <span className="text-xs text-gray-600 font-bold">{i + 1}</span>}
+                  </div>
+                  <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                    <img
+                      src={getTownHallImageUrl(member.townHallLevel)}
+                      alt={`HDV ${member.townHallLevel}`}
+                      className="w-9 h-9 object-contain"
+                      onError={(e) => { e.currentTarget.style.display = 'none' }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-bold text-white truncate">{member.name}</p>
+                      <span className={`text-[9px] px-1 py-0 font-cinzel font-bold uppercase rounded flex-shrink-0 ${getRoleBadgeClass(member.role)}`}>
                         {translateRole(member.role)}
                       </span>
-                    </td>
-                    <td className="py-3 px-3 text-center">
-                      {leagueName && getLeagueImageUrl(leagueName) ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <img
-                            src={getLeagueImageUrl(leagueName)}
-                            alt={leagueName}
-                            className="w-6 h-6 object-contain"
-                            onError={(e) => { e.target.style.display = 'none' }}
-                          />
-                          <span className="text-xs text-ash hidden lg:inline">
-                            {getLeagueShortName(leagueName)}
-                          </span>
-                        </div>
-                      ) : (
-                        <span className="text-ash text-xs">—</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {leagueName && getLeagueImageUrl(leagueName) && (
+                        <img
+                          src={getLeagueImageUrl(leagueName)}
+                          alt={leagueName}
+                          className="w-4 h-4 object-contain flex-shrink-0"
+                          onError={(e) => e.currentTarget.style.display = 'none'}
+                        />
                       )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      {leagueName && (
+                        <span className="text-xs truncate text-gray-400">
+                          {getLeagueShortName(leagueName)}
+                        </span>
+                      )}
+                      {leagueName && <span className="text-gray-700 text-xs">·</span>}
+                      <span className="text-xs text-yellow-500">🏆 {member.trophies}</span>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-xs text-green-400 font-semibold">↑ {member.donations}</p>
+                    <p className="text-xs text-red-400">↓ {member.donationsReceived}</p>
+                  </div>
+                </div>
+              )
+            })}
+            {members.length === 0 && (
+              <p className="text-center text-ash py-10 font-cinzel">Aucun résultat</p>
+            )}
+          </div>
 
-          {members.length === 0 && (
-            <p className="text-center text-ash py-10 font-cinzel">Aucun résultat</p>
-          )}
-        </div>
+          {/* Tableau desktop intact */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-fog text-ash font-cinzel uppercase text-xs tracking-widest">
+                  <th className="py-3 px-3 text-left">Rang</th>
+                  <th className="py-3 px-3 text-left">Joueur</th>
+                  <th className="py-3 px-3 text-center">Trophées</th>
+                  <th className="py-3 px-3 text-center">Dons</th>
+                  <th className="py-3 px-3 text-center">Rôle</th>
+                  <th className="py-3 px-3 text-center">Ligue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map((member, i) => {
+                  const leagueName = getLeagueName(member)
+
+                  return (
+                    <tr
+                      key={member.tag}
+                      onClick={() => navigate(`/tracker/${encodeURIComponent(member.tag)}`)}
+                      className="border-b border-fog/30 hover:bg-stone-light cursor-pointer transition-colors group"
+                    >
+                      <td className="py-3 px-3 font-bold text-center w-12">
+                        <span className="text-lg">{medalForRank(i + 1)}</span>
+                      </td>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-shrink-0">
+                            <img
+                              src={getTownHallImageUrl(member.townHallLevel)}
+                              alt={`HDV${member.townHallLevel}`}
+                              className="w-10 h-10 object-contain"
+                              onError={(e) => { e.target.style.display = 'none' }}
+                            />
+                            <span
+                              className="absolute -bottom-1 -right-1 text-xs font-bold text-white px-1 rounded"
+                              style={{ background: '#C41E3A', fontSize: '9px' }}
+                            >
+                              {member.townHallLevel}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="font-semibold text-bone group-hover:text-gold-light transition-colors">
+                              {member.name}
+                            </div>
+                            <div className="text-xs text-ash">{member.tag}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-center font-cinzel text-gold-light">
+                        {member.trophies?.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-3 text-center text-ash">
+                        {member.donations?.toLocaleString()}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span className={`text-xs font-cinzel font-bold uppercase px-2 py-0.5 rounded ${getRoleBadgeClass(member.role)}`}>
+                          {translateRole(member.role)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        {leagueName && getLeagueImageUrl(leagueName) ? (
+                          <div className="flex items-center justify-center gap-1">
+                            <img
+                              src={getLeagueImageUrl(leagueName)}
+                              alt={leagueName}
+                              className="w-6 h-6 object-contain"
+                              onError={(e) => { e.target.style.display = 'none' }}
+                            />
+                            <span className="text-xs text-ash hidden lg:inline">
+                              {getLeagueShortName(leagueName)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-ash text-xs">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {members.length === 0 && (
+              <p className="text-center text-ash py-10 font-cinzel">Aucun résultat</p>
+            )}
+          </div>
+        </>
       )}
     </div>
     </>
