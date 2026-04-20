@@ -9,6 +9,8 @@ export function useSocket(channel, user) {
   useEffect(() => {
     if (!channel) return
 
+    let mounted = true
+
     const socket = io(import.meta.env.VITE_SOCKET_URL || '', {
       transports: ['polling', 'websocket']
     })
@@ -19,27 +21,35 @@ export function useSocket(channel, user) {
     })
 
     socket.on('new_message', (msg) => {
-      setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg])
+      if (mounted) setMessages((prev) => prev.some((m) => m.id === msg.id) ? prev : [...prev, msg])
     })
 
     socket.on('message_deleted', ({ id }) => {
-      setMessages((prev) => prev.filter((m) => m.id !== id))
+      if (mounted) setMessages((prev) => prev.filter((m) => m.id !== id))
     })
 
     socket.on('message_edited', ({ id, content }) => {
-      setMessages((prev) => prev.map((m) => m.id === id ? { ...m, content } : m))
+      if (mounted) setMessages((prev) => prev.map((m) => m.id === id ? { ...m, content } : m))
     })
 
     socket.on('message_reaction', ({ id, reactions }) => {
-      setMessages((prev) => prev.map((m) => m.id === id ? { ...m, reactions } : m))
+      if (mounted) setMessages((prev) => prev.map((m) => m.id === id ? { ...m, reactions } : m))
     })
 
     socket.on('connected_count', (count) => {
-      setConnected(count)
+      if (mounted) setConnected(count)
     })
 
     return () => {
+      mounted = false
+      socket.off('connect')
+      socket.off('new_message')
+      socket.off('message_deleted')
+      socket.off('message_edited')
+      socket.off('message_reaction')
+      socket.off('connected_count')
       socket.disconnect()
+      socketRef.current = null
     }
   }, [channel])
 
