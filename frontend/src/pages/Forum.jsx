@@ -86,7 +86,7 @@ function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
       {(post.allow_reactions === 'preset' || post.allow_reactions === 'both') &&
         presetEmojis.map(emoji => (
           <button key={emoji} onClick={() => toggle(emoji)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all duration-150 ${
+            className={`flex items-center gap-1.5 px-3 py-2 md:py-1.5 rounded-full border text-sm transition-all duration-150 ${
               userReactions.includes(emoji)
                 ? 'bg-[#dc2626]/20 border-[#dc2626]/50 text-white'
                 : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#3a3a3a] hover:text-gray-200'
@@ -102,7 +102,7 @@ function ReactionBar({ post, initialCounts = {}, initialUserReactions = [] }) {
           .filter(e => !presetEmojis.includes(e) && (counts[e] > 0 || userReactions.includes(e)))
           .map(emoji => (
             <button key={`custom-${emoji}`} onClick={() => toggle(emoji)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all duration-150 ${
+              className={`flex items-center gap-1.5 px-3 py-2 md:py-1.5 rounded-full border text-sm transition-all duration-150 ${
                 userReactions.includes(emoji)
                   ? 'bg-[#dc2626]/20 border-[#dc2626]/50 text-white'
                   : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-400 hover:border-[#3a3a3a] hover:text-gray-200'
@@ -320,7 +320,7 @@ function CommentsSection({ postId, isPostAuthor, initialComments = [] }) {
   }
 
   return (
-    <div className="mx-6 mb-6">
+    <div className="mx-3 md:mx-6 mb-4 md:mb-6">
       <div className="flex items-center justify-between mb-3">
         <span className="text-xs uppercase tracking-widest text-gray-600">
           💬 Commentaires ({comments.length})
@@ -370,7 +370,7 @@ function CommentsSection({ postId, isPostAuthor, initialComments = [] }) {
               onChange={e => setNewComment(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && submitComment()}
               placeholder="Écrire un commentaire..."
-              className="flex-1 px-3 py-2 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#dc2626]/50 transition-colors"
+              className="flex-1 px-3 py-3 md:py-2 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a] text-sm text-white placeholder-gray-600 focus:outline-none focus:border-[#dc2626]/50 transition-colors"
             />
             <button onClick={submitComment} disabled={loading || !newComment.trim()}
               className="px-4 py-2 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c] text-white text-sm font-semibold transition-colors disabled:opacity-50">
@@ -452,11 +452,11 @@ function PostView({ postId, onBack, onDeleted }) {
   return (
     <div className="flex-1 overflow-y-auto">
       <button onClick={onBack}
-        className="flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors mb-4 mx-6 mt-4">
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-white transition-colors mb-4 mx-3 md:mx-6 mt-4">
         ← Retour
       </button>
 
-      <div className="mx-6 mb-4 p-5 rounded-2xl bg-[#111111] border border-[#1f1f1f]">
+      <div className="mx-3 md:mx-6 mb-4 p-4 md:p-5 rounded-2xl bg-[#111111] border border-[#1f1f1f]">
         {/* Header auteur */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -900,6 +900,7 @@ function ForumDiscord({ user }) {
   const [showCreatePost, setShowCreatePost] = useState(false)
   const [createCategoryModal, setCreateCategoryModal] = useState(null) // null | 'root' | parentId
   const [editingPost, setEditingPost] = useState(null)
+  const [mobileView, setMobileView] = useState('categories') // 'categories' | 'posts'
 
   const fetchCategories = useCallback(async () => {
     setCatLoading(true)
@@ -935,6 +936,7 @@ function ForumDiscord({ user }) {
   const handleSelectCategory = (catId) => {
     setActiveCategory(catId)
     setActivePostId(null)
+    if (window.innerWidth < 768) setMobileView('posts')
   }
 
   const handleDeleteCategory = async (catId) => {
@@ -970,8 +972,8 @@ function ForumDiscord({ user }) {
     <div className="flex" style={{ minHeight: '75vh', background: '#0d0d0d' }}>
 
       {/* ── Sidebar ── */}
-      <aside className="flex-shrink-0 flex flex-col overflow-y-auto"
-        style={{ width: 288, background: '#080808', borderRight: '1px solid #1a1a1a' }}>
+      <aside className={`flex flex-col overflow-y-auto md:w-72 md:flex-shrink-0 ${mobileView === 'categories' ? 'flex-1' : 'hidden md:flex'}`}
+        style={{ background: '#080808', borderRight: '1px solid #1a1a1a' }}>
         <div className="px-4 py-3 border-b border-[#1a1a1a]">
           <span className="text-xs uppercase tracking-widest text-gray-500 font-semibold">Forums</span>
         </div>
@@ -1054,7 +1056,14 @@ function ForumDiscord({ user }) {
       </aside>
 
       {/* ── Zone centrale ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className={`flex flex-col min-w-0 overflow-hidden md:flex-1 ${mobileView === 'posts' ? 'flex-1' : 'hidden md:flex'}`}>
+        {/* Bouton retour mobile */}
+        <button
+          onClick={() => { setMobileView('categories'); setActivePostId(null) }}
+          className="md:hidden flex items-center gap-2 px-4 py-3 w-full border-b border-[#1a1a1a] text-gray-400 hover:text-white transition-colors text-sm flex-shrink-0"
+        >
+          ← Retour aux catégories
+        </button>
         {activePostId ? (
           <PostView
             postId={activePostId}
@@ -1073,8 +1082,9 @@ function ForumDiscord({ user }) {
               </div>
               {user && (
                 <button onClick={() => setShowCreatePost(true)}
-                  className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-colors">
-                  + Nouveau post
+                  className="px-3 py-2 md:px-4 rounded-xl text-xs md:text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-colors">
+                  <span className="md:hidden">+</span>
+                  <span className="hidden md:inline">+ Nouveau post</span>
                 </button>
               )}
             </div>
@@ -1091,12 +1101,12 @@ function ForumDiscord({ user }) {
                   {user && <p className="text-xs text-gray-700 mt-2">Sois le premier à publier ↑</p>}
                 </div>
               )}
-              <div className="flex flex-col gap-2 px-4 py-2">
+              <div className="flex flex-col gap-2 px-2 py-1.5 md:px-4 md:py-2">
                 {posts.map(post => (
                   <div
                     key={post.id}
                     onClick={() => setActivePostId(post.id)}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 hover:scale-[1.005] ${
+                    className={`p-3 md:p-4 rounded-2xl border cursor-pointer transition-all duration-200 hover:scale-[1.005] ${
                       post.is_pinned
                         ? 'border-[#f59e0b]/40 bg-gradient-to-r from-[#111111] to-[#0d0d0d]'
                         : 'border-[#1f1f1f] bg-[#111111] hover:border-[#dc2626]/30'

@@ -204,12 +204,12 @@ export default function Navbar() {
             {/* ── Bouton hamburger animé ─────────────────────────────────────── */}
             <button
               onClick={() => setMobileMenuOpen(v => !v)}
-              className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-[#1a1a1a] transition-colors"
+              className="md:hidden flex flex-col justify-center gap-1.5 w-10 h-10 rounded-lg hover:bg-[#1a1a1a] transition-colors p-2"
               aria-label="Menu"
             >
-              <span className={`block w-6 h-0.5 bg-white transition-all duration-200 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
-              <span className={`block w-6 h-0.5 bg-white transition-all duration-200 ${mobileMenuOpen ? 'opacity-0' : ''}`} />
-              <span className={`block w-6 h-0.5 bg-white transition-all duration-200 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+              <span className={`block h-0.5 bg-white rounded transition-all duration-200 ${mobileMenuOpen ? 'rotate-45 translate-y-2 w-6' : 'w-6'}`} />
+              <span className={`block h-0.5 bg-white rounded transition-all duration-200 ${mobileMenuOpen ? 'opacity-0 w-0' : 'w-4'}`} />
+              <span className={`block h-0.5 bg-white rounded transition-all duration-200 ${mobileMenuOpen ? '-rotate-45 -translate-y-2 w-6' : 'w-6'}`} />
             </button>
 
           </div>
@@ -222,49 +222,51 @@ export default function Navbar() {
                         z-50 flex flex-col md:hidden">
 
           {/* Header du menu */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[#1a1a1a]">
-            <img src="/images/logo_2.png" alt="Donjon Rouge" className="h-10 w-auto" />
-            <button onClick={closeMenu} className="text-gray-400 hover:text-white text-xl transition-colors">✕</button>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#1a1a1a]">
+            <img src="/images/logo_2.png" alt="Donjon Rouge" className="h-9 w-auto" />
+            <button onClick={closeMenu}
+              className="w-10 h-10 rounded-xl bg-[#1a1a1a] flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+              ✕
+            </button>
           </div>
 
           {/* Liens de navigation */}
-          <nav className="flex flex-col px-6 py-6 gap-1 flex-1 overflow-y-auto">
+          <nav className="flex flex-col px-4 py-4 gap-1 flex-1 overflow-y-auto">
             {NAV_LINKS.map(link => (
               <Link
                 key={link.to}
                 to={link.to}
                 onClick={closeMenu}
-                className={`flex items-center gap-4 px-4 py-4 rounded-xl
-                            transition-all duration-150 text-base font-medium
-                            active:bg-[#dc2626]/10 ${
+                className={`flex items-center gap-4 px-4 py-4 rounded-2xl
+                            transition-all active:bg-[#dc2626]/10 ${
                   location.pathname === link.to
                     ? 'bg-[#1a1a1a] text-white border border-[#dc2626]/20'
                     : 'text-gray-300 hover:bg-[#1a1a1a] hover:text-white'
                 }`}
               >
-                <span className="text-xl w-8">{link.icon}</span>
-                <span className="uppercase tracking-wide">{link.label}</span>
-                <span className="ml-auto text-gray-600">›</span>
+                <span className="text-2xl">{link.icon}</span>
+                <span className="font-semibold uppercase tracking-wide">{link.label}</span>
+                <span className="ml-auto text-gray-600 text-lg">›</span>
               </Link>
             ))}
           </nav>
 
           {/* Section utilisateur en bas */}
-          <div className="px-6 py-6 border-t border-[#1a1a1a]">
+          <div className="px-4 py-5 border-t border-[#1a1a1a]">
             {user ? (
               <div className="flex flex-col gap-2">
-                {/* Info utilisateur */}
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#111111] border border-[#1f1f1f] mb-1">
-                  <div className="w-10 h-10 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
-                                  flex items-center justify-center font-bold text-[#dc2626]">
+                {/* Card utilisateur */}
+                <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] mb-2">
+                  <div className="w-11 h-11 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30
+                                  flex items-center justify-center text-lg font-bold text-[#dc2626]">
                     {user.coc_name?.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-white">{user.coc_name}</p>
+                  <div className="flex-1">
+                    <p className="font-bold text-white">{user.coc_name}</p>
                     <p className="text-xs text-gray-500">{formatCocRole(user.coc_role)}</p>
                   </div>
                   {['admin', 'superadmin'].includes(user.site_role) && (
-                    <span className="ml-auto text-xs bg-[#dc2626]/20 border border-[#dc2626]/30 text-[#dc2626] px-2 py-1 rounded-full uppercase">
+                    <span className="text-[10px] bg-[#dc2626]/20 border border-[#dc2626]/30 text-[#dc2626] px-2 py-1 rounded-full uppercase">
                       Admin
                     </span>
                   )}
@@ -272,30 +274,30 @@ export default function Navbar() {
 
                 <Link to="/mon-profil" onClick={closeMenu}
                   className="px-4 py-3 rounded-xl text-sm text-gray-400 hover:bg-[#1a1a1a] hover:text-white transition-colors">
-                  Mon profil
+                  👤 Mon profil
                 </Link>
                 {['admin', 'superadmin'].includes(user.site_role) && (
                   <Link to="/admin" onClick={closeMenu}
                     className="px-4 py-3 rounded-xl text-sm text-[#dc2626] hover:bg-[#1a1a1a] transition-colors">
-                    Administration
+                    🛡️ Administration
                   </Link>
                 )}
                 <button onClick={() => { logout(); closeMenu() }}
                   className="px-4 py-3 rounded-xl text-sm text-gray-600 hover:bg-[#1a1a1a] hover:text-red-400 transition-colors text-left">
-                  Se déconnecter
+                  🚪 Se déconnecter
                 </button>
               </div>
             ) : (
               /* Formulaire login inline dans le menu mobile */
               <div className="flex flex-col gap-3">
-                <p className="text-xs uppercase tracking-widest text-gray-600 mb-1">Connexion</p>
+                <p className="text-xs uppercase tracking-widest text-gray-600 px-1 mb-1">Connexion</p>
                 <input
                   type="text"
                   placeholder="Pseudo CoC"
                   value={loginForm.coc_name}
                   onChange={e => setLoginForm(f => ({ ...f, coc_name: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl bg-[#111111] border border-[#2a2a2a]
-                             text-white placeholder-gray-600 text-sm
+                  className="w-full px-4 py-3.5 rounded-xl bg-[#111111] border border-[#2a2a2a]
+                             text-white placeholder-gray-600 text-base
                              focus:outline-none focus:border-[#dc2626]/50"
                 />
                 <input
@@ -304,8 +306,8 @@ export default function Navbar() {
                   value={loginForm.password}
                   onChange={e => setLoginForm(f => ({ ...f, password: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && handleLogin(e)}
-                  className="w-full px-4 py-3 rounded-xl bg-[#111111] border border-[#2a2a2a]
-                             text-white placeholder-gray-600 text-sm
+                  className="w-full px-4 py-3.5 rounded-xl bg-[#111111] border border-[#2a2a2a]
+                             text-white placeholder-gray-600 text-base
                              focus:outline-none focus:border-[#dc2626]/50"
                 />
                 {loginError && (
@@ -314,8 +316,8 @@ export default function Navbar() {
                 <button
                   onClick={handleLogin}
                   disabled={loginLoading}
-                  className="w-full py-3 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c]
-                             text-white font-bold uppercase tracking-wide
+                  className="w-full py-4 rounded-xl bg-[#dc2626] hover:bg-[#b91c1c]
+                             text-white font-bold uppercase tracking-wide text-sm
                              disabled:opacity-50 transition-colors"
                 >
                   {loginLoading ? 'Connexion...' : 'Se connecter'}
