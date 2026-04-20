@@ -124,31 +124,20 @@ export default function Home() {
                 <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">{label}</p>
               </div>
             ))}
-            {/* Capital Hall — remplace "Guerres gagnées" */}
-            <div className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 hover:shadow-lg hover:shadow-[#dc2626]/5 transition-all duration-200">
-              <img
-                src={getCapitalHallIcon()}
-                alt="Capital Hall"
-                className="w-8 h-8 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none' }}
-              />
-              <p className="text-base font-bold text-white uppercase tracking-wide text-center">
-                {clan.clanCapitalPoints?.toLocaleString() || '0'}
-              </p>
-              <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">Points Capital</p>
+            {/* Capital Hall */}
+            <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all">
+              <img src={getCapitalHallIcon()} alt="Capital Hall" className="w-12 h-12 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="text-lg font-black text-white">NIVEAU 10</p>
+              <p className="text-[10px] uppercase tracking-widest text-gray-600">Capital Hall</p>
               {clan.capitalLeague && (
-                <div className="flex items-center justify-center gap-1.5 mt-1">
-                  {getCapitalLeagueIcon(clan.capitalLeague.name) && (
-                    <img
-                      src={getCapitalLeagueIcon(clan.capitalLeague.name)}
-                      alt={clan.capitalLeague.name}
-                      className="w-5 h-5 object-contain"
-                      onError={(e) => e.currentTarget.style.display = 'none'}
-                    />
-                  )}
-                  <span className="text-[10px] uppercase tracking-widest text-gray-500">
-                    {clan.capitalLeague.name}
-                  </span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <img
+                    src={getCapitalLeagueIcon(clan.capitalLeague.name)}
+                    alt={clan.capitalLeague.name}
+                    className="w-6 h-6 object-contain"
+                    onError={(e) => e.currentTarget.style.display = 'none'}
+                  />
+                  <span className="text-xs text-gray-400">{clan.capitalLeague.name}</span>
                 </div>
               )}
             </div>

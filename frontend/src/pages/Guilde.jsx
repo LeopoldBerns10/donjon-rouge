@@ -935,30 +935,25 @@ export default function Guilde() {
               </span>
               <span className="text-xs text-ash font-cinzel uppercase tracking-wider text-center">Ligue Guerre</span>
             </div>
-            {/* Capital Hall + points + ligue Capitale */}
-            <div className="flex flex-col items-center gap-1 p-3 md:p-5 rounded-lg border border-fog/40 bg-stone-mid min-w-[110px]">
-              <img
-                src={getCapitalHallIcon()}
-                alt="Capital Hall"
-                className="w-10 h-10 object-contain"
-                onError={(e) => e.currentTarget.style.display = 'none'}
-              />
-              <span className="text-lg font-bold font-cinzel text-gold-light">
-                {clan.clanCapitalPoints?.toLocaleString() ?? '—'}
-              </span>
-              <span className="text-xs text-ash font-cinzel uppercase tracking-wider text-center">Points Capital</span>
+            {/* Capital Hall niveau */}
+            <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all min-w-[110px]">
+              <img src={getCapitalHallIcon()} alt="Capital Hall" className="w-12 h-12 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+              <p className="text-base font-black text-white">NIVEAU 10</p>
+              <p className="text-[10px] uppercase tracking-widest text-gray-600">Capital Hall</p>
+            </div>
+            {/* Ligue Capitale */}
+            <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all min-w-[110px]">
               {clan.capitalLeague && (
-                <div className="flex items-center gap-1 mt-0.5">
-                  {getCapitalLeagueIcon(clan.capitalLeague.name) && (
-                    <img
-                      src={getCapitalLeagueIcon(clan.capitalLeague.name)}
-                      alt={clan.capitalLeague.name}
-                      className="w-4 h-4 object-contain"
-                      onError={(e) => e.currentTarget.style.display = 'none'}
-                    />
-                  )}
-                  <span className="text-[10px] text-ash font-cinzel">{clan.capitalLeague.name}</span>
-                </div>
+                <>
+                  <img
+                    src={getCapitalLeagueIcon(clan.capitalLeague.name)}
+                    alt={clan.capitalLeague.name}
+                    className="w-12 h-12 object-contain"
+                    onError={(e) => e.currentTarget.style.display = 'none'}
+                  />
+                  <p className="text-sm font-bold text-white text-center">{clan.capitalLeague.name}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-gray-600">Ligue Capitale</p>
+                </>
               )}
             </div>
             <StatBadge icon="📍" label="Localisation" value={clan.location?.name || '—'} />
