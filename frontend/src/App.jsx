@@ -55,7 +55,7 @@ function AnnouncementToast() {
 
 // Composant interne qui accède au contexte auth pour les toasts et modals
 function AppContent() {
-  const { welcomeData, clearWelcomeData } = useAuth()
+  const { user, welcomeData, clearWelcomeData } = useAuth()
   const { addToast, ToastContainer } = useToast()
   const [showPwdModal, setShowPwdModal] = useState(false)
 
@@ -69,6 +69,13 @@ function AppContent() {
     }
     clearWelcomeData()
 
+    // Demander permission notifications navigateur à la première connexion
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') addToast('🔔 Notifications activées !', 'success')
+      }).catch(() => {})
+    }
+
     // Toast messages non lus au login
     const checkUnread = async () => {
       try {
@@ -76,10 +83,12 @@ function AppContent() {
         const msgs = res.data
         if (user?.last_seen_chat_at) {
           const lastSeen = new Date(user.last_seen_chat_at)
-          const unread = msgs.filter(m => new Date(m.created_at) > lastSeen)
+          const unread = msgs.filter(m =>
+            new Date(m.created_at) > lastSeen && m.author_id !== user?.id
+          )
           if (unread.length > 0) {
             setTimeout(() => {
-              addToast(`💬 ${unread.length} nouveau${unread.length > 1 ? 'x' : ''} message${unread.length > 1 ? 's' : ''} dans le tchat !`, 'info')
+              addToast(`💬 ${unread.length} nouveau${unread.length > 1 ? 'x' : ''} message${unread.length > 1 ? 's' : ''} depuis ta dernière visite`, 'info')
             }, 1500)
           }
         }

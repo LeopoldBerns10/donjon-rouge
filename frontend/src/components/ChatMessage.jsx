@@ -15,7 +15,14 @@ export const getNameColor = (cocRole, siteRole) => {
 
 export const formatChatTime = (d) => {
   if (!d) return ''
-  return new Date(d).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  const date = new Date(d)
+  const now = new Date()
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  const time = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+  if (date.toDateString() === now.toDateString()) return `Aujourd'hui à ${time}`
+  if (date.toDateString() === yesterday.toDateString()) return `Hier à ${time}`
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ` à ${time}`
 }
 
 const formatCocRoleLocal = (role) => {

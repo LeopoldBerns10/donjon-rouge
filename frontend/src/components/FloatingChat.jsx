@@ -12,6 +12,11 @@ export function FloatingChat() {
   return <FloatingChatInner />
 }
 
+const escHtml = (str) => String(str)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+
 // Inner : tous les hooks appelés inconditionnellement
 function FloatingChatInner() {
   const { user } = useAuth()
@@ -24,9 +29,45 @@ function FloatingChatInner() {
   const messagesEndRef = useRef(null)
   const isOpenRef = useRef(false)
   const userRef = useRef(user)
+  const lastMessageIdRef = useRef(null)
+  const lastSeenRef = useRef(user?.last_seen_chat_at || null)
 
   isOpenRef.current = isOpen
   userRef.current = user
+
+  const triggerNotification = (count, lastMsg) => {
+    // Toast DOM discret
+    const toast = document.createElement('div')
+    toast.style.cssText = 'position:fixed;top:1rem;right:1rem;z-index:10000;display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;border-radius:0.75rem;background:#111111;border:1px solid rgba(220,38,38,0.5);box-shadow:0 10px 25px rgba(0,0,0,0.4);max-width:20rem;color:white;font-size:0.875rem;animation:slideIn 0.2s ease'
+    const authorName = escHtml(lastMsg.author_name || 'Quelqu\'un')
+    const content = escHtml((lastMsg.content || '').slice(0, 40))
+    const ellipsis = (lastMsg.content || '').length > 40 ? '…' : ''
+    toast.innerHTML = `
+      <span style="font-size:1.25rem;flex-shrink:0">💬</span>
+      <div style="flex:1;min-width:0">
+        <p style="font-size:0.625rem;text-transform:uppercase;letter-spacing:0.1em;color:#dc2626;font-weight:700;margin:0 0 2px">Tchat Live</p>
+        <p style="font-size:0.75rem;color:#d1d5db;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong>${authorName}</strong> : ${content}${ellipsis}</p>
+      </div>
+      <button onclick="this.parentElement.remove()" style="margin-left:0.5rem;color:#4b5563;background:none;border:none;cursor:pointer;flex-shrink:0;font-size:0.875rem">✕</button>
+    `
+    document.body.appendChild(toast)
+    setTimeout(() => { try { toast.remove() } catch {} }, 4000)
+
+    // Titre onglet
+    document.title = `(${count}) Donjon Rouge — Nouveau message`
+    setTimeout(() => { document.title = 'Donjon Rouge — Guilde Clash of Clans' }, 5000)
+
+    // Notification navigateur
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      try {
+        new Notification('Donjon Rouge — Tchat', {
+          body: `${lastMsg.author_name} : ${(lastMsg.content || '').slice(0, 60)}`,
+          icon: '/images/logo_2.png',
+          tag: 'chat-notification',
+        })
+      } catch {}
+    }
+  }
 
   useEffect(() => {
     let mounted = true
@@ -43,13 +84,38 @@ function FloatingChatInner() {
         setMessages(data)
 
         const currentUser = userRef.current
-        if (currentUser?.last_seen_chat_at && !isOpenRef.current) {
-          const lastSeen = new Date(currentUser.last_seen_chat_at)
-          setUnreadCount(data.filter(m => new Date(m.created_at) > lastSeen).length)
+        const isFirstFetch = !lastMessageIdRef.current
+
+        if (data.length > 0) {
+          const lastMsg = data[data.length - 1]
+
+          // Détecter un nouveau message (polls suivants, bulle fermée, pas le sien)
+          if (
+            !isOpenRef.current &&
+            !isFirstFetch &&
+            lastMsg.id !== lastMessageIdRef.current &&
+            lastMsg.author_id !== currentUser?.id
+          ) {
+            const lastSeen = new Date(lastSeenRef.current || 0)
+            const unread = data.filter(m =>
+              new Date(m.created_at) > lastSeen && m.author_id !== currentUser?.id
+            ).length
+            if (unread > 0) {
+              setUnreadCount(unread)
+              triggerNotification(unread, lastMsg)
+            }
+          }
+
+          lastMessageIdRef.current = lastMsg.id
         }
 
-        if (currentUser?.last_seen_chat_at) {
+        // Premier fetch — initialiser le comptage non lus + séparateur
+        if (isFirstFetch && currentUser?.last_seen_chat_at) {
           const lastSeen = new Date(currentUser.last_seen_chat_at)
+          const unread = data.filter(m =>
+            new Date(m.created_at) > lastSeen && m.author_id !== currentUser?.id
+          ).length
+          if (!isOpenRef.current) setUnreadCount(unread)
           setNewMessagesSeparatorIndex(data.findIndex(m => new Date(m.created_at) > lastSeen))
         }
       } catch (err) {
@@ -75,8 +141,12 @@ function FloatingChatInner() {
 
   const markAsRead = async () => {
     setUnreadCount(0)
+    document.title = 'Donjon Rouge — Guilde Clash of Clans'
     if (!userRef.current) return
-    try { await api.post('/api/chat/mark-read') } catch {}
+    try {
+      await api.post('/api/chat/mark-read')
+      lastSeenRef.current = new Date().toISOString()
+    } catch {}
   }
 
   const sendMessage = async () => {
@@ -94,6 +164,9 @@ function FloatingChatInner() {
       try {
         const res = await api.get('/api/chat/messages/général?limit=50')
         setMessages(res.data)
+        if (res.data.length > 0) {
+          lastMessageIdRef.current = res.data[res.data.length - 1].id
+        }
       } catch {}
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     } catch {}
@@ -123,13 +196,19 @@ function FloatingChatInner() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
+
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full
-                             bg-white text-[#dc2626] text-[10px] font-black
-                             flex items-center justify-center
-                             animate-pulse border border-[#dc2626]">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
+            <>
+              {/* Ring pulsant */}
+              <span className="absolute inset-0 rounded-full bg-[#dc2626] animate-ping opacity-30" />
+              {/* Badge count */}
+              <span className="absolute -top-2 -right-2 min-w-[22px] h-[22px]
+                               rounded-full bg-white text-[#dc2626] text-[10px]
+                               font-black flex items-center justify-center px-1
+                               border-2 border-[#dc2626] shadow-lg">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            </>
           )}
         </button>
       )}
