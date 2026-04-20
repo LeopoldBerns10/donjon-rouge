@@ -24,31 +24,44 @@ export function FloatingChat() {
   const hiddenPaths = ['/forum']
   if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fetchMessages = async () => {
-    try {
-      const res = await api.get('/api/chat/messages/général?limit=50')
-      const data = res.data
-      setMessages(data)
-
-      const currentUser = userRef.current
-      if (currentUser?.last_seen_chat_at && !isOpenRef.current) {
-        const lastSeen = new Date(currentUser.last_seen_chat_at)
-        setUnreadCount(data.filter(m => new Date(m.created_at) > lastSeen).length)
-      }
-
-      if (currentUser?.last_seen_chat_at) {
-        const lastSeen = new Date(currentUser.last_seen_chat_at)
-        setNewMessagesSeparatorIndex(data.findIndex(m => new Date(m.created_at) > lastSeen))
-      }
-    } catch {}
-  }
-
   useEffect(() => {
+    let mounted = true
+    let abortController = new AbortController()
+
+    const fetchMessages = async () => {
+      abortController = new AbortController()
+      try {
+        const res = await api.get('/api/chat/messages/général?limit=50', {
+          signal: abortController.signal,
+        })
+        if (!mounted) return
+        const data = res.data
+        setMessages(data)
+
+        const currentUser = userRef.current
+        if (currentUser?.last_seen_chat_at && !isOpenRef.current) {
+          const lastSeen = new Date(currentUser.last_seen_chat_at)
+          setUnreadCount(data.filter(m => new Date(m.created_at) > lastSeen).length)
+        }
+
+        if (currentUser?.last_seen_chat_at) {
+          const lastSeen = new Date(currentUser.last_seen_chat_at)
+          setNewMessagesSeparatorIndex(data.findIndex(m => new Date(m.created_at) > lastSeen))
+        }
+      } catch (err) {
+        if (err?.name === 'CanceledError' || err?.name === 'AbortError') return
+      }
+    }
+
     fetchMessages()
     const interval = setInterval(fetchMessages, 5000)
-    return () => clearInterval(interval)
-  }, []) // eslint-disable-line
+
+    return () => {
+      mounted = false
+      abortController.abort()
+      clearInterval(interval)
+    }
+  }, [])
 
   useEffect(() => {
     if (isOpen) {
@@ -74,7 +87,10 @@ export function FloatingChat() {
       })
       setNewMessage('')
       setReplyTo(null)
-      await fetchMessages()
+      try {
+        const res = await api.get('/api/chat/messages/général?limit=50')
+        setMessages(res.data)
+      } catch {}
       setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     } catch {}
   }
