@@ -190,10 +190,10 @@ function MembresTab({ members, loading, error }) {
                 <span className="text-xs text-gray-700">•</span>
                 <span className="text-xs text-yellow-500">🏆 {m.trophies}</span>
               </div>
-              {m.league && (
+              {m.league?.name && (
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  {m.league.iconUrls?.small && (
-                    <img src={m.league.iconUrls.small} alt={m.league.name}
+                  {getLeagueImageUrl(m.league.name) && (
+                    <img src={getLeagueImageUrl(m.league.name)} alt={m.league.name}
                          className="w-4 h-4 object-contain flex-shrink-0"
                          onError={(e) => e.target.style.display = 'none'} />
                   )}
