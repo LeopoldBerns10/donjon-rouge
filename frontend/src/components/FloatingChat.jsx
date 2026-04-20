@@ -4,9 +4,17 @@ import { useLocation } from 'react-router-dom'
 import { ChatMessage } from './ChatMessage'
 import api from '../lib/api'
 
+// Wrapper : seul useLocation ici, early return légal car aucun autre hook après
 export function FloatingChat() {
-  const { user } = useAuth()
   const location = useLocation()
+  const hiddenPaths = ['/forum']
+  if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null
+  return <FloatingChatInner />
+}
+
+// Inner : tous les hooks appelés inconditionnellement
+function FloatingChatInner() {
+  const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([])
   const [newMessage, setNewMessage] = useState('')
@@ -19,10 +27,6 @@ export function FloatingChat() {
 
   isOpenRef.current = isOpen
   userRef.current = user
-
-  // Masquer sur /forum
-  const hiddenPaths = ['/forum']
-  if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null
 
   useEffect(() => {
     let mounted = true
