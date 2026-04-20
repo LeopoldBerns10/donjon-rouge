@@ -1082,7 +1082,7 @@ export default function Inscriptions({ embedded = false }) {
 
         {/* Boutons créer */}
         {user && (
-          <div className="flex gap-3 flex-wrap mb-8">
+          <div className="flex flex-col md:flex-row gap-2 mb-6">
             <button onClick={() => setCreateModal('gdc')}
               className="px-4 py-2 rounded-xl text-sm font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-300 hover:border-[#dc2626] hover:text-white transition-all">
               + Proposer une GDC

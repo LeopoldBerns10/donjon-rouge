@@ -18,6 +18,24 @@ const LEAGUE_ORDER = {
 }
 const ROLE_ORDER = { leader: 0, coLeader: 1, admin: 2, member: 3 }
 
+// Mapping ligue nouveau système (IDs 44000xxx, octobre 2025)
+const LEAGUE_COLORS = {
+  44000036: '#ff6600',
+  44000033: '#00bfff', 44000034: '#00bfff', 44000035: '#00bfff',
+  44000030: '#8b008b', 44000031: '#8b008b', 44000032: '#8b008b',
+  44000027: '#e0e0e0', 44000028: '#e0e0e0', 44000029: '#e0e0e0',
+  44000024: '#6a0dad', 44000025: '#6a0dad', 44000026: '#6a0dad',
+  44000021: '#808080', 44000022: '#808080', 44000023: '#808080',
+  44000018: '#9400d3', 44000019: '#9400d3', 44000020: '#9400d3',
+  44000015: '#ff4500', 44000016: '#ff4500', 44000017: '#ff4500',
+  44000012: '#4169e1', 44000013: '#4169e1', 44000014: '#4169e1',
+  44000009: '#ff69b4', 44000010: '#ff69b4', 44000011: '#ff69b4',
+  44000006: '#cd7f32', 44000007: '#cd7f32', 44000008: '#cd7f32',
+  44000003: '#a0522d', 44000004: '#a0522d', 44000005: '#a0522d',
+  44000000: '#666666',
+}
+const getLeagueColor = (id) => LEAGUE_COLORS[id] || '#666666'
+
 function getLeagueName(m) { return m.leagueTier?.name || m.league?.name || null }
 function leagueKey(name) { return name ? name.toLowerCase().split(' ')[0] : '' }
 function getLeagueOrder(name) { return LEAGUE_ORDER[leagueKey(name)] ?? -1 }
@@ -151,8 +169,16 @@ function MembresTab({ members, loading, error }) {
             <span className="text-xs text-[#dc2626] font-bold w-6 flex-shrink-0 text-center">
               {m.clanRank || i + 1}
             </span>
-            <div className="w-9 h-9 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30 flex-shrink-0 flex items-center justify-center text-sm font-bold text-[#dc2626]">
-              {m.name?.charAt(0).toUpperCase()}
+            <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+              <img
+                src={getTownHallImageUrl(m.townHallLevel)}
+                alt={`HDV ${m.townHallLevel}`}
+                className="w-9 h-9 object-contain"
+                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
+              />
+              <div className="w-9 h-9 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] items-center justify-center text-xs font-bold text-gray-400 hidden">
+                {m.townHallLevel}
+              </div>
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
@@ -163,13 +189,20 @@ function MembresTab({ members, loading, error }) {
                 <span className="text-xs text-gray-500">HV{m.townHallLevel}</span>
                 <span className="text-xs text-gray-700">•</span>
                 <span className="text-xs text-yellow-500">🏆 {m.trophies}</span>
-                {m.league?.name && (
-                  <>
-                    <span className="text-xs text-gray-700">•</span>
-                    <span className="text-xs text-gray-400 truncate">{m.league.name}</span>
-                  </>
-                )}
               </div>
+              {m.league && (
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {m.league.iconUrls?.small && (
+                    <img src={m.league.iconUrls.small} alt={m.league.name}
+                         className="w-4 h-4 object-contain flex-shrink-0"
+                         onError={(e) => e.target.style.display = 'none'} />
+                  )}
+                  <span className="text-xs font-medium truncate"
+                        style={{ color: getLeagueColor(m.league.id) }}>
+                    {m.league.name}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-xs text-green-400 font-semibold">↑ {m.donations}</p>
@@ -243,46 +276,75 @@ function AttaquesTab({ members, loading, error }) {
   const sorted = [...(members || [])].sort((a, b) => (b.attackWins || 0) - (a.attackWins || 0))
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-fog/30">
-      <table className="w-full text-sm">
-        <TableHeader cols={[
-          { label: 'Rang', center: true },
-          { label: 'Pseudo', center: false },
-          { label: 'HDV', center: true },
-          { label: 'Att. gagnées', center: true },
-          { label: 'Déf. gagnées', center: true },
-          { label: 'Dons envoyés', center: true, hidden: 'hidden md:table-cell' },
-          { label: 'Dons reçus', center: true, hidden: 'hidden md:table-cell' },
-        ]} />
-        <tbody>
-          {sorted.map((m, i) => (
-            <tr key={m.tag} className="border-b border-fog/20"
-              style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
-              <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
-              <td className="py-2.5 px-3">
-                <div className="flex items-center gap-2">
-                  <THImage level={m.townHallLevel} size={24} />
-                  <div>
-                    <div className="font-semibold text-bone text-sm">{m.name}</div>
-                    <span className={`text-xs font-cinzel font-bold uppercase px-1.5 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
-                      {translateRole(m.role)}
-                    </span>
+    <div>
+      {/* Version mobile */}
+      <div className="md:hidden rounded-lg border border-fog/30 overflow-hidden">
+        {sorted.map((m, i) => (
+          <div key={m.tag}
+               className="flex items-center gap-3 px-4 py-3 border-b border-[#1a1a1a] last:border-0"
+               style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+            <span className="text-xs text-[#dc2626] font-bold w-5 flex-shrink-0 text-center">{i + 1}</span>
+            <img src={getTownHallImageUrl(m.townHallLevel)}
+                 alt={`HDV ${m.townHallLevel}`}
+                 className="w-8 h-8 object-contain flex-shrink-0"
+                 onError={(e) => e.target.style.display = 'none'} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white truncate">{m.name}</p>
+              <p className="text-[10px] text-gray-600">{m.tag}</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-sm font-bold text-white">
+                {m.attackWins ?? 0}
+                <span className="text-xs text-gray-500 ml-1">att.</span>
+              </p>
+              <p className="text-xs text-gray-500">{m.defenseWins ?? 0} déf.</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Version desktop */}
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-fog/30">
+        <table className="w-full text-sm">
+          <TableHeader cols={[
+            { label: 'Rang', center: true },
+            { label: 'Pseudo', center: false },
+            { label: 'HDV', center: true },
+            { label: 'Att. gagnées', center: true },
+            { label: 'Déf. gagnées', center: true },
+            { label: 'Dons envoyés', center: true, hidden: 'hidden md:table-cell' },
+            { label: 'Dons reçus', center: true, hidden: 'hidden md:table-cell' },
+          ]} />
+          <tbody>
+            {sorted.map((m, i) => (
+              <tr key={m.tag} className="border-b border-fog/20"
+                style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                <td className="py-2.5 px-3 text-center text-ash text-xs font-cinzel">{i + 1}</td>
+                <td className="py-2.5 px-3">
+                  <div className="flex items-center gap-2">
+                    <THImage level={m.townHallLevel} size={24} />
+                    <div>
+                      <div className="font-semibold text-bone text-sm">{m.name}</div>
+                      <span className={`text-xs font-cinzel font-bold uppercase px-1.5 py-0.5 rounded ${getRoleBadgeClass(m.role)}`}>
+                        {translateRole(m.role)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td className="py-2.5 px-3 text-center">
-                <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
-                  {m.townHallLevel}
-                </span>
-              </td>
-              <td className="py-2.5 px-3 text-center font-bold text-gold-light">{m.attackWins ?? 0}</td>
-              <td className="py-2.5 px-3 text-center text-ash">{m.defenseWins ?? 0}</td>
-              <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donations?.toLocaleString() ?? 0}</td>
-              <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donationsReceived?.toLocaleString() ?? 0}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </td>
+                <td className="py-2.5 px-3 text-center">
+                  <span className="text-xs font-bold text-white px-1.5 py-0.5 rounded" style={{ background: '#C41E3A' }}>
+                    {m.townHallLevel}
+                  </span>
+                </td>
+                <td className="py-2.5 px-3 text-center font-bold text-gold-light">{m.attackWins ?? 0}</td>
+                <td className="py-2.5 px-3 text-center text-ash">{m.defenseWins ?? 0}</td>
+                <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donations?.toLocaleString() ?? 0}</td>
+                <td className="py-2.5 px-3 text-center text-ash hidden md:table-cell">{m.donationsReceived?.toLocaleString() ?? 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
