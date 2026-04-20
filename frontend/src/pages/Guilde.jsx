@@ -26,7 +26,7 @@ function getLeagueOrder(name) { return LEAGUE_ORDER[leagueKey(name)] ?? -1 }
 
 function StatBadge({ icon, label, value }) {
   return (
-    <div className="flex flex-col items-center justify-center p-4 rounded-lg border border-fog/40 bg-stone-mid gap-1 min-w-[110px]">
+    <div className="flex flex-col items-center justify-center p-3 md:p-5 rounded-lg border border-fog/40 bg-stone-mid gap-1 min-w-[110px]">
       <span className="text-2xl">{icon}</span>
       <span className="text-lg font-bold font-cinzel text-gold-light">{value ?? '—'}</span>
       <span className="text-xs text-ash font-cinzel uppercase tracking-wider text-center">{label}</span>
@@ -51,6 +51,14 @@ function LeagueBadge({ member }) {
       )}
       <span className="text-xs text-ash hidden lg:inline">{short}</span>
     </div>
+  )
+}
+
+function RoleBadge({ role, small }) {
+  return (
+    <span className={`font-cinzel font-bold uppercase rounded flex-shrink-0 ${small ? 'text-[9px] px-1 py-0' : 'text-[10px] px-1.5 py-0.5'} ${getRoleBadgeClass(role)}`}>
+      {translateRole(role)}
+    </span>
   )
 }
 
@@ -133,7 +141,46 @@ function MembresTab({ members, loading, error }) {
           </button>
         ))}
       </div>
-      <div className="overflow-x-auto rounded-lg border border-fog/30">
+      {/* Version mobile */}
+      <div className="md:hidden rounded-lg border border-fog/30 overflow-hidden">
+        {sorted.map((m, i) => (
+          <div key={m.tag}
+               onClick={() => navigate(`/tracker/${encodeURIComponent(m.tag)}`)}
+               className="flex items-center gap-3 px-4 py-3 border-b border-[#1a1a1a] last:border-0 hover:bg-[#111111] transition-colors cursor-pointer"
+               style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+            <span className="text-xs text-[#dc2626] font-bold w-6 flex-shrink-0 text-center">
+              {m.clanRank || i + 1}
+            </span>
+            <div className="w-9 h-9 rounded-full bg-[#dc2626]/20 border border-[#dc2626]/30 flex-shrink-0 flex items-center justify-center text-sm font-bold text-[#dc2626]">
+              {m.name?.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-bold text-white truncate">{m.name}</p>
+                <RoleBadge role={m.role} small />
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-gray-500">HV{m.townHallLevel}</span>
+                <span className="text-xs text-gray-700">•</span>
+                <span className="text-xs text-yellow-500">🏆 {m.trophies}</span>
+                {m.league?.name && (
+                  <>
+                    <span className="text-xs text-gray-700">•</span>
+                    <span className="text-xs text-gray-400 truncate">{m.league.name}</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-xs text-green-400 font-semibold">↑ {m.donations}</p>
+              <p className="text-xs text-red-400">↓ {m.donationsReceived}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Version desktop */}
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-fog/30">
         <table className="w-full text-sm">
           <TableHeader cols={[
             { label: '#', center: true },
@@ -722,11 +769,11 @@ function InscriptionsTab() {
 // ─── Page principale ──────────────────────────────────────────────────────
 
 const TABS = [
-  { key: 'membres',      label: 'Membres' },
-  { key: 'attaques',     label: 'Attaques' },
-  { key: 'gdcldc',       label: 'GDC/LDC' },
-  { key: 'raids',        label: 'Raids' },
-  { key: 'inscriptions', label: '⚔️ Inscriptions' },
+  { key: 'membres',      label: '👥 Membres' },
+  { key: 'attaques',     label: '⚔️ Attaques' },
+  { key: 'gdcldc',       label: '🏆 GDC/LDC' },
+  { key: 'raids',        label: '💎 Raids' },
+  { key: 'inscriptions', label: '📋 Inscriptions' },
 ]
 
 export default function Guilde() {
@@ -736,6 +783,7 @@ export default function Guilde() {
   const location = useLocation()
 
   const members = membersData?.items || []
+  const [descExpanded, setDescExpanded] = useState(false)
 
   useEffect(() => {
     const handler = () => setTab('inscriptions')
@@ -757,17 +805,34 @@ export default function Guilde() {
 
       {/* Clan header */}
       {clan && (
-        <div className="card-stone p-6 mb-8 flex flex-col md:flex-row gap-6 items-start relative">
-          <div className="flex-shrink-0 flex flex-col items-center gap-2">
+        <div className="card-stone mb-8 relative overflow-hidden">
+          {/* Badge + nom */}
+          <div className="flex flex-col items-center text-center px-4 py-6 md:flex-row md:text-left md:py-8 md:px-6 md:gap-6">
             {clan.badgeUrls?.large && (
-              <img src={clan.badgeUrls.large} alt="Badge clan" className="w-28 h-28 object-contain" />
+              <img src={clan.badgeUrls.large} alt="Badge clan"
+                   className="w-16 h-16 md:w-20 md:h-20 object-contain mb-3 md:mb-0 md:mr-4 flex-shrink-0" />
             )}
-            <span className="font-cinzel-deco text-gold text-lg font-bold">{clan.name}</span>
-            {clan.description && (
-              <p className="text-ash text-xs text-center max-w-xs">{clan.description}</p>
-            )}
+            <div>
+              <div className="font-cinzel-deco text-gold text-lg font-bold">{clan.name}</div>
+              <p className="text-xs text-gray-500 mt-1">{clan.tag} · {clan.location?.name}</p>
+            </div>
           </div>
-          <div className="flex-1 flex flex-wrap gap-3 justify-center md:justify-start">
+          {/* Description */}
+          {clan.description && (
+            <div className="px-4 md:px-6 -mt-2 mb-4">
+              <p className={`text-sm text-gray-400 leading-relaxed ${!descExpanded ? 'line-clamp-3' : ''}`}>
+                {clan.description}
+              </p>
+              {clan.description.length > 150 && (
+                <button onClick={() => setDescExpanded(!descExpanded)}
+                        className="text-xs text-[#dc2626] mt-1 hover:underline">
+                  {descExpanded ? 'Voir moins ↑' : 'Voir plus ↓'}
+                </button>
+              )}
+            </div>
+          )}
+          {/* Stats cards */}
+          <div className="grid grid-cols-2 gap-3 px-4 pb-4 md:flex md:flex-wrap md:gap-4 md:px-6 md:pb-6 md:justify-start">
             <StatBadge icon="🏰" label="Niveau clan" value={clan.clanLevel} />
             <StatBadge icon="👥" label="Membres" value={`${clan.members}/50`} />
             <StatBadge icon="⚔️" label="Guerres gagnées" value={clan.warWins} />
@@ -785,10 +850,10 @@ export default function Guilde() {
       {clanLoading && <p className="text-center text-ash font-cinzel animate-pulse mb-8">Chargement du clan...</p>}
 
       {/* Onglets */}
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="flex gap-2 px-0 py-3 overflow-x-auto scrollbar-none border-b border-[#1a1a1a] mb-6 sticky top-0 bg-[#0d0d0d] z-10 md:flex-wrap md:overflow-visible md:border-none md:static md:bg-transparent md:py-0">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
-            className={`px-5 py-2.5 rounded-xl text-sm font-semibold uppercase tracking-wide border transition-all duration-150 ${
+            className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wide whitespace-nowrap transition-all border ${
               tab === t.key
                 ? 'bg-[#dc2626] border-[#dc2626] text-white'
                 : 'bg-[#111111] border-[#2a2a2a] text-gray-400 hover:border-[#dc2626]/40 hover:text-white'
