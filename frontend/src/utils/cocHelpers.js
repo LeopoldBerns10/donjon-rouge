@@ -291,3 +291,27 @@ export function getLeagueShortName(leagueName) {
   return leagueName.replace(/ League$/i, '').replace(/Ligue /i, '')
 }
 
+export function getCWLLeagueIcon(leagueName) {
+  if (!leagueName) return null
+  const name = leagueName.toLowerCase()
+  if (name.includes('bronze'))   return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Bronze_1.png`
+  if (name.includes('silver'))   return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Silver_1.png`
+  if (name.includes('gold'))     return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Gold_1.png`
+  if (name.includes('crystal'))  return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Crystal_1.png`
+  if (name.includes('master'))   return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Master_1.png`
+  if (name.includes('champion')) return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Champion_1.png`
+  return null
+}
+
+export function getCapitalHallIcon() {
+  return `${SUPABASE_ASSETS}/capital/Building_CC_Capital_Hall_level_10.png`
+}
+
+export function getCapitalLeagueIcon(leagueName) {
+  if (!leagueName) return null
+  const name = leagueName.toLowerCase()
+  if (name.includes('champion'))
+    return `${SUPABASE_ASSETS}/capital/Icon_HV_League_Champion.png`
+  return null
+}
+

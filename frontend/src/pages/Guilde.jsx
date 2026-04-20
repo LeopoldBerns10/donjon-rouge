@@ -4,7 +4,7 @@ import { useCocClan, useCocMembers, useCocWar, useCocRaids } from '../hooks/useC
 import api from '../lib/api.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
-import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName } from '../utils/cocHelpers.js'
+import { translateRole, getRoleBadgeClass, getTownHallImageUrl, getLeagueImageUrl, getLeagueShortName, getCWLLeagueIcon, getCapitalHallIcon, getCapitalLeagueIcon } from '../utils/cocHelpers.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 import Inscriptions from './Inscriptions.jsx'
 
@@ -918,9 +918,49 @@ export default function Guilde() {
             <StatBadge icon="💀" label="Perdues" value={clan.warLosses ?? '—'} />
             <StatBadge icon="🔥" label="Série victoires" value={clan.warWinStreak} />
             <StatBadge icon="🏆" label="Points clan" value={clan.clanPoints?.toLocaleString()} />
-            <StatBadge icon="⭐" label="Ligue guerre" value={clan.warLeague?.name?.replace(' League', '') || '—'} />
-            <StatBadge icon="🏛️" label="Capital Hall" value={`Niv.${clan.clanCapital?.capitalHallLevel ?? '—'}`} />
-            <StatBadge icon="💎" label="Points Capital" value={clan.clanCapitalPoints?.toLocaleString()} />
+            {/* Ligue CWL avec icône Supabase */}
+            <div className="flex flex-col items-center gap-2 p-3 md:p-5 rounded-lg border border-fog/40 bg-stone-mid min-w-[110px]">
+              {getCWLLeagueIcon(clan.warLeague?.name) ? (
+                <img
+                  src={getCWLLeagueIcon(clan.warLeague.name)}
+                  alt={clan.warLeague.name}
+                  className="w-10 h-10 object-contain"
+                  onError={(e) => e.currentTarget.style.display = 'none'}
+                />
+              ) : (
+                <span className="text-2xl">⚔️</span>
+              )}
+              <span className="text-sm font-bold font-cinzel text-gold-light text-center leading-tight">
+                {clan.warLeague?.name?.replace(' League', '') || '—'}
+              </span>
+              <span className="text-xs text-ash font-cinzel uppercase tracking-wider text-center">Ligue Guerre</span>
+            </div>
+            {/* Capital Hall + points + ligue Capitale */}
+            <div className="flex flex-col items-center gap-1 p-3 md:p-5 rounded-lg border border-fog/40 bg-stone-mid min-w-[110px]">
+              <img
+                src={getCapitalHallIcon()}
+                alt="Capital Hall"
+                className="w-10 h-10 object-contain"
+                onError={(e) => e.currentTarget.style.display = 'none'}
+              />
+              <span className="text-lg font-bold font-cinzel text-gold-light">
+                {clan.clanCapitalPoints?.toLocaleString() ?? '—'}
+              </span>
+              <span className="text-xs text-ash font-cinzel uppercase tracking-wider text-center">Points Capital</span>
+              {clan.capitalLeague && (
+                <div className="flex items-center gap-1 mt-0.5">
+                  {getCapitalLeagueIcon(clan.capitalLeague.name) && (
+                    <img
+                      src={getCapitalLeagueIcon(clan.capitalLeague.name)}
+                      alt={clan.capitalLeague.name}
+                      className="w-4 h-4 object-contain"
+                      onError={(e) => e.currentTarget.style.display = 'none'}
+                    />
+                  )}
+                  <span className="text-[10px] text-ash font-cinzel">{clan.capitalLeague.name}</span>
+                </div>
+              )}
+            </div>
             <StatBadge icon="📍" label="Localisation" value={clan.location?.name || '—'} />
           </div>
         </div>

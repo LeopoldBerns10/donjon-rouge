@@ -4,6 +4,7 @@ import DragonBackground from '../components/DragonBackground.jsx'
 import { useCocClan } from '../hooks/useCocApi.js'
 import FireIntro from '../components/FireIntro.jsx'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
+import { getCapitalHallIcon, getCapitalLeagueIcon } from '../utils/cocHelpers.js'
 
 function useCountUp(target, duration = 1500) {
   const [count, setCount] = useState(0)
@@ -112,10 +113,9 @@ export default function Home() {
           {/* 4 stat cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             {[
-              { icon: '📍', label: 'Localisation',   value: 'France' },
-              { icon: '💎', label: 'Ligue clan',      value: clan?.warLeague?.name || '—' },
-              { icon: '⚔️', label: 'Guerres gagnées', value: clan.warWins || '—' },
-              { icon: '⭐', label: 'Niveau clan',     value: `Niv. ${clan.clanLevel || '—'}` },
+              { icon: '📍', label: 'Localisation', value: 'France' },
+              { icon: '💎', label: 'Ligue clan',   value: clan?.warLeague?.name || '—' },
+              { icon: '⭐', label: 'Niveau clan',  value: `Niv. ${clan.clanLevel || '—'}` },
             ].map(({ icon, label, value }) => (
               <div key={label}
                 className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 hover:shadow-lg hover:shadow-[#dc2626]/5 transition-all duration-200">
@@ -124,6 +124,34 @@ export default function Home() {
                 <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">{label}</p>
               </div>
             ))}
+            {/* Capital Hall — remplace "Guerres gagnées" */}
+            <div className="flex flex-col items-center gap-2 p-5 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 hover:shadow-lg hover:shadow-[#dc2626]/5 transition-all duration-200">
+              <img
+                src={getCapitalHallIcon()}
+                alt="Capital Hall"
+                className="w-8 h-8 object-contain"
+                onError={(e) => { e.currentTarget.style.display = 'none' }}
+              />
+              <p className="text-base font-bold text-white uppercase tracking-wide text-center">
+                {clan.clanCapitalPoints?.toLocaleString() || '0'}
+              </p>
+              <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">Points Capital</p>
+              {clan.capitalLeague && (
+                <div className="flex items-center justify-center gap-1.5 mt-1">
+                  {getCapitalLeagueIcon(clan.capitalLeague.name) && (
+                    <img
+                      src={getCapitalLeagueIcon(clan.capitalLeague.name)}
+                      alt={clan.capitalLeague.name}
+                      className="w-5 h-5 object-contain"
+                      onError={(e) => e.currentTarget.style.display = 'none'}
+                    />
+                  )}
+                  <span className="text-[10px] uppercase tracking-widest text-gray-500">
+                    {clan.capitalLeague.name}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* War status */}
