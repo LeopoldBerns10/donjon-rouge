@@ -5,6 +5,7 @@ import { useCocClan } from '../hooks/useCocApi.js'
 import FireIntro from '../components/FireIntro.jsx'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import { getCapitalHallIcon, getCapitalLeagueIcon } from '../utils/cocHelpers.js'
+import { Roulette } from '../components/Roulette.jsx'
 
 function useCountUp(target, duration = 1500) {
   const [count, setCount] = useState(0)
@@ -142,6 +143,9 @@ export default function Home() {
               )}
             </div>
           </div>
+
+          {/* Roulette casino */}
+          <Roulette />
 
           {/* War status */}
           {clan.isWarLogPublic !== undefined && (

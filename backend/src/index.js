@@ -17,6 +17,7 @@ import announcementsRoutes from './routes/announcements.js'
 import warEventsRoutes from './routes/warEvents.js'
 import ldcBoardRoutes from './routes/ldcBoard.js'
 import adminRoutes from './routes/admin.js'
+import rouletteRoutes from './routes/roulette.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -46,6 +47,7 @@ app.use('/api/announcements', announcementsRoutes)
 app.use('/api/war-events', warEventsRoutes)
 app.use('/api/ldc-board', ldcBoardRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/roulette', rouletteRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
   const result = await syncMembers()
