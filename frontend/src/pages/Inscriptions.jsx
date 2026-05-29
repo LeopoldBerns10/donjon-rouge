@@ -422,6 +422,7 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
   const [dr2Members, setDr2Members] = useState([])
   const [allMembers, setAllMembers] = useState([])
   const [selectedValue, setSelectedValue] = useState('')
+  const [fetchError, setFetchError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -430,20 +431,40 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
       try {
         const token = localStorage.getItem('dr_token')
         const headers = { Authorization: `Bearer ${token}` }
+
         const [dr1Res, dr2Res] = await Promise.all([
           fetch('/api/coc/clan/dr1/members', { headers }),
           fetch('/api/coc/clan/dr2/members', { headers }),
         ])
+
+        console.log('DR1 status:', dr1Res.status)
+        console.log('DR2 status:', dr2Res.status)
+
+        if (!dr1Res.ok || !dr2Res.ok) {
+          setFetchError(`Erreur API: DR1=${dr1Res.status} DR2=${dr2Res.status}`)
+          return
+        }
+
         const dr1 = await dr1Res.json()
         const dr2 = await dr2Res.json()
 
-        const signedTags = new Set((currentSignups || []).map(s => s.coc_tag))
+        console.log('DR1 data:', dr1)
+        console.log('DR2 data:', dr2)
+
+        const alreadySignedUp = Array.isArray(currentSignups)
+          ? currentSignups.map(s => s.coc_tag || s.tag)
+          : []
+
+        console.log('Already signed up:', alreadySignedUp)
+
         const d1 = (Array.isArray(dr1) ? dr1 : (dr1.items || []))
-          .filter(m => !signedTags.has(m.tag))
+          .filter(m => !alreadySignedUp.includes(m.tag))
           .map(m => ({ ...m, clan: 'DR1', clan_tag: '#29292QPRC' }))
         const d2 = (Array.isArray(dr2) ? dr2 : (dr2.items || []))
-          .filter(m => !signedTags.has(m.tag))
+          .filter(m => !alreadySignedUp.includes(m.tag))
           .map(m => ({ ...m, clan: 'DR2', clan_tag: '#2RCGG9YR9' }))
+
+        console.log('Available members:', d1.length + d2.length)
 
         setDr1Members(d1)
         setDr2Members(d2)
@@ -453,10 +474,11 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
         if (first) setSelectedValue(JSON.stringify({ tag: first.tag, clan_tag: first.clan_tag }))
       } catch (err) {
         console.error('Fetch members error:', err)
+        setFetchError(err.message)
       }
     }
     fetchMembers()
-  }, [currentSignups])
+  }, []) // run once on mount — currentSignups ne change pas pendant que la modal est ouverte
 
   const handleConfirm = async () => {
     if (!selectedValue) return
@@ -476,15 +498,17 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-[#111111] border border-[#6366f1]/40 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
-        <p className="text-white font-bold text-center mb-1">Inscrire un joueur</p>
-        <p className="text-xs text-gray-500 text-center mb-5 uppercase tracking-wide">{event.title}</p>
+      <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-base font-bold text-white uppercase tracking-wide mb-1">Inscrire un joueur</h3>
+        <p className="text-xs text-gray-500 mb-4">{event.title}</p>
 
-        {allMembers.length === 0 ? (
-          <p className="text-sm text-gray-600 text-center py-4">Tous les membres sont déjà inscrits</p>
+        {fetchError ? (
+          <p className="text-sm text-[#dc2626] text-center py-4">{fetchError}</p>
+        ) : allMembers.length === 0 ? (
+          <p className="text-sm text-gray-600 text-center py-4">Chargement des membres...</p>
         ) : (
           <select value={selectedValue} onChange={e => setSelectedValue(e.target.value)}
-            className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#6366f1]/50 mb-4">
+            className="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50 mb-4">
             <option value="">Sélectionner un joueur...</option>
             <optgroup label="🔴 Donjon Rouge 1">
               {dr1Members.map(m => (
@@ -507,11 +531,11 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
 
         <div className="flex gap-3">
           <button onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:border-[#555] hover:text-white transition-all">
             Annuler
           </button>
           <button onClick={handleConfirm} disabled={loading || allMembers.length === 0}
-            className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#6366f1] hover:bg-[#4f46e5] text-white disabled:opacity-50 transition-all">
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 transition-colors">
             {loading ? 'Inscription...' : 'Inscrire'}
           </button>
         </div>
