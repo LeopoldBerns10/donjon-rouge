@@ -341,6 +341,12 @@ export default function Admin() {
       .finally(() => setUsersLoading(false))
   }, [isAdmin])
 
+  useEffect(() => {
+    if (users.length > 0) {
+      console.log('ADMIN clan_tag debug:', users.slice(0, 5).map(u => ({ name: u.coc_name, clan_tag: u.clan_tag })))
+    }
+  }, [users])
+
   async function handleAction(action, userId) {
     setError('')
     setSuccess('')

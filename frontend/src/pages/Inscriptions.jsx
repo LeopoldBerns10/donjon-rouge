@@ -420,35 +420,51 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
 function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
   const [dr1Members, setDr1Members] = useState([])
   const [dr2Members, setDr2Members] = useState([])
-  const [selectedTag, setSelectedTag] = useState('')
+  const [allMembers, setAllMembers] = useState([])
+  const [selectedValue, setSelectedValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    const signedTags = new Set((currentSignups || []).map(s => s.coc_tag))
-    Promise.all([
-      api.get('/api/coc/clan/dr1/members'),
-      api.get('/api/coc/clan/dr2/members'),
-    ]).then(([r1, r2]) => {
-      const items1 = (r1.data?.items || r1.data || []).filter(m => !signedTags.has(m.tag))
-      const items2 = (r2.data?.items || r2.data || []).filter(m => !signedTags.has(m.tag))
-      setDr1Members(items1)
-      setDr2Members(items2)
-      const first = items1[0] || items2[0]
-      if (first) setSelectedTag(first.tag)
-    }).catch(() => {})
+    const fetchMembers = async () => {
+      try {
+        const token = localStorage.getItem('dr_token')
+        const headers = { Authorization: `Bearer ${token}` }
+        const [dr1Res, dr2Res] = await Promise.all([
+          fetch('/api/coc/clan/dr1/members', { headers }),
+          fetch('/api/coc/clan/dr2/members', { headers }),
+        ])
+        const dr1 = await dr1Res.json()
+        const dr2 = await dr2Res.json()
+
+        const signedTags = new Set((currentSignups || []).map(s => s.coc_tag))
+        const d1 = (Array.isArray(dr1) ? dr1 : (dr1.items || []))
+          .filter(m => !signedTags.has(m.tag))
+          .map(m => ({ ...m, clan: 'DR1', clan_tag: '#29292QPRC' }))
+        const d2 = (Array.isArray(dr2) ? dr2 : (dr2.items || []))
+          .filter(m => !signedTags.has(m.tag))
+          .map(m => ({ ...m, clan: 'DR2', clan_tag: '#2RCGG9YR9' }))
+
+        setDr1Members(d1)
+        setDr2Members(d2)
+        setAllMembers([...d1, ...d2])
+
+        const first = d1[0] || d2[0]
+        if (first) setSelectedValue(JSON.stringify({ tag: first.tag, clan_tag: first.clan_tag }))
+      } catch (err) {
+        console.error('Fetch members error:', err)
+      }
+    }
+    fetchMembers()
   }, [currentSignups])
 
-  const allMembers = [...dr1Members, ...dr2Members]
-
   const handleConfirm = async () => {
-    if (!selectedTag) return
+    if (!selectedValue) return
     setLoading(true)
     setError(null)
     try {
-      const member = allMembers.find(m => m.tag === selectedTag)
-      const clan_tag = dr2Members.find(m => m.tag === selectedTag) ? '#2RCGG9YR9' : '#29292QPRC'
-      await api.post(`/api/war-events/${event.id}/signup-admin`, { coc_tag: selectedTag, clan_tag })
+      const { tag: coc_tag, clan_tag } = JSON.parse(selectedValue)
+      await api.post(`/api/war-events/${event.id}/signup-admin`, { coc_tag, clan_tag })
       onAdded()
       onClose()
     } catch (err) {
@@ -467,17 +483,21 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
         {allMembers.length === 0 ? (
           <p className="text-sm text-gray-600 text-center py-4">Tous les membres sont déjà inscrits</p>
         ) : (
-          <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)}
+          <select value={selectedValue} onChange={e => setSelectedValue(e.target.value)}
             className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#6366f1]/50 mb-4">
             <option value="">Sélectionner un joueur...</option>
             <optgroup label="🔴 Donjon Rouge 1">
               {dr1Members.map(m => (
-                <option key={m.tag} value={m.tag}>{m.name} — HV{m.townHallLevel}</option>
+                <option key={m.tag} value={JSON.stringify({ tag: m.tag, clan_tag: '#29292QPRC' })}>
+                  {m.name} — HV{m.townHallLevel}
+                </option>
               ))}
             </optgroup>
             <optgroup label="🟡 Donjon Rouge 2">
               {dr2Members.map(m => (
-                <option key={m.tag} value={m.tag}>{m.name} — HV{m.townHallLevel}</option>
+                <option key={m.tag} value={JSON.stringify({ tag: m.tag, clan_tag: '#2RCGG9YR9' })}>
+                  {m.name} — HV{m.townHallLevel}
+                </option>
               ))}
             </optgroup>
           </select>
@@ -490,7 +510,7 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
             className="flex-1 py-2.5 rounded-xl text-sm font-semibold uppercase border border-[#333] text-gray-400 hover:text-white transition-all">
             Annuler
           </button>
-          <button onClick={handleConfirm} disabled={loading || members.length === 0}
+          <button onClick={handleConfirm} disabled={loading || allMembers.length === 0}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase bg-[#6366f1] hover:bg-[#4f46e5] text-white disabled:opacity-50 transition-all">
             {loading ? 'Inscription...' : 'Inscrire'}
           </button>

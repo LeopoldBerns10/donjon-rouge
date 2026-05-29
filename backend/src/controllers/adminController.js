@@ -5,7 +5,7 @@ import supabase from '../lib/supabase.js'
 export async function getUsers(req, res) {
   const { data, error } = await supabase
     .from('users')
-    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, last_login, created_at')
+    .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, last_login, created_at, clan_tag')
     .order('coc_name')
 
   if (error) return res.status(500).json({ error: error.message })
