@@ -4,7 +4,7 @@ import DragonBackground from '../components/DragonBackground.jsx'
 import { useCocClan } from '../hooks/useCocApi.js'
 import FireIntro from '../components/FireIntro.jsx'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
-import { getCapitalHallIcon, getCapitalLeagueIcon, getCWLLeagueIcon } from '../utils/cocHelpers.js'
+import { getCapitalHallIcon } from '../utils/cocHelpers.js'
 import { Roulette } from '../components/Roulette.jsx'
 
 function useCountUp(target, duration = 1500) {
@@ -31,12 +31,6 @@ export default function Home() {
   const { data: clan, loading } = useCocClan()
   const memberCount = useCountUp(clan?.members || 0)
 
-  // DEBUG — à retirer après vérification
-  if (clan) {
-    console.log('WAR LEAGUE:', clan?.warLeague)
-    console.log('CAPITAL LEAGUE:', clan?.capitalLeague)
-  }
-
   return (
     <div className="relative min-h-screen overflow-hidden">
       <AnimatedBackground variant="home" />
@@ -50,7 +44,7 @@ export default function Home() {
           src="/assets/dragon-blazon.png"
           alt=""
           className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-          style={{ opacity: 0.75, zIndex: 0 }}
+          style={{ opacity: 0.65, zIndex: 0 }}
         />
 
         {/* Contenu au-dessus du dragon */}
@@ -61,7 +55,7 @@ export default function Home() {
               src={clan?.badgeUrls?.large || 'https://api-assets.clashofclans.com/badges/512/Cbal0SXAUxTFUsLag6SVrqBsFhAfrPfk9nAANTqQTMM.png'}
               alt="Donjon Rouge"
               className="w-36 h-36 md:w-44 md:h-44 object-contain mx-auto drop-shadow-[0_0_40px_rgba(220,38,38,0.6)] animate-pulse"
-              style={{ animationDuration: '3s' }}
+              style={{ animationDuration: '3s', position: 'relative', zIndex: 20 }}
             />
           </div>
 
@@ -125,20 +119,20 @@ export default function Home() {
               </div>
             ))}
 
-            {/* Ligue Guerre (CWL) — icône depuis l'API CoC */}
+            {/* Ligue Guerre (CWL) — iconUrls directs depuis l'API CoC */}
             <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all">
-              {getCWLLeagueIcon(clan.warLeague) ? (
+              {clan.warLeague?.iconUrls?.small ? (
                 <img
-                  src={getCWLLeagueIcon(clan.warLeague)}
-                  alt={clan.warLeague?.name}
+                  src={clan.warLeague.iconUrls.small}
+                  alt={clan.warLeague?.name || 'Ligue Guerre'}
                   className="w-10 h-10 object-contain"
                   onError={(e) => e.currentTarget.style.display = 'none'}
                 />
               ) : (
                 <span className="text-2xl">💎</span>
               )}
-              <p className="text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">
-                {clan.warLeague?.name?.replace(' League', '') || '—'}
+              <p className="text-sm font-bold text-white text-center leading-tight">
+                {clan.warLeague?.name || '—'}
               </p>
               <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">Ligue Guerre</p>
             </div>
@@ -149,12 +143,14 @@ export default function Home() {
               <p className="text-[10px] uppercase tracking-widest text-gray-600">Capital Hall</p>
               {clan.capitalLeague && (
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <img
-                    src={getCapitalLeagueIcon(clan.capitalLeague)}
-                    alt={clan.capitalLeague.name}
-                    className="w-6 h-6 object-contain"
-                    onError={(e) => e.currentTarget.style.display = 'none'}
-                  />
+                  {clan.capitalLeague.iconUrls?.small && (
+                    <img
+                      src={clan.capitalLeague.iconUrls.small}
+                      alt={clan.capitalLeague.name || 'Ligue Capitale'}
+                      className="w-6 h-6 object-contain"
+                      onError={(e) => e.currentTarget.style.display = 'none'}
+                    />
+                  )}
                   <span className="text-xs text-gray-400">{clan.capitalLeague.name}</span>
                 </div>
               )}
