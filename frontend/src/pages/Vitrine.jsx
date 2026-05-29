@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect, createElement } from 'react'
+import { useState, useRef, useEffect, useMemo, createElement } from 'react'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
 
+const FIXED_SECTION_KEYS = ['hymne', 'recrutement', 'reglement', 'cartons', 'identite']
+
 // ─── EditableText ─────────────────────────────────────────────────────────────
-function EditableText({ block, onSave, onDelete, canEdit, tag = 'span', className = '' }) {
+function EditableText({ block, onSave, onDelete, canEdit, tag = 'span', className = '', style = {} }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(block.value || '')
 
@@ -27,7 +29,7 @@ function EditableText({ block, onSave, onDelete, canEdit, tag = 'span', classNam
     } catch {}
   }
 
-  if (!canEdit) return createElement(tag, { className }, block.value)
+  if (!canEdit) return createElement(tag, { className, style }, block.value)
 
   if (editing) {
     return (
@@ -40,13 +42,12 @@ function EditableText({ block, onSave, onDelete, canEdit, tag = 'span', classNam
             if (e.key === 'Escape') { setDraft(block.value); setEditing(false) }
           }}
           autoFocus
-          rows={2}
+          rows={3}
           className="flex-1 bg-[#0d0d0d] border border-[#dc2626]/50 rounded-lg p-2
-                     text-white text-sm resize-none focus:outline-none focus:border-[#dc2626]"
+                     text-white text-sm resize-y focus:outline-none focus:border-[#dc2626]"
         />
         <div className="flex flex-col gap-1 flex-shrink-0">
-          <button onClick={save}
-                  className="px-2 py-1 rounded bg-[#dc2626] text-white text-xs font-bold">✓</button>
+          <button onClick={save} className="px-2 py-1 rounded bg-[#dc2626] text-white text-xs font-bold">✓</button>
           <button onClick={() => { setDraft(block.value); setEditing(false) }}
                   className="px-2 py-1 rounded bg-[#1a1a1a] text-gray-400 text-xs">✕</button>
         </div>
@@ -56,14 +57,16 @@ function EditableText({ block, onSave, onDelete, canEdit, tag = 'span', classNam
 
   return (
     <div className="relative group inline-block w-full">
-      {createElement(tag, { className }, block.value)}
+      {createElement(tag, { className, style }, block.value)}
       <div className="absolute -top-2 right-0 hidden group-hover:flex gap-1 z-10">
         <button onClick={() => setEditing(true)}
                 className="px-2 py-0.5 rounded bg-[#1a1a1a] border border-[#dc2626]/30
                            text-[#dc2626] text-[10px] hover:bg-[#dc2626]/10">✏️</button>
-        <button onClick={deleteBlock}
-                className="px-2 py-0.5 rounded bg-[#1a1a1a] border border-red-900/30
-                           text-red-500 text-[10px] hover:bg-red-900/20">🗑️</button>
+        {onDelete !== null && (
+          <button onClick={deleteBlock}
+                  className="px-2 py-0.5 rounded bg-[#1a1a1a] border border-red-900/30
+                             text-red-500 text-[10px] hover:bg-red-900/20">🗑️</button>
+        )}
       </div>
       <div className="absolute inset-0 border border-dashed border-[#dc2626]/0
                       group-hover:border-[#dc2626]/30 rounded pointer-events-none transition-colors" />
@@ -72,7 +75,7 @@ function EditableText({ block, onSave, onDelete, canEdit, tag = 'span', classNam
 }
 
 // ─── AddBlockButton ────────────────────────────────────────────────────────────
-function AddBlockButton({ section, onAdd, canEdit }) {
+function AddBlockButton({ section, onAdd, canEdit, placeholder = 'Nouveau bloc...' }) {
   const [adding, setAdding] = useState(false)
   const [newValue, setNewValue] = useState('')
 
@@ -101,13 +104,12 @@ function AddBlockButton({ section, onAdd, canEdit }) {
           value={newValue}
           onChange={e => setNewValue(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') add(); if (e.key === 'Escape') setAdding(false) }}
-          placeholder="Nouveau bloc..."
+          placeholder={placeholder}
           autoFocus
           className="flex-1 px-3 py-2 rounded-lg bg-[#0d0d0d] border border-[#dc2626]/50
                      text-white text-sm focus:outline-none"
         />
-        <button onClick={add}
-                className="px-3 py-2 rounded-lg bg-[#dc2626] text-white text-sm font-bold">✓</button>
+        <button onClick={add} className="px-3 py-2 rounded-lg bg-[#dc2626] text-white text-sm font-bold">✓</button>
         <button onClick={() => setAdding(false)}
                 className="px-3 py-2 rounded-lg bg-[#1a1a1a] text-gray-400 text-sm">✕</button>
       </div>
@@ -138,27 +140,61 @@ function EditableAudio({ canEdit, onUploaded }) {
     try {
       const res = await api.post('/api/vitrine/upload/audio', fd)
       onUploaded(res.data.url)
-    } catch (err) {
-      console.error('Upload audio:', err.message)
-    } finally {
-      setUploading(false)
-    }
+    } catch {}
+    finally { setUploading(false) }
   }
 
   if (!canEdit) return null
-
   return (
     <>
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-semibold uppercase
-                   border border-dashed border-[#dc2626]/30 text-[#dc2626]/60
-                   hover:border-[#dc2626] hover:text-[#dc2626] transition-all disabled:opacity-40">
+      <button onClick={() => inputRef.current?.click()} disabled={uploading}
+              className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-semibold uppercase
+                         border border-dashed border-[#dc2626]/30 text-[#dc2626]/60
+                         hover:border-[#dc2626] hover:text-[#dc2626] transition-all disabled:opacity-40">
         {uploading ? '⏳ Upload...' : "🎵 Remplacer l'hymne"}
       </button>
       <input ref={inputRef} type="file" accept="audio/*" className="hidden" onChange={handleUpload} />
     </>
+  )
+}
+
+// ─── EditableImage ─────────────────────────────────────────────────────────────
+function EditableImage({ src, storageKey, canEdit, label, onReplace }) {
+  const inputRef = useRef(null)
+  const [currentSrc, setCurrentSrc] = useState(src)
+  const [uploading, setUploading] = useState(false)
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('key', storageKey)
+    try {
+      const res = await api.post('/api/vitrine/upload/image', fd)
+      setCurrentSrc(res.data.url)
+      onReplace?.(res.data.url)
+    } catch {}
+    finally { setUploading(false) }
+  }
+
+  return (
+    <div className="relative group rounded-xl overflow-hidden">
+      <img src={currentSrc} alt={label} className="w-full object-contain rounded-xl max-h-52" />
+      {canEdit && (
+        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity
+                        flex flex-col items-center justify-center gap-2 rounded-xl">
+          <p className="text-xs text-gray-300 uppercase tracking-wide">{label}</p>
+          <button onClick={() => inputRef.current?.click()} disabled={uploading}
+                  className="px-4 py-2 rounded-xl bg-[#dc2626] text-white text-sm font-bold
+                             hover:bg-[#b91c1c] disabled:opacity-50 transition-colors">
+            {uploading ? '⏳ Upload...' : '📷 Remplacer'}
+          </button>
+        </div>
+      )}
+      <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+    </div>
   )
 }
 
@@ -171,57 +207,43 @@ function AudioPlayer({ src, title }) {
   const [duration, setDuration] = useState(0)
 
   const togglePlay = () => {
-    const audio = audioRef.current
-    if (!audio) return
-    if (playing) { audio.pause() } else { audio.play() }
+    const a = audioRef.current
+    if (!a) return
+    if (playing) a.pause(); else a.play()
     setPlaying(!playing)
   }
 
-  const handleTimeUpdate = () => {
-    const audio = audioRef.current
-    if (!audio?.duration) return
-    setCurrentTime(audio.currentTime)
-    setProgress((audio.currentTime / audio.duration) * 100)
-  }
-
   const handleSeek = (e) => {
-    const audio = audioRef.current
-    if (!audio?.duration) return
+    const a = audioRef.current
+    if (!a?.duration) return
     const rect = e.currentTarget.getBoundingClientRect()
-    audio.currentTime = ((e.clientX - rect.left) / rect.width) * audio.duration
+    a.currentTime = ((e.clientX - rect.left) / rect.width) * a.duration
   }
 
-  const fmt = (s) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+  const fmt = s => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
 
   return (
     <div className="rounded-lg p-6" style={{ background: '#111111', border: '1px solid #dc2626' }}>
-      <p className="font-cinzel text-xs uppercase tracking-widest mb-4" style={{ color: '#666' }}>
-        ♪ HYMNE DU CLAN
-      </p>
-      <audio
-        ref={audioRef}
-        key={src}
-        src={src || '/audio/hymne.mp3'}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={() => { if (audioRef.current) setDuration(audioRef.current.duration) }}
-        onEnded={() => setPlaying(false)}
-      />
+      <p className="font-cinzel text-xs uppercase tracking-widest mb-4" style={{ color: '#666' }}>♪ HYMNE DU CLAN</p>
+      <audio ref={audioRef} key={src} src={src || '/audio/hymne.mp3'}
+             onTimeUpdate={() => {
+               const a = audioRef.current
+               if (!a?.duration) return
+               setCurrentTime(a.currentTime)
+               setProgress((a.currentTime / a.duration) * 100)
+             }}
+             onLoadedMetadata={() => { if (audioRef.current) setDuration(audioRef.current.duration) }}
+             onEnded={() => setPlaying(false)} />
       <p className="font-cinzel text-xs uppercase tracking-wider mb-4" style={{ color: '#f0f0f0' }}>
         {title || 'HYMNE OFFICIEL — DONJON ROUGE'}
       </p>
       <div className="flex items-center gap-4">
         <button onClick={togglePlay}
-                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 transition-all hover:opacity-80"
+                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 hover:opacity-80 transition-all"
                 style={{ background: '#dc2626' }}>
-          {playing ? (
-            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <polygon points="5,3 19,12 5,21" />
-            </svg>
-          )}
+          {playing
+            ? <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            : <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>}
         </button>
         <div className="flex-1 flex flex-col gap-1">
           <div className="w-full h-2 rounded-full cursor-pointer" style={{ background: '#1f1f1f' }} onClick={handleSeek}>
@@ -237,31 +259,88 @@ function AudioPlayer({ src, title }) {
   )
 }
 
-// ─── Accordéon ────────────────────────────────────────────────────────────────
-function Accordion({ icon, title, children }) {
+// ─── EditableAccordion ────────────────────────────────────────────────────────
+function EditableAccordion({ titreBlock, contenuBlock, canEdit, onSave, onDeleteAccordion }) {
   const [open, setOpen] = useState(false)
+  if (!titreBlock) return null
+
   return (
-    <div className="rounded overflow-hidden" style={{ border: '1px solid #1f1f1f' }}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 transition-all text-left"
+    <div className="relative group rounded overflow-hidden" style={{ border: '1px solid #1f1f1f' }}>
+      {/* Bouton supprimer (admin) */}
+      {canEdit && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDeleteAccordion() }}
+          className="absolute -right-1 -top-1 w-5 h-5 rounded-full bg-red-900/60
+                     border border-red-700/40 text-red-400 text-[10px]
+                     hidden group-hover:flex items-center justify-center z-20
+                     hover:bg-red-900 transition-colors">
+          ✕
+        </button>
+      )}
+
+      {/* Header */}
+      <div
+        className="w-full flex items-center justify-between px-5 py-4 cursor-pointer transition-all"
         style={{ background: '#111111', borderLeft: open ? '3px solid #dc2626' : '3px solid transparent' }}
+        onClick={() => setOpen(o => !o)}
       >
-        <span className="font-cinzel text-sm uppercase tracking-wider" style={{ color: '#f0f0f0' }}>
-          {icon} {title}
-        </span>
-        <svg className="w-4 h-4 flex-shrink-0 transition-transform duration-200"
+        {canEdit ? (
+          <div className="flex-1" onClick={e => e.stopPropagation()}>
+            <EditableText
+              block={titreBlock}
+              onSave={onSave}
+              onDelete={null}
+              canEdit={canEdit}
+              tag="span"
+              className="font-cinzel text-sm uppercase tracking-wider"
+              style={{ color: '#f0f0f0' }}
+            />
+          </div>
+        ) : (
+          <span className="font-cinzel text-sm uppercase tracking-wider" style={{ color: '#f0f0f0' }}>
+            {titreBlock.value}
+          </span>
+        )}
+        <svg className="w-4 h-4 flex-shrink-0 ml-2 transition-transform duration-200"
              style={{ color: '#666', transform: open ? 'rotate(180deg)' : 'rotate(0deg)' }}
              fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
-      </button>
+      </div>
+
+      {/* Contenu */}
       {open && (
         <div className="px-5 py-4 text-sm leading-relaxed"
              style={{ background: '#0f0f0f', borderLeft: '3px solid #1f1f1f', color: '#aaa' }}>
-          {children}
+          {contenuBlock ? (
+            canEdit ? (
+              <EditableText
+                block={contenuBlock}
+                onSave={onSave}
+                onDelete={null}
+                canEdit={canEdit}
+                tag="div"
+                className="whitespace-pre-wrap"
+              />
+            ) : (
+              <div className="whitespace-pre-wrap">{contenuBlock.value}</div>
+            )
+          ) : <p className="text-gray-600 italic">Aucun contenu</p>}
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+function SectionHeader({ label }) {
+  return (
+    <div className="flex items-center gap-3 mb-6">
+      <div className="h-px flex-1 bg-[#1a1a1a]" />
+      <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
+        {label}
+      </span>
+      <div className="h-px flex-1 bg-[#1a1a1a]" />
     </div>
   )
 }
@@ -277,7 +356,6 @@ const RL = () => (
   </span>
 )
 
-// ─── Styles par clé pour recrutement ─────────────────────────────────────────
 const RECRU_STYLE = {
   hdv_min:     { icon: '🏰', color: '#dc2626', className: 'font-bold text-lg' },
   assiduite:   { icon: '✅', color: '#f0f0f0', className: '' },
@@ -290,7 +368,11 @@ const RECRU_STYLE = {
 export default function Vitrine() {
   const { user } = useAuth()
   const canEdit = user?.coc_name === 'CyberAlf' || ['superadmin', 'admin'].includes(user?.site_role)
+
   const [blocks, setBlocks] = useState({})
+  const [sections, setSections] = useState([])
+  const [showCreateSection, setShowCreateSection] = useState(false)
+  const [newSection, setNewSection] = useState({ icon: '📋', label: '' })
 
   useEffect(() => {
     api.get('/api/vitrine/blocks').then(r => {
@@ -301,50 +383,126 @@ export default function Vitrine() {
       }, {})
       setBlocks(organized)
     }).catch(() => {})
+
+    api.get('/api/vitrine/sections').then(r => setSections(r.data || [])).catch(() => {})
   }, [])
 
-  const updateBlock = (id, value) => {
-    setBlocks(prev => {
-      const next = {}
-      for (const sec in prev) {
-        next[sec] = prev[sec].map(b => b.id === id ? { ...b, value } : b)
-      }
-      return next
-    })
-  }
+  // ─── State helpers ──────────────────────────────────────────────────────────
+  const updateBlock = (id, value) => setBlocks(prev => {
+    const next = {}
+    for (const sec in prev) next[sec] = prev[sec].map(b => b.id === id ? { ...b, value } : b)
+    return next
+  })
 
-  const removeBlock = (id) => {
-    setBlocks(prev => {
-      const next = {}
-      for (const sec in prev) {
-        next[sec] = prev[sec].filter(b => b.id !== id)
-      }
-      return next
-    })
-  }
+  const removeBlock = (id) => setBlocks(prev => {
+    const next = {}
+    for (const sec in prev) next[sec] = prev[sec].filter(b => b.id !== id)
+    return next
+  })
 
-  const addBlock = (block) => {
-    setBlocks(prev => ({
-      ...prev,
-      [block.section]: [...(prev[block.section] || []), block],
-    }))
-  }
+  const removeBlocks = (ids) => setBlocks(prev => {
+    const next = {}
+    for (const sec in prev) next[sec] = prev[sec].filter(b => !ids.includes(b.id))
+    return next
+  })
 
-  const getBlock = (section, key) =>
-    (blocks[section] || []).find(b => b.key === key)
+  const addBlock = (block) => setBlocks(prev => ({
+    ...prev,
+    [block.section]: [...(prev[block.section] || []), block],
+  }))
 
-  // Hymne
-  const hymneTitle = getBlock('hymne', 'titre')
-  const hymneAudio = getBlock('hymne', 'url')
+  const addBlocks = (newBlocks) => setBlocks(prev => {
+    const next = { ...prev }
+    for (const block of newBlocks) {
+      if (!next[block.section]) next[block.section] = []
+      next[block.section] = [...next[block.section], block]
+    }
+    return next
+  })
 
-  // Recrutement
+  // ─── Hymne ──────────────────────────────────────────────────────────────────
+  const hymneTitle = (blocks.hymne || []).find(b => b.key === 'titre')
+  const hymneAudio = (blocks.hymne || []).find(b => b.key === 'url')
+
+  // ─── Recrutement ────────────────────────────────────────────────────────────
   const recrutBlocks = blocks.recrutement || []
-  const sloganBlock  = recrutBlocks.find(b => b.key === 'slogan')
+  const sloganBlock   = recrutBlocks.find(b => b.key === 'slogan')
   const criteresBlocks = recrutBlocks.filter(b => b.key !== 'slogan')
 
-  // Cartons
+  // ─── Règlement accordéons ───────────────────────────────────────────────────
+  const accordionGroups = useMemo(() => {
+    const regBlocks = blocks.reglement || []
+    const indices = [...new Set(
+      regBlocks
+        .filter(b => /^accord_\d+_/.test(b.key))
+        .map(b => parseInt(b.key.match(/^accord_(\d+)_/)[1]))
+    )].sort((a, b) => a - b)
+    return indices.map(idx => ({
+      idx,
+      titreBlock: regBlocks.find(b => b.key === `accord_${idx}_titre`),
+      contenuBlock: regBlocks.find(b => b.key === `accord_${idx}_contenu`),
+    }))
+  }, [blocks.reglement])
+
+  const handleAddAccordion = async () => {
+    const existing = (blocks.reglement || [])
+      .filter(b => /^accord_\d+_/.test(b.key))
+      .map(b => parseInt(b.key.match(/^accord_(\d+)_/)[1]))
+    const nextIdx = existing.length ? Math.max(...existing) + 1 : 1
+    try {
+      const [r1, r2] = await Promise.all([
+        api.post('/api/vitrine/blocks', {
+          section: 'reglement', key: `accord_${nextIdx}_titre`, type: 'text',
+          value: '📋 Nouvel accordéon', order_index: nextIdx * 2 - 1,
+        }),
+        api.post('/api/vitrine/blocks', {
+          section: 'reglement', key: `accord_${nextIdx}_contenu`, type: 'text',
+          value: 'Contenu à éditer...', order_index: nextIdx * 2,
+        }),
+      ])
+      addBlocks([r1.data, r2.data])
+    } catch {}
+  }
+
+  const handleDeleteAccordion = async (titreBlock, contenuBlock) => {
+    if (!window.confirm('Supprimer cet accordéon ?')) return
+    const ids = []
+    try {
+      if (titreBlock) { await api.delete(`/api/vitrine/blocks/${titreBlock.id}`); ids.push(titreBlock.id) }
+      if (contenuBlock) { await api.delete(`/api/vitrine/blocks/${contenuBlock.id}`); ids.push(contenuBlock.id) }
+      removeBlocks(ids)
+    } catch {}
+  }
+
+  // ─── Cartons ────────────────────────────────────────────────────────────────
   const ldcBlocks = (blocks.cartons || []).filter(b => b.key.startsWith('ldc'))
   const gdcBlocks = (blocks.cartons || []).filter(b => b.key.startsWith('gdc'))
+
+  // ─── Sections custom ────────────────────────────────────────────────────────
+  const customSections = sections.filter(s => !FIXED_SECTION_KEYS.includes(s.key))
+
+  const handleCreateSection = async () => {
+    if (!newSection.label.trim()) return
+    const key = `custom_${Date.now()}`
+    try {
+      const res = await api.post('/api/vitrine/sections', {
+        key, label: newSection.label, icon: newSection.icon || '📋',
+        order_index: sections.length + 1,
+      })
+      setSections(prev => [...prev, res.data])
+    } catch {}
+    setShowCreateSection(false)
+    setNewSection({ icon: '📋', label: '' })
+  }
+
+  const handleDeleteSection = async (key) => {
+    if (!window.confirm('Supprimer cette section et tout son contenu ?')) return
+    try {
+      await api.delete(`/api/vitrine/sections/${key}`)
+      setSections(prev => prev.filter(s => s.key !== key))
+      setBlocks(prev => { const next = { ...prev }; delete next[key]; return next })
+    } catch {}
+  }
 
   return (
     <>
@@ -355,10 +513,8 @@ export default function Vitrine() {
         <section className="relative rounded-xl overflow-hidden mb-14 flex flex-col items-center py-16 px-4">
           <div className="absolute inset-0" style={{
             backgroundImage: 'url(/images/logo_2.png)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'blur(8px)',
-            opacity: 0.08,
+            backgroundSize: 'cover', backgroundPosition: 'center',
+            filter: 'blur(8px)', opacity: 0.08,
           }} />
           <div className="relative z-10 flex flex-col items-center gap-4">
             <img src="/images/logo_2.png" alt="Donjon Rouge" className="h-48 w-auto object-contain mx-auto" />
@@ -369,54 +525,37 @@ export default function Vitrine() {
           </div>
         </section>
 
-        {/* SECTION 2 — Hymne du clan */}
+        {/* SECTION 2 — Hymne */}
         <section className="mb-14">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
-              {hymneTitle ? (
-                <EditableText
-                  block={hymneTitle}
-                  onSave={updateBlock}
-                  onDelete={removeBlock}
-                  canEdit={canEdit}
-                  tag="span"
-                />
-              ) : 'Hymne du Clan'}
-            </span>
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-          </div>
-          <AudioPlayer
-            src={hymneAudio?.value}
-            title={hymneTitle?.value}
-          />
+          <SectionHeader label={hymneTitle?.value || 'Hymne du Clan'} />
+          <AudioPlayer src={hymneAudio?.value} title={hymneTitle?.value} />
+          {hymneTitle && canEdit && (
+            <div className="mt-3">
+              <EditableText
+                block={hymneTitle}
+                onSave={updateBlock}
+                onDelete={null}
+                canEdit={canEdit}
+                tag="span"
+                className="text-xs text-gray-600"
+              />
+            </div>
+          )}
           <EditableAudio
             canEdit={canEdit}
             onUploaded={(url) => {
               if (hymneAudio) updateBlock(hymneAudio.id, url)
-              else setBlocks(prev => ({
-                ...prev,
-                hymne: [...(prev.hymne || []), { id: null, section: 'hymne', key: 'url', type: 'audio', value: url }],
-              }))
             }}
           />
         </section>
 
         {/* SECTION 3 — Recrutement */}
         <section className="mb-14">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
-              Nous Recrutons
-            </span>
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-          </div>
+          <SectionHeader label="Nous Recrutons" />
           <div className="rounded-xl p-8" style={{
-            background: '#111111',
-            border: '2px solid #dc2626',
+            background: '#111111', border: '2px solid #dc2626',
             boxShadow: '0 0 40px rgba(220,38,38,0.2)',
           }}>
-            {/* Titre */}
             <div className="mb-6">
               <h3 className="font-cinzel font-bold text-3xl uppercase mb-1">
                 <span style={{ color: '#f0f0f0' }}>DONJON </span>
@@ -426,42 +565,27 @@ export default function Vitrine() {
               <div className="mt-3 h-0.5 w-24" style={{ background: '#dc2626' }} />
             </div>
 
-            {/* Critères éditables */}
-            <ul className="flex flex-col gap-3 mb-8">
+            <ul className="flex flex-col gap-3 mb-4">
               {criteresBlocks.map(block => {
-                const style = RECRU_STYLE[block.key] || { icon: '•', color: '#f0f0f0', className: '' }
+                const s = RECRU_STYLE[block.key] || { icon: '•', color: '#f0f0f0', className: '' }
                 return (
-                  <li key={block.id || block.key} style={{ color: style.color }}>
-                    {style.icon && <>{style.icon} </>}
-                    <EditableText
-                      block={block}
-                      onSave={updateBlock}
-                      onDelete={removeBlock}
-                      canEdit={canEdit}
-                      tag="span"
-                      className={style.className}
-                    />
+                  <li key={block.id || block.key} style={{ color: s.color }}>
+                    {s.icon && <>{s.icon} </>}
+                    <EditableText block={block} onSave={updateBlock} onDelete={removeBlock}
+                                  canEdit={canEdit} tag="span" className={s.className} />
                   </li>
                 )
               })}
             </ul>
-
             <AddBlockButton section="recrutement" canEdit={canEdit} onAdd={addBlock} />
 
-            {/* Slogan */}
             {sloganBlock && (
               <p className="text-xl italic text-center mt-8 mb-8" style={{ color: '#f59e0b' }}>
-                <EditableText
-                  block={sloganBlock}
-                  onSave={updateBlock}
-                  onDelete={removeBlock}
-                  canEdit={canEdit}
-                  tag="span"
-                />
+                <EditableText block={sloganBlock} onSave={updateBlock} onDelete={null}
+                              canEdit={canEdit} tag="span" />
               </p>
             )}
 
-            {/* Bouton Discord */}
             <div className="flex justify-center">
               <a href="https://discord.gg/CXZcs4umFP" target="_blank" rel="noopener noreferrer"
                  className="px-6 py-3 font-cinzel font-bold uppercase text-white rounded transition-all"
@@ -474,106 +598,36 @@ export default function Vitrine() {
           </div>
         </section>
 
-        {/* SECTION 4 — Règlement (accordéons) */}
+        {/* SECTION 4 — Règlement */}
         <section className="mb-14">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
-              Règlement Officiel
-            </span>
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-          </div>
+          <SectionHeader label="Règlement Officiel" />
           <div className="flex flex-col gap-2">
-
-            <Accordion icon="📋" title="Règlement Général">
-              <p className="mb-3">
-                <span style={{ color: '#dc2626' }} className="font-bold">🔴 LE RESPECT — obligatoire</span>
-              </p>
-              <p className="mb-3" style={{ color: '#aaa' }}>
-                Interdit : messages diffamatoires, abusifs, vulgaires, haineux, harcelant, obscènes,
-                racistes, menaçant la vie privée. Sinon : <strong style={{ color: '#dc2626' }}>exclusion immédiate.</strong>
-              </p>
-              <p className="mb-1" style={{ color: '#f59e0b' }}>⚠️ IMPORTANT</p>
-              <ul className="list-disc ml-5 space-y-1">
-                <li>7 jours d'inactivité sans prévenir = exclusion</li>
-                <li>4 héros disponibles obligatoires pour les attaques</li>
-              </ul>
-            </Accordion>
-
-            <Accordion icon="⚔️" title="Guerres de Clans (GDC)">
-              <p className="mb-2" style={{ color: '#f0f0f0' }}>📅 Lancement le mardi soir à 20h</p>
-              <p className="mb-1">Sur demande d'un membre pour d'autres GDC :</p>
-              <ul className="list-disc ml-5 mb-3 space-y-1">
-                <li>Inscription sur le tchat COC 24h à 48h avant</li>
-                <li>Demande sur Discord (voir Forum)</li>
-              </ul>
-              <p className="font-bold mb-2" style={{ color: '#f0f0f0' }}>LES 2 ATTAQUES SONT OBLIGATOIRES</p>
-              <ul className="list-disc ml-5 mb-3 space-y-1">
-                <li>1ère attaque : miroir OBLIGATOIRE</li>
-                <li>2ème attaque : voir consignes Discord</li>
-              </ul>
-              <ul className="space-y-1">
-                <li>🟨 1ère attaque non faite = carton jaune pour la prochaine GDC</li>
-                <li>🟨 Non-respect du règlement = carton jaune</li>
-                <li>🟥 2ème attaque non faite = exclu des GDC 1 mois</li>
-              </ul>
-            </Accordion>
-
-            <Accordion icon="🏆" title="Ligue de Guerre (LDC)">
-              <ul className="list-disc ml-5 mb-3 space-y-1">
-                <li>Inscription sur Discord</li>
-                <li>2 GDC de qualification requises</li>
-                <li>Miroir OBLIGATOIRE tout au long de la LDC</li>
-              </ul>
-              <ul className="space-y-1">
-                <li>🟨 1 attaque non faite = remplacement immédiat + carton jaune + perte des médailles supp</li>
-                <li>🟨 Non-respect du miroir = pas de bonus</li>
-                <li>🟥 2 attaques non faites = expulsion du clan</li>
-              </ul>
-              <p className="mt-3">Système d'étoiles mis en place pour rester en LDC. Voir sur le Discord.</p>
-            </Accordion>
-
-            <Accordion icon="🎮" title="Jeux de Clans (JDC)">
-              <ul className="space-y-2">
-                <li style={{ color: '#f59e0b' }}>🥇 10 000 pts = Challenge de champion</li>
-                <li style={{ color: '#22c55e' }}>✅ 5 000 pts = Minimum demandé pour être actif</li>
-                <li style={{ color: '#f97316' }}>⚠️ Moins de 5 000 pts = Votre place est en péril</li>
-              </ul>
-            </Accordion>
-
-            <Accordion icon="💎" title="Raids Capital">
-              <ul className="list-disc ml-5 space-y-1">
-                <li>Tout raid commencé sur un village doit être fini (sauf si plus d'attaques possible)</li>
-                <li style={{ color: '#22c55e' }}>Faire ses raids → grade Aîné pour 7 jours ✅</li>
-                <li style={{ color: '#f97316' }}>Ne pas les faire → votre place est en péril ⚠️</li>
-              </ul>
-            </Accordion>
-
-            <Accordion icon="🎖️" title="Grades">
-              <ul className="space-y-2 mb-3">
-                <li>👑 <strong style={{ color: '#f0f0f0' }}>Chef Adjoint</strong> — Suivant les besoins du clan</li>
-                <li>⭐ <strong style={{ color: '#f0f0f0' }}>Aîné</strong> — Attribué via les Raids (voir section Raids)</li>
-              </ul>
-              <p style={{ color: '#666' }}>
-                En acceptant ce règlement, tu confirmes avoir pris connaissance du fonctionnement du clan. 😀
-              </p>
-            </Accordion>
-
+            {accordionGroups.map(({ idx, titreBlock, contenuBlock }) => (
+              <EditableAccordion
+                key={idx}
+                titreBlock={titreBlock}
+                contenuBlock={contenuBlock}
+                canEdit={canEdit}
+                onSave={updateBlock}
+                onDeleteAccordion={() => handleDeleteAccordion(titreBlock, contenuBlock)}
+              />
+            ))}
+            {canEdit && (
+              <button onClick={handleAddAccordion}
+                      className="w-full mt-2 py-2 rounded-lg border border-dashed border-[#dc2626]/30
+                                 text-[#dc2626]/50 text-xs uppercase tracking-wide
+                                 hover:border-[#dc2626] hover:text-[#dc2626] transition-all">
+                + Ajouter un accordéon
+              </button>
+            )}
           </div>
         </section>
 
-        {/* SECTION 5 — Système de cartons */}
+        {/* SECTION 5 — Cartons */}
         <section className="mb-14">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
-              Système de Cartons
-            </span>
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-          </div>
+          <SectionHeader label="Système de Cartons" />
           <div className="grid md:grid-cols-2 gap-4">
 
-            {/* LDC */}
             <div className="rounded-lg p-6" style={{ background: '#111111', borderTop: '3px solid #f59e0b' }}>
               <h3 className="font-cinzel text-sm uppercase tracking-widest mb-4" style={{ color: '#f59e0b' }}>
                 LIGUE DE GUERRE (LDC)
@@ -583,21 +637,16 @@ export default function Vitrine() {
                   <div key={block.id || block.key}>
                     {block.key.includes('jaune') ? <YL /> : <RL />}
                     <div className="mt-2 text-sm" style={{ color: '#aaa' }}>
-                      <EditableText
-                        block={block}
-                        onSave={updateBlock}
-                        onDelete={removeBlock}
-                        canEdit={canEdit}
-                        tag="span"
-                      />
+                      <EditableText block={block} onSave={updateBlock} onDelete={removeBlock}
+                                    canEdit={canEdit} tag="span" />
                     </div>
                   </div>
                 ))}
               </div>
-              <AddBlockButton section="cartons" canEdit={canEdit} onAdd={addBlock} />
+              <AddBlockButton section="cartons" canEdit={canEdit} onAdd={addBlock}
+                             placeholder="Nouvelle règle LDC..." />
             </div>
 
-            {/* GDC */}
             <div className="rounded-lg p-6" style={{ background: '#111111', borderTop: '3px solid #dc2626' }}>
               <h3 className="font-cinzel text-sm uppercase tracking-widest mb-4" style={{ color: '#dc2626' }}>
                 GUERRES DE CLANS (GDC)
@@ -607,68 +656,131 @@ export default function Vitrine() {
                   <div key={block.id || block.key}>
                     {block.key.includes('jaune') ? <YL /> : <RL />}
                     <div className="mt-2 text-sm" style={{ color: '#aaa' }}>
-                      <EditableText
-                        block={block}
-                        onSave={updateBlock}
-                        onDelete={removeBlock}
-                        canEdit={canEdit}
-                        tag="span"
-                      />
+                      <EditableText block={block} onSave={updateBlock} onDelete={removeBlock}
+                                    canEdit={canEdit} tag="span" />
                     </div>
                   </div>
                 ))}
               </div>
-              <AddBlockButton section="cartons" canEdit={canEdit} onAdd={addBlock} />
+              <AddBlockButton section="cartons" canEdit={canEdit} onAdd={addBlock}
+                             placeholder="Nouvelle règle GDC..." />
             </div>
-
           </div>
         </section>
 
         {/* SECTION 6 — Identité visuelle */}
-        <section>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-            <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
-              Identité Visuelle
-            </span>
-            <div className="h-px flex-1 bg-[#1a1a1a]" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-4">
+        <section className="mb-14">
+          <SectionHeader label="Identité Visuelle" />
+          <div className="grid md:grid-cols-2 gap-6">
 
-            <div className="rounded-lg p-6 flex flex-col items-center gap-4 transition-all"
-                 style={{ background: '#111111', border: '1px solid #1f1f1f' }}
-                 onMouseEnter={e => e.currentTarget.style.border = '1px solid #dc2626'}
-                 onMouseLeave={e => e.currentTarget.style.border = '1px solid #1f1f1f'}>
-              <img src="/images/logo_2.png" alt="Logo Donjon Rouge" className="h-40 w-auto object-contain" />
-              <p className="font-cinzel text-xs uppercase tracking-widest" style={{ color: '#666' }}>LOGO OFFICIEL</p>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-gray-600 mb-3">Logo Officiel</p>
+              <EditableImage src="/images/logo_2.png" storageKey="logo"
+                             canEdit={canEdit} label="Logo Officiel" />
               <a href="/images/logo_2.png" download="logo_donjon_rouge.png"
-                 className="px-4 py-2 rounded font-cinzel text-xs uppercase tracking-wider transition-all"
-                 style={{ background: '#1f1f1f', color: '#f0f0f0', border: '1px solid #333' }}
-                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.color = '#dc2626' }}
-                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#f0f0f0' }}>
-                Télécharger
+                 className="mt-2 block text-center px-4 py-2 rounded-xl border border-[#1f1f1f]
+                            text-gray-500 text-xs hover:border-[#dc2626]/30 hover:text-gray-300 transition-all">
+                ⬇️ Télécharger
               </a>
             </div>
 
-            <div className="rounded-lg p-6 flex flex-col items-center gap-4 transition-all"
-                 style={{ background: '#111111', border: '1px solid #1f1f1f' }}
-                 onMouseEnter={e => e.currentTarget.style.border = '1px solid #dc2626'}
-                 onMouseLeave={e => e.currentTarget.style.border = '1px solid #1f1f1f'}>
-              <img src="/images/recru.png" alt="Affiche recrutement" className="h-40 w-auto object-contain" />
-              <p className="font-cinzel text-xs uppercase tracking-widest" style={{ color: '#666' }}>AFFICHE DE RECRUTEMENT</p>
+            <div>
+              <p className="text-xs uppercase tracking-widest text-gray-600 mb-3">Affiche Recrutement</p>
+              <EditableImage src="/images/recru.png" storageKey="recrutement"
+                             canEdit={canEdit} label="Affiche Recrutement" />
               <a href="/images/recru.png" download="recrutement-donjon-rouge.png"
-                 className="px-4 py-2 rounded font-cinzel text-xs uppercase tracking-wider transition-all"
-                 style={{ background: '#1f1f1f', color: '#f0f0f0', border: '1px solid #333' }}
-                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.color = '#dc2626' }}
-                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#f0f0f0' }}>
-                Télécharger
+                 className="mt-2 block text-center px-4 py-2 rounded-xl border border-[#1f1f1f]
+                            text-gray-500 text-xs hover:border-[#dc2626]/30 hover:text-gray-300 transition-all">
+                ⬇️ Télécharger
               </a>
             </div>
 
           </div>
         </section>
 
+        {/* SECTIONS CUSTOM */}
+        {customSections.map(section => (
+          <section key={section.key} className="mb-14 relative group">
+            <SectionHeader label={`${section.icon} ${section.label}`} />
+            {canEdit && (
+              <button onClick={() => handleDeleteSection(section.key)}
+                      className="absolute top-0 right-0 w-6 h-6 rounded-full bg-red-900/50
+                                 border border-red-700/40 text-red-400 text-xs
+                                 hidden group-hover:flex items-center justify-center
+                                 hover:bg-red-900 transition-colors z-10">
+                ✕
+              </button>
+            )}
+            <div className="flex flex-col gap-2 p-4 rounded-xl bg-[#111111] border border-[#1f1f1f]">
+              {(blocks[section.key] || []).map(block => (
+                <div key={block.id} className="py-1">
+                  <EditableText block={block} onSave={updateBlock} onDelete={removeBlock}
+                                canEdit={canEdit} tag="p"
+                                className="text-sm text-gray-300 leading-relaxed" />
+                </div>
+              ))}
+              <AddBlockButton section={section.key} canEdit={canEdit} onAdd={addBlock} />
+            </div>
+          </section>
+        ))}
+
+        {/* Bouton créer nouvelle section */}
+        {canEdit && (
+          <div className="mt-6 flex justify-center">
+            <button onClick={() => setShowCreateSection(true)}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl border border-dashed
+                               border-[#dc2626]/30 text-[#dc2626]/60 text-sm font-semibold uppercase
+                               hover:border-[#dc2626] hover:text-[#dc2626] transition-all duration-200">
+              + Créer une nouvelle section
+            </button>
+          </div>
+        )}
+
       </div>
+
+      {/* Modal créer section */}
+      {showCreateSection && (
+        <div className="fixed inset-0 bg-black/80 z-[9999] flex items-center justify-center p-4"
+             onClick={() => setShowCreateSection(false)}>
+          <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+               onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-white uppercase mb-4">Nouvelle Section</h3>
+
+            <div className="mb-3">
+              <label className="text-xs uppercase text-gray-600 mb-1 block">Icône (emoji)</label>
+              <input value={newSection.icon}
+                     onChange={e => setNewSection(s => ({ ...s, icon: e.target.value }))}
+                     placeholder="📋"
+                     className="w-full px-3 py-2 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a]
+                                text-white text-sm focus:outline-none focus:border-[#dc2626]/50" />
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs uppercase text-gray-600 mb-1 block">Titre de la section</label>
+              <input value={newSection.label}
+                     onChange={e => setNewSection(s => ({ ...s, label: e.target.value }))}
+                     onKeyDown={e => { if (e.key === 'Enter') handleCreateSection() }}
+                     placeholder="Ex: Calendrier des événements"
+                     autoFocus
+                     className="w-full px-3 py-2 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a]
+                                text-white text-sm focus:outline-none focus:border-[#dc2626]/50" />
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowCreateSection(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-[#333]
+                                 text-gray-400 text-sm font-semibold uppercase hover:border-[#555]">
+                Annuler
+              </button>
+              <button onClick={handleCreateSection}
+                      className="flex-1 py-2.5 rounded-xl bg-[#dc2626] text-white
+                                 text-sm font-semibold uppercase hover:bg-[#b91c1c] transition-colors">
+                Créer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

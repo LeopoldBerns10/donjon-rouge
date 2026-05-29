@@ -120,6 +120,60 @@ router.post('/upload/audio', requireAuth, requireAdmin, upload.single('file'), a
   res.json({ url: urlData.publicUrl })
 })
 
+// ─── Sections CRUD ───────────────────────────────────────────────────────────
+
+const uploadImage = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } })
+
+// GET /api/vitrine/sections
+router.get('/sections', async (req, res) => {
+  const { data, error } = await supabase
+    .from('vitrine_sections')
+    .select('*')
+    .eq('is_visible', true)
+    .order('order_index')
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data || [])
+})
+
+// POST /api/vitrine/sections
+router.post('/sections', requireAuth, requireAdmin, async (req, res) => {
+  const { key, label, icon = '📋', order_index = 99 } = req.body
+  const { data, error } = await supabase
+    .from('vitrine_sections')
+    .insert({ key, label, icon, order_index })
+    .select()
+    .single()
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data)
+})
+
+// DELETE /api/vitrine/sections/:key
+router.delete('/sections/:key', requireAuth, requireAdmin, async (req, res) => {
+  const { key } = req.params
+  const FIXED = ['hymne', 'recrutement', 'reglement', 'cartons', 'identite']
+  if (FIXED.includes(key)) return res.status(403).json({ error: 'Section fixe non supprimable' })
+  await supabase.from('vitrine_blocks').delete().eq('section', key)
+  const { error } = await supabase.from('vitrine_sections').delete().eq('key', key)
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ success: true })
+})
+
+// POST /api/vitrine/upload/image
+router.post('/upload/image', requireAuth, requireAdmin, uploadImage.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier' })
+  const { key = 'image' } = req.body
+  const ext = req.file.originalname.split('.').pop().toLowerCase()
+  const fileName = `vitrine/${key}_${Date.now()}.${ext}`
+
+  const { error } = await supabaseAdmin.storage
+    .from('coc-assets')
+    .upload(fileName, req.file.buffer, { contentType: req.file.mimetype, upsert: true })
+  if (error) return res.status(500).json({ error: error.message })
+
+  const { data: { publicUrl } } = supabaseAdmin.storage.from('coc-assets').getPublicUrl(fileName)
+  res.json({ url: publicUrl })
+})
+
 // ─── Ancien système (compatibilité) ──────────────────────────────────────────
 
 // GET /api/vitrine/content
