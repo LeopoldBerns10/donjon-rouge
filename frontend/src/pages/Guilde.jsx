@@ -989,21 +989,13 @@ export default function Guilde() {
               <p className="text-base font-black text-white">NIVEAU 10</p>
               <p className="text-[10px] uppercase tracking-widest text-gray-600">Capital Hall</p>
             </div>
-            {/* Ligue Capitale */}
-            <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all min-w-[110px]">
-              {clan.capitalLeague && (
-                <>
-                  <img
-                    src={getCapitalLeagueIcon(clan.capitalLeague)}
-                    alt={clan.capitalLeague.name}
-                    className="w-12 h-12 object-contain"
-                    onError={(e) => e.currentTarget.style.display = 'none'}
-                  />
-                  <p className="text-sm font-bold text-white text-center">{clan.capitalLeague.name}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-gray-600">Ligue Capitale</p>
-                </>
-              )}
-            </div>
+            {clan.capitalLeague?.name && (
+              <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all min-w-[110px]">
+                <span className="text-2xl">🏛️</span>
+                <p className="text-sm font-bold text-white text-center leading-tight">{clan.capitalLeague.name}</p>
+                <p className="text-[10px] uppercase tracking-widest text-gray-600">Ligue Capitale</p>
+              </div>
+            )}
             <StatBadge icon="📍" label="Localisation" value={clan.location?.name || '—'} />
           </div>
         </div>
