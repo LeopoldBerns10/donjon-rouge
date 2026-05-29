@@ -623,8 +623,19 @@ const WAR_STATE_LABELS = {
   warEnded:    { label: 'Guerre terminée', color: 'text-crimson' },
 }
 
-function GdcLdcTab({ loading, error }) {
-  const { data: war, loading: warLoading, error: warError } = useCocWar()
+function GdcLdcTab({ loading, error, activeClan }) {
+  const [war, setWar] = useState(null)
+  const [warLoading, setWarLoading] = useState(true)
+  const [warError, setWarError] = useState(null)
+
+  useEffect(() => {
+    setWarLoading(true)
+    setWarError(null)
+    api.get(`/api/coc/clan/${activeClan}/war`)
+      .then(r => setWar(r.data))
+      .catch(e => setWarError(e.message))
+      .finally(() => setWarLoading(false))
+  }, [activeClan])
 
   if (loading || warLoading) return <Spinner />
   if (error || warError) return <ErrorMsg msg={error || warError} />
@@ -751,6 +762,15 @@ function RaidsTab({ loading: parentLoading, error: parentError }) {
 
   const seasons = (raidsData?.items || []).slice(0, 3)
 
+  const RaidsBanner = () => (
+    <div className="flex items-center gap-3 px-4 py-2.5 mb-5 rounded-xl bg-[#111111] border border-[#1f1f1f]">
+      <span className="text-lg">💎</span>
+      <p className="text-xs text-gray-500 font-cinzel uppercase tracking-wide">
+        Raids communs — les attaques se font chez <span className="text-[#dc2626] font-bold">Donjon Rouge 1</span>
+      </p>
+    </div>
+  )
+
   if (!seasons.length) {
     return <p className="text-ash font-cinzel text-center py-10">Aucune saison de raid disponible</p>
   }
@@ -762,6 +782,7 @@ function RaidsTab({ loading: parentLoading, error: parentError }) {
 
   return (
     <div className="flex flex-col gap-8">
+      <RaidsBanner />
       {seasons.map((season, si) => (
         <div key={si}>
           <div className="card-stone p-4 mb-4 flex flex-wrap gap-4 items-center justify-between">
@@ -1023,7 +1044,7 @@ export default function Guilde() {
 
       {tab === 'membres'  && <MembresTab  members={members} loading={membersLoading} error={membersError} />}
       {tab === 'attaques' && <AttaquesTab members={members} loading={membersLoading} error={membersError} />}
-      {tab === 'gdcldc'       && <GdcLdcTab       loading={false} error={null} />}
+      {tab === 'gdcldc'       && <GdcLdcTab       loading={false} error={null} activeClan={activeClan} />}
       {tab === 'raids'        && <RaidsTab        loading={false} error={null} />}
       {tab === 'inscriptions' && <InscriptionsTab />}
     </div>

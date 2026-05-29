@@ -185,6 +185,17 @@ export async function membersByKey(req, res) {
   }
 }
 
+export async function warByKey(req, res) {
+  const tag = CLAN_TAGS[req.params.clanKey]
+  if (!tag) return res.status(404).json({ error: 'Clan inconnu' })
+  try {
+    const data = await getCached(`war:${tag}`, () => getCurrentWar(tag))
+    res.json(data)
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}
+
 export async function warlogByKey(req, res) {
   const tag = CLAN_TAGS[req.params.clanKey]
   if (!tag) return res.status(404).json({ error: 'Clan inconnu' })
