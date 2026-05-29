@@ -426,28 +426,27 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
+  // Bloquer le scroll du body pendant que la modal est ouverte
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const token = localStorage.getItem('dr_token')
-        const headers = { Authorization: `Bearer ${token}` }
-
-        const [dr1Res, dr2Res] = await Promise.all([
-          fetch('/api/coc/clan/dr1/members', { headers }),
-          fetch('/api/coc/clan/dr2/members', { headers }),
+        // Utiliser api (axios avec VITE_API_URL) et non fetch natif
+        // fetch natif utilise une URL relative → va vers le site statique en prod, pas le backend
+        const [r1, r2] = await Promise.all([
+          api.get('/api/coc/clan/dr1/members'),
+          api.get('/api/coc/clan/dr2/members'),
         ])
 
-        console.log('DR1 status:', dr1Res.status)
-        console.log('DR2 status:', dr2Res.status)
+        const dr1 = r1.data
+        const dr2 = r2.data
 
-        if (!dr1Res.ok || !dr2Res.ok) {
-          setFetchError(`Erreur API: DR1=${dr1Res.status} DR2=${dr2Res.status}`)
-          return
-        }
-
-        const dr1 = await dr1Res.json()
-        const dr2 = await dr2Res.json()
-
+        console.log('DR1 status: 200, items:', Array.isArray(dr1) ? dr1.length : (dr1?.items?.length ?? 0))
+        console.log('DR2 status: 200, items:', Array.isArray(dr2) ? dr2.length : (dr2?.items?.length ?? 0))
         console.log('DR1 data:', dr1)
         console.log('DR2 data:', dr2)
 
@@ -457,10 +456,10 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
 
         console.log('Already signed up:', alreadySignedUp)
 
-        const d1 = (Array.isArray(dr1) ? dr1 : (dr1.items || []))
+        const d1 = (Array.isArray(dr1) ? dr1 : (dr1?.items || []))
           .filter(m => !alreadySignedUp.includes(m.tag))
           .map(m => ({ ...m, clan: 'DR1', clan_tag: '#29292QPRC' }))
-        const d2 = (Array.isArray(dr2) ? dr2 : (dr2.items || []))
+        const d2 = (Array.isArray(dr2) ? dr2 : (dr2?.items || []))
           .filter(m => !alreadySignedUp.includes(m.tag))
           .map(m => ({ ...m, clan: 'DR2', clan_tag: '#2RCGG9YR9' }))
 
@@ -474,7 +473,7 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
         if (first) setSelectedValue(JSON.stringify({ tag: first.tag, clan_tag: first.clan_tag }))
       } catch (err) {
         console.error('Fetch members error:', err)
-        setFetchError(err.message)
+        setFetchError(err.response?.data?.error || err.message)
       }
     }
     fetchMembers()
