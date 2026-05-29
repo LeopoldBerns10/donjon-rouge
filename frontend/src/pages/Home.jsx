@@ -44,21 +44,11 @@ export default function Home() {
           src="/assets/dragon-blazon.png"
           alt=""
           className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
-          style={{ opacity: 0.65, zIndex: 0 }}
+          style={{ opacity: 0.7, zIndex: 0 }}
         />
 
         {/* Contenu au-dessus du dragon */}
         <div className="relative z-10 flex flex-col items-center text-center px-4 w-full">
-          {/* Logo clan */}
-          <div className="animate-float mb-8">
-            <img
-              src={clan?.badgeUrls?.large || 'https://api-assets.clashofclans.com/badges/512/Cbal0SXAUxTFUsLag6SVrqBsFhAfrPfk9nAANTqQTMM.png'}
-              alt="Donjon Rouge"
-              className="w-36 h-36 md:w-44 md:h-44 object-contain mx-auto drop-shadow-[0_0_40px_rgba(220,38,38,0.6)] animate-pulse"
-              style={{ animationDuration: '3s', position: 'relative', zIndex: 20 }}
-            />
-          </div>
-
           {/* Title */}
           <h1 className="font-cinzel-deco font-black mb-4 leading-tight">
             <span className="block text-6xl md:text-8xl text-crimson-gradient" style={{ textShadow: '0 0 60px rgba(196,30,58,0.5)' }}>
