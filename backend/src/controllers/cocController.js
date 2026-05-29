@@ -140,3 +140,58 @@ export async function ldcWar(req, res) {
     res.status(502).json({ error: e.message })
   }
 }
+
+// ─── Routes dynamiques DR1 / DR2 ─────────────────────────────────────────────
+
+const CLAN_TAGS = {
+  dr1: process.env.COC_CLAN_TAG_DR1 || '#29292QPRC',
+  dr2: process.env.COC_CLAN_TAG_DR2 || '#2RCGG9YR9',
+}
+
+export async function clanByKey(req, res) {
+  const tag = CLAN_TAGS[req.params.clanKey]
+  if (!tag) return res.status(404).json({ error: 'Clan inconnu' })
+  try {
+    const data = await getCached(`clan:${tag}`, () => getClanInfo(tag))
+    res.json(data)
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}
+
+export async function membersByKey(req, res) {
+  const tag = CLAN_TAGS[req.params.clanKey]
+  if (!tag) return res.status(404).json({ error: 'Clan inconnu' })
+  try {
+    const data = await getCached(`members:${tag}`, () => getClanMembers(tag))
+    const memberList = data?.items || data || []
+    const enriched = await Promise.all(
+      memberList.map(async (m) => {
+        try {
+          const player = await getCached(`player:${m.tag}`, () => getPlayerInfo(m.tag))
+          return { ...m, attackWins: player.attackWins ?? 0, defenseWins: player.defenseWins ?? 0 }
+        } catch {
+          return { ...m, attackWins: 0, defenseWins: 0 }
+        }
+      })
+    )
+    if (data?.items) {
+      res.json({ ...data, items: enriched })
+    } else {
+      res.json(enriched)
+    }
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}
+
+export async function warlogByKey(req, res) {
+  const tag = CLAN_TAGS[req.params.clanKey]
+  if (!tag) return res.status(404).json({ error: 'Clan inconnu' })
+  try {
+    const data = await getCached(`warlog:${tag}`, () => getClanWarLog(tag))
+    res.json(data)
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}

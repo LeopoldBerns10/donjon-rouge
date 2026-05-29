@@ -78,6 +78,23 @@ function TypeBadge({ type }) {
   )
 }
 
+// ─── ClanBadge ────────────────────────────────────────────────────────────────
+
+function ClanBadge({ clanTag }) {
+  if (!clanTag) return null
+  const cfg = {
+    DR1:    { label: 'DR1',       cls: 'bg-[#dc2626]/20 text-[#dc2626] border-[#dc2626]/30' },
+    DR2:    { label: 'DR2',       cls: 'bg-[#f59e0b]/20 text-[#f59e0b] border-[#f59e0b]/30' },
+    COMMUN: { label: '🤝 Commun', cls: 'bg-green-500/20 text-green-400 border-green-500/30' },
+  }
+  const { label, cls } = cfg[clanTag] || cfg.DR1
+  return (
+    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold border ${cls}`}>
+      {label}
+    </span>
+  )
+}
+
 // ─── StatusBadge ──────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }) {
@@ -328,7 +345,10 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
       <div className="absolute top-4 right-4"><StatusBadge status={event.status} /></div>
 
       <div className="px-6 pt-14 pb-6">
-        <h3 className="text-lg font-bold text-white uppercase tracking-wide mb-1">{event.title}</h3>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-lg font-bold text-white uppercase tracking-wide">{event.title}</h3>
+          <ClanBadge clanTag={event.clan_tag} />
+        </div>
         <p className="text-xs text-gray-500 mb-4">
           Proposé par <span className="text-gray-300">{event.created_by_name}</span>
         </p>
@@ -468,6 +488,7 @@ function CreateEventModal({ type, onClose, onCreated }) {
     close_date: '',
     signup_open_date: '',
     min_players: type === 'gdc' ? 5 : 0,
+    clan_tag: 'DR1',
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -565,6 +586,31 @@ function CreateEventModal({ type, onClose, onCreated }) {
               onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
               rows={3} className="w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-700 focus:outline-none focus:border-[#dc2626]/50 resize-none"
               placeholder="Informations complémentaires..." />
+          </div>
+
+          {/* Sélecteur DR1 / DR2 / Commun */}
+          <div>
+            <label className={labelCls}>Concerne</label>
+            <div className="flex gap-2">
+              {['DR1', 'DR2', 'COMMUN'].map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setForm(f => ({ ...f, clan_tag: tag }))}
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold uppercase border transition-all ${
+                    form.clan_tag === tag
+                      ? tag === 'DR1'
+                        ? 'bg-[#dc2626]/20 border-[#dc2626] text-[#dc2626]'
+                        : tag === 'DR2'
+                        ? 'bg-[#f59e0b]/20 border-[#f59e0b] text-[#f59e0b]'
+                        : 'bg-green-500/20 border-green-500 text-green-400'
+                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-gray-500 hover:border-[#444]'
+                  }`}
+                >
+                  {tag === 'COMMUN' ? '🤝 Commun' : tag === 'DR1' ? '🔴 DR1' : '🟡 DR2'}
+                </button>
+              ))}
+            </div>
           </div>
 
           {error && <p className="text-xs text-[#dc2626]">{error}</p>}

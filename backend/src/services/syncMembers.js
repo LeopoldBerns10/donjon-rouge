@@ -2,55 +2,63 @@ import bcrypt from 'bcryptjs'
 import { getClanMembers } from './cocApiService.js'
 import supabase from '../lib/supabase.js'
 
-const CLAN_TAG = '#29292QPRC'
+const CLANS = [
+  { tag: process.env.COC_CLAN_TAG_DR1 || '#29292QPRC', name: 'DR1' },
+  { tag: process.env.COC_CLAN_TAG_DR2 || '#2RCGG9YR9', name: 'DR2' },
+]
 
 export async function syncMembers() {
-  try {
-    const data = await getClanMembers(CLAN_TAG)
-    const members = data.items || []
-    let created = 0
-    let updated = 0
+  let totalCreated = 0
+  let totalUpdated = 0
 
-    for (const member of members) {
-      const { tag, name, role } = member
+  for (const clan of CLANS) {
+    try {
+      const data = await getClanMembers(clan.tag)
+      const members = data.items || []
 
-      console.log('Checking existing for tag:', tag)
-      const { data: existing, error: selectErr } = await supabase.from('users').select('id').eq('coc_tag', tag).single()
-      console.log('Select result:', JSON.stringify({ existing, selectErr: selectErr ? Object.assign({}, selectErr) : null }))
+      for (const member of members) {
+        const { tag, name, role } = member
 
-      if (!existing) {
-        const password_hash = await bcrypt.hash(tag, 10)
-        console.log('Tentative insert:', JSON.stringify({ coc_tag: tag, coc_name: name, coc_role: role }))
-        const { error: insertErr } = await supabase.from('users').insert({
-          coc_tag: tag,
-          coc_name: name,
-          coc_role: role,
-          password_hash,
-          is_first_login: true,
-        })
-        console.log('Résultat insert complet:', insertErr ? JSON.stringify(insertErr, Object.getOwnPropertyNames(insertErr)) : 'OK')
-        if (insertErr) {
-          console.log(`❌ Insert échoué pour ${name} (${tag}):`, JSON.stringify(insertErr))
-        } else {
-          created++
-        }
-      } else {
-        const { error: updateErr } = await supabase
+        const { data: existing } = await supabase
           .from('users')
-          .update({ coc_name: name, coc_role: role, updated_at: new Date().toISOString() })
+          .select('id')
           .eq('coc_tag', tag)
-        if (updateErr) {
-          console.error(`❌ Update échoué pour ${name} (${tag}):`, updateErr.message)
+          .single()
+
+        if (!existing) {
+          const password_hash = await bcrypt.hash(tag, 10)
+          const { error: insertErr } = await supabase.from('users').insert({
+            coc_tag: tag,
+            coc_name: name,
+            coc_role: role,
+            clan_tag: clan.tag,
+            password_hash,
+            is_first_login: true,
+          })
+          if (insertErr) {
+            console.log(`❌ Insert échoué pour ${name} (${tag}):`, JSON.stringify(insertErr))
+          } else {
+            totalCreated++
+          }
         } else {
-          updated++
+          const { error: updateErr } = await supabase
+            .from('users')
+            .update({ coc_name: name, coc_role: role, clan_tag: clan.tag, updated_at: new Date().toISOString() })
+            .eq('coc_tag', tag)
+          if (updateErr) {
+            console.error(`❌ Update échoué pour ${name} (${tag}):`, updateErr.message)
+          } else {
+            totalUpdated++
+          }
         }
       }
-    }
 
-    console.log(`✅ Sync membres CoC : ${members.length} membres (${created} créés, ${updated} mis à jour)`)
-    return { ok: true, total: members.length, created, updated }
-  } catch (err) {
-    console.error('❌ Erreur syncMembers:', err.message)
-    return { ok: false, error: err.message }
+      console.log(`✅ Sync ${clan.name}: ${members.length} membres`)
+    } catch (err) {
+      console.error(`❌ Erreur sync ${clan.name}:`, err.message)
+    }
   }
+
+  console.log(`✅ Sync membres CoC terminée (${totalCreated} créés, ${totalUpdated} mis à jour)`)
+  return { ok: true, created: totalCreated, updated: totalUpdated }
 }

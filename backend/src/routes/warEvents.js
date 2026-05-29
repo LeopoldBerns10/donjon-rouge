@@ -168,7 +168,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/war-events — créer un événement
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { type, title, description, proposed_date, close_date, signup_open_date, min_players } = req.body
+    const { type, title, description, proposed_date, close_date, signup_open_date, min_players, clan_tag } = req.body
 
     if (!canCreateEvent(req.user, type)) {
       return res.status(403).json({ error: 'Non autorisé à créer ce type d\'événement' })
@@ -195,6 +195,7 @@ router.post('/', requireAuth, async (req, res) => {
         close_date: dates.close_date,
         auto_delete_date: dates.auto_delete_date,
         min_players: type === 'gdc' ? (min_players || 5) : (min_players || 0),
+        clan_tag: clan_tag || 'DR1',
         status: 'open'
       })
       .select()

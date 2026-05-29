@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { useCocClan, useCocMembers, useCocWar, useCocRaids } from '../hooks/useCocApi.js'
+import { useCocWar, useCocRaids } from '../hooks/useCocApi.js'
 import api from '../lib/api.js'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
@@ -839,13 +839,35 @@ const TABS = [
 ]
 
 export default function Guilde() {
-  const { data: clan, loading: clanLoading } = useCocClan()
-  const { data: membersData, loading: membersLoading, error: membersError } = useCocMembers()
+  const [activeClan, setActiveClan] = useState('dr1')
+  const [clan, setClan] = useState(null)
+  const [membersData, setMembersData] = useState(null)
+  const [clanLoading, setClanLoading] = useState(true)
+  const [membersLoading, setMembersLoading] = useState(true)
+  const [membersError, setMembersError] = useState(null)
   const [tab, setTab] = useState('membres')
   const location = useLocation()
-
-  const members = membersData?.items || []
   const [descExpanded, setDescExpanded] = useState(false)
+
+  const clanTag = activeClan === 'dr1' ? '#29292QPRC' : '#2RCGG9YR9'
+
+  useEffect(() => {
+    setClanLoading(true)
+    setMembersLoading(true)
+    setMembersError(null)
+    Promise.all([
+      api.get(`/api/coc/clan/${activeClan}`),
+      api.get(`/api/coc/clan/${activeClan}/members`),
+    ]).then(([clanRes, membersRes]) => {
+      setClan(clanRes.data)
+      setMembersData(membersRes.data)
+    }).catch(e => {
+      setMembersError(e.message)
+    }).finally(() => {
+      setClanLoading(false)
+      setMembersLoading(false)
+    })
+  }, [activeClan])
 
   useEffect(() => {
     const handler = () => setTab('inscriptions')
@@ -859,11 +881,37 @@ export default function Guilde() {
     }
   }, [location.state])
 
+  const members = membersData?.items || []
+
   return (
     <>
       <AnimatedBackground variant="members" />
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-10 animate-fade-up">
-      <SectionHeader title="La Guilde" subtitle="Donjon Rouge · #29292QPRC" />
+      <SectionHeader title="La Guilde" subtitle={`Donjon Rouge · ${clanTag}`} />
+
+      {/* Sélecteur DR1 / DR2 */}
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => setActiveClan('dr1')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide transition-all ${
+            activeClan === 'dr1'
+              ? 'bg-[#dc2626] text-white border border-[#dc2626]'
+              : 'bg-[#111111] text-gray-400 border border-[#2a2a2a] hover:border-[#dc2626]/40'
+          }`}
+        >
+          🔴 Donjon Rouge 1
+        </button>
+        <button
+          onClick={() => setActiveClan('dr2')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide transition-all ${
+            activeClan === 'dr2'
+              ? 'bg-[#f59e0b] text-black border border-[#f59e0b]'
+              : 'bg-[#111111] text-gray-400 border border-[#2a2a2a] hover:border-[#f59e0b]/40'
+          }`}
+        >
+          🟡 Donjon Rouge 2
+        </button>
+      </div>
 
       {/* Clan header */}
       {clan && (
