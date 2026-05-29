@@ -161,7 +161,7 @@ httpServer.listen(PORT, async () => {
   await initAdminAccount()
   await syncMembers()
   console.log('✅ Initialisation terminée')
-  setInterval(syncMembers, 10 * 60 * 1000)
+  setInterval(syncMembers, 60 * 60 * 1000)
 
   // Clôture automatique des événements de guerre expirés
   const autoCloseEvents = async () => {

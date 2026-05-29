@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import supabase from '../lib/supabase.js'
 import { getClanMembers } from '../services/cocApiService.js'
+import { getCached } from '../services/cacheService.js'
 
 const router = Router()
 
@@ -70,7 +71,7 @@ async function autoSelectWarriors(gdcSelectionEventId) {
     if (!signups || signups.length === 0) return
 
     // Récupérer les données CoC du clan
-    const clanData = await getClanMembers(process.env.COC_CLAN_TAG)
+    const clanData = await getCached(`members:${process.env.COC_CLAN_TAG}`, () => getClanMembers(process.env.COC_CLAN_TAG))
     const cocMembers = clanData?.items || []
 
     // Scorer chaque inscrit
