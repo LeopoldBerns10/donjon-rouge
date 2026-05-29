@@ -291,16 +291,26 @@ export function getLeagueShortName(leagueName) {
   return leagueName.replace(/ League$/i, '').replace(/Ligue /i, '')
 }
 
-export function getCWLLeagueIcon(leagueName) {
-  if (!leagueName) return null
-  const name = leagueName.toLowerCase()
-  if (name.includes('bronze'))   return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Bronze_1.png`
-  if (name.includes('silver'))   return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Silver_1.png`
-  if (name.includes('gold'))     return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Gold_1.png`
-  if (name.includes('crystal'))  return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Crystal_1.png`
-  if (name.includes('master'))   return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Master_1.png`
-  if (name.includes('champion')) return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Champion_1.png`
-  if (name.includes('titan'))    return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Master_1.png`
+export function getCWLLeagueIcon(warLeagueOrName) {
+  if (!warLeagueOrName) return null
+
+  // Objet warLeague complet (CoC API) — iconUrls en priorité
+  if (typeof warLeagueOrName === 'object') {
+    if (warLeagueOrName.iconUrls?.medium) return warLeagueOrName.iconUrls.medium
+    if (warLeagueOrName.iconUrls?.small)  return warLeagueOrName.iconUrls.small
+    warLeagueOrName = warLeagueOrName.name || ''
+  }
+
+  // Fallback Supabase par nom de ligue
+  const name = warLeagueOrName.toLowerCase()
+  const BASE = `${SUPABASE_ASSETS}/ligue-icones`
+  if (name.includes('bronze'))   return `${BASE}/Icon_HV_CWL_Bronze_1.png`
+  if (name.includes('silver'))   return `${BASE}/Icon_HV_CWL_Silver_1.png`
+  if (name.includes('gold'))     return `${BASE}/Icon_HV_CWL_Gold_1.png`
+  if (name.includes('crystal'))  return `${BASE}/Icon_HV_CWL_Crystal_1.png`
+  if (name.includes('master'))   return `${BASE}/Icon_HV_CWL_Master_1.png`
+  if (name.includes('champion')) return `${BASE}/Icon_HV_CWL_Champion_1.png`
+  if (name.includes('titan'))    return `${BASE}/Icon_HV_CWL_Master_1.png`
   return null
 }
 

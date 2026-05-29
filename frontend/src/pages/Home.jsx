@@ -4,7 +4,7 @@ import DragonBackground from '../components/DragonBackground.jsx'
 import { useCocClan } from '../hooks/useCocApi.js'
 import FireIntro from '../components/FireIntro.jsx'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
-import { getCapitalHallIcon, getCapitalLeagueIcon } from '../utils/cocHelpers.js'
+import { getCapitalHallIcon, getCapitalLeagueIcon, getCWLLeagueIcon } from '../utils/cocHelpers.js'
 import { Roulette } from '../components/Roulette.jsx'
 
 function useCountUp(target, duration = 1500) {
@@ -50,7 +50,7 @@ export default function Home() {
             transform: 'translate(-50%, -50%)',
             width: '70%',
             maxWidth: '600px',
-            opacity: 0.45,
+            opacity: 0.6,
             zIndex: 0,
             pointerEvents: 'none',
             userSelect: 'none',
@@ -115,7 +115,6 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
             {[
               { icon: '📍', label: 'Localisation', value: 'France' },
-              { icon: '💎', label: 'Ligue clan',   value: clan?.warLeague?.name || '—' },
               { icon: '⭐', label: 'Niveau clan',  value: `Niv. ${clan.clanLevel || '—'}` },
             ].map(({ icon, label, value }) => (
               <div key={label}
@@ -125,6 +124,24 @@ export default function Home() {
                 <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">{label}</p>
               </div>
             ))}
+
+            {/* Ligue Guerre (CWL) — icône depuis l'API CoC */}
+            <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all">
+              {getCWLLeagueIcon(clan.warLeague) ? (
+                <img
+                  src={getCWLLeagueIcon(clan.warLeague)}
+                  alt={clan.warLeague?.name}
+                  className="w-10 h-10 object-contain"
+                  onError={(e) => e.currentTarget.style.display = 'none'}
+                />
+              ) : (
+                <span className="text-2xl">💎</span>
+              )}
+              <p className="text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">
+                {clan.warLeague?.name?.replace(' League', '') || '—'}
+              </p>
+              <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">Ligue Guerre</p>
+            </div>
             {/* Capital Hall */}
             <div className="flex flex-col items-center gap-1.5 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all">
               <img src={getCapitalHallIcon()} alt="Capital Hall" className="w-12 h-12 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />

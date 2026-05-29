@@ -920,9 +920,9 @@ export default function Guilde() {
             <StatBadge icon="🏆" label="Points clan" value={clan.clanPoints?.toLocaleString()} />
             {/* Ligue CWL avec icône Supabase */}
             <div className="flex flex-col items-center gap-2 p-3 md:p-5 rounded-lg border border-fog/40 bg-stone-mid min-w-[110px]">
-              {getCWLLeagueIcon(clan.warLeague?.name) ? (
+              {getCWLLeagueIcon(clan.warLeague) ? (
                 <img
-                  src={getCWLLeagueIcon(clan.warLeague.name)}
+                  src={getCWLLeagueIcon(clan.warLeague)}
                   alt={clan.warLeague.name}
                   className="w-10 h-10 object-contain"
                   onError={(e) => e.currentTarget.style.display = 'none'}
