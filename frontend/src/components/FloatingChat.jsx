@@ -71,14 +71,11 @@ function FloatingChatInner() {
 
   useEffect(() => {
     let mounted = true
-    let abortController = new AbortController()
+    let interval = null
 
     const fetchMessages = async () => {
-      abortController = new AbortController()
       try {
-        const res = await api.get('/api/chat/messages/général?limit=50', {
-          signal: abortController.signal,
-        })
+        const res = await api.get('/api/chat/messages/général?limit=50')
         if (!mounted) return
         const data = res.data
         setMessages(data)
@@ -89,7 +86,6 @@ function FloatingChatInner() {
         if (data.length > 0) {
           const lastMsg = data[data.length - 1]
 
-          // Détecter un nouveau message (polls suivants, bulle fermée, pas le sien)
           if (
             !isOpenRef.current &&
             !isFirstFetch &&
@@ -109,7 +105,6 @@ function FloatingChatInner() {
           lastMessageIdRef.current = lastMsg.id
         }
 
-        // Premier fetch — initialiser le comptage non lus + séparateur
         if (isFirstFetch && currentUser?.last_seen_chat_at) {
           const lastSeen = new Date(currentUser.last_seen_chat_at)
           const unread = data.filter(m =>
@@ -118,20 +113,29 @@ function FloatingChatInner() {
           if (!isOpenRef.current) setUnreadCount(unread)
           setNewMessagesSeparatorIndex(data.findIndex(m => new Date(m.created_at) > lastSeen))
         }
-      } catch (err) {
-        if (err?.name === 'CanceledError' || err?.name === 'AbortError') return
-      }
+      } catch {}
+    }
+
+    const startPolling = () => {
+      clearInterval(interval)
+      interval = setInterval(fetchMessages, isOpen ? 10000 : 30000)
+    }
+
+    const handleVisibility = () => {
+      if (document.hidden) clearInterval(interval)
+      else { fetchMessages(); startPolling() }
     }
 
     fetchMessages()
-    const interval = setInterval(fetchMessages, 5000)
+    startPolling()
+    document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       mounted = false
-      abortController.abort()
       clearInterval(interval)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
-  }, [])
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen) {

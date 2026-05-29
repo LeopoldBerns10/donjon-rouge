@@ -12,7 +12,11 @@ export function useSocket(channel, user) {
     let mounted = true
 
     const socket = io(import.meta.env.VITE_SOCKET_URL || '', {
-      transports: ['polling', 'websocket']
+      transports: ['polling', 'websocket'],
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 30000,
+      reconnectionAttempts: 5,
     })
     socketRef.current = socket
 

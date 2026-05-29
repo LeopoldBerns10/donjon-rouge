@@ -5,7 +5,7 @@ import { Server } from 'socket.io'
 import cors from 'cors'
 import bcrypt from 'bcryptjs'
 import supabase from './lib/supabase.js'
-import { apiLimiter } from './middleware/rateLimiter.js'
+import { apiLimiter, chatLimiter } from './middleware/rateLimiter.js'
 import { syncMembers } from './services/syncMembers.js'
 
 import authRoutes from './routes/auth.js'
@@ -42,7 +42,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/players', playersRoutes)
 app.use('/api/coc', cocRoutes)
 app.use('/api/forum', forumRoutes)
-app.use('/api/chat', chatRouter(io))
+app.use('/api/chat', chatLimiter, chatRouter(io))
 app.use('/api/announcements', announcementsRoutes)
 app.use('/api/war-events', warEventsRoutes)
 app.use('/api/ldc-board', ldcBoardRoutes)
