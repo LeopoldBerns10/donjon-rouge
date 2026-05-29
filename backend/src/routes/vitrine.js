@@ -19,6 +19,109 @@ function requireAdmin(req, res, next) {
   next()
 }
 
+// ─── Blocks CRUD ──────────────────────────────────────────────────────────────
+
+// GET /api/vitrine/blocks
+router.get('/blocks', async (req, res) => {
+  const { data, error } = await supabase
+    .from('vitrine_blocks')
+    .select('*')
+    .order('section')
+    .order('order_index')
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data || [])
+})
+
+// PUT /api/vitrine/blocks/:id
+router.put('/blocks/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params
+  const { value } = req.body
+  const { error } = await supabase
+    .from('vitrine_blocks')
+    .update({
+      value,
+      updated_at: new Date().toISOString(),
+      updated_by: req.user.coc_name || req.user.id,
+    })
+    .eq('id', id)
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ success: true })
+})
+
+// POST /api/vitrine/blocks
+router.post('/blocks', requireAuth, requireAdmin, async (req, res) => {
+  const { section, key, type = 'text', value, order_index = 99 } = req.body
+  const { data, error } = await supabase
+    .from('vitrine_blocks')
+    .insert({
+      section,
+      key,
+      type,
+      value,
+      order_index,
+      updated_by: req.user.coc_name || req.user.id,
+    })
+    .select()
+    .single()
+  if (error) return res.status(500).json({ error: error.message })
+  res.json(data)
+})
+
+// DELETE /api/vitrine/blocks/:id
+router.delete('/blocks/:id', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params
+  const { error } = await supabase.from('vitrine_blocks').delete().eq('id', id)
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ success: true })
+})
+
+// PATCH /api/vitrine/blocks/:id/toggle
+router.patch('/blocks/:id/toggle', requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params
+  const { data: block, error: fetchErr } = await supabase
+    .from('vitrine_blocks')
+    .select('is_visible')
+    .eq('id', id)
+    .single()
+  if (fetchErr) return res.status(500).json({ error: fetchErr.message })
+  const { error } = await supabase
+    .from('vitrine_blocks')
+    .update({ is_visible: !block.is_visible })
+    .eq('id', id)
+  if (error) return res.status(500).json({ error: error.message })
+  res.json({ success: true, is_visible: !block.is_visible })
+})
+
+// ─── Upload audio ─────────────────────────────────────────────────────────────
+
+// POST /api/vitrine/upload/audio (nouveau chemin)
+router.post('/upload/audio', requireAuth, requireAdmin, upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Aucun fichier' })
+  const ext = req.file.originalname.split('.').pop().toLowerCase()
+  const filePath = `hymne/hymne.${ext}`
+
+  const { error } = await supabaseAdmin.storage
+    .from('forum-images')
+    .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true })
+  if (error) return res.status(500).json({ error: error.message })
+
+  const { data: urlData } = supabaseAdmin.storage.from('forum-images').getPublicUrl(filePath)
+
+  await supabase.from('vitrine_blocks').upsert({
+    section: 'hymne',
+    key: 'url',
+    type: 'audio',
+    value: urlData.publicUrl,
+    order_index: 2,
+    updated_at: new Date().toISOString(),
+    updated_by: req.user.coc_name || req.user.id,
+  }, { onConflict: 'section,key' })
+
+  res.json({ url: urlData.publicUrl })
+})
+
+// ─── Ancien système (compatibilité) ──────────────────────────────────────────
+
 // GET /api/vitrine/content
 router.get('/content', async (req, res) => {
   const { data, error } = await supabase.from('vitrine_content').select('key, value')
@@ -40,7 +143,7 @@ router.put('/content/:key', requireAuth, requireAdmin, async (req, res) => {
   res.json({ success: true })
 })
 
-// POST /api/vitrine/upload-audio
+// POST /api/vitrine/upload-audio (ancien chemin — conservé)
 router.post('/upload-audio', requireAuth, requireAdmin, upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Aucun fichier' })
   const ext = req.file.originalname.split('.').pop().toLowerCase()
@@ -49,7 +152,6 @@ router.post('/upload-audio', requireAuth, requireAdmin, upload.single('file'), a
   const { error } = await supabaseAdmin.storage
     .from('forum-images')
     .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true })
-
   if (error) return res.status(500).json({ error: error.message })
 
   const { data: urlData } = supabaseAdmin.storage.from('forum-images').getPublicUrl(filePath)
