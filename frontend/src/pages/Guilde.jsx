@@ -994,7 +994,7 @@ export default function Guilde() {
               {clan.capitalLeague && (
                 <>
                   <img
-                    src={getCapitalLeagueIcon(clan.capitalLeague.name)}
+                    src={getCapitalLeagueIcon(clan.capitalLeague)}
                     alt={clan.capitalLeague.name}
                     className="w-12 h-12 object-contain"
                     onError={(e) => e.currentTarget.style.display = 'none'}
