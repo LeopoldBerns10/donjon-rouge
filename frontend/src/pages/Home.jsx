@@ -31,6 +31,12 @@ export default function Home() {
   const { data: clan, loading } = useCocClan()
   const memberCount = useCountUp(clan?.members || 0)
 
+  // DEBUG — à retirer après vérification
+  if (clan) {
+    console.log('WAR LEAGUE:', clan?.warLeague)
+    console.log('CAPITAL LEAGUE:', clan?.capitalLeague)
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <AnimatedBackground variant="home" />
@@ -38,72 +44,66 @@ export default function Home() {
       <DragonBackground />
 
       {/* Hero */}
-      <section className="relative z-10 flex flex-col items-center justify-center min-h-[85vh] px-4 text-center">
-        {/* Dragon watermark */}
+      <section className="relative z-10 flex flex-col items-center justify-center min-h-[85vh] overflow-hidden">
+        {/* Dragon — fond absolu couvrant toute la section, SEUL */}
         <img
           src="/assets/dragon-blazon.png"
           alt=""
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '70%',
-            maxWidth: '600px',
-            opacity: 0.6,
-            zIndex: 0,
-            pointerEvents: 'none',
-            userSelect: 'none',
-          }}
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+          style={{ opacity: 0.75, zIndex: 0 }}
         />
-        {/* Logo — insigne du clan CoC */}
-        <div className="animate-float mb-8">
-          <img
-            src={clan?.badgeUrls?.large || 'https://api-assets.clashofclans.com/badges/512/Cbal0SXAUxTFUsLag6SVrqBsFhAfrPfk9nAANTqQTMM.png'}
-            alt="Donjon Rouge"
-            className="w-36 h-36 md:w-44 md:h-44 object-contain mx-auto drop-shadow-[0_0_40px_rgba(220,38,38,0.6)] animate-pulse"
-            style={{ animationDuration: '3s' }}
-          />
-        </div>
 
-        {/* Title */}
-        <h1 className="font-cinzel-deco font-black mb-4 leading-tight">
-          <span className="block text-6xl md:text-8xl text-crimson-gradient" style={{ textShadow: '0 0 60px rgba(196,30,58,0.5)' }}>
-            DONJON
-          </span>
-          <span className="block text-6xl md:text-8xl text-gold-gradient" style={{ textShadow: '0 0 60px rgba(184,134,11,0.4)' }}>
-            ROUGE
-          </span>
-        </h1>
+        {/* Contenu au-dessus du dragon */}
+        <div className="relative z-10 flex flex-col items-center text-center px-4 w-full">
+          {/* Logo clan */}
+          <div className="animate-float mb-8">
+            <img
+              src={clan?.badgeUrls?.large || 'https://api-assets.clashofclans.com/badges/512/Cbal0SXAUxTFUsLag6SVrqBsFhAfrPfk9nAANTqQTMM.png'}
+              alt="Donjon Rouge"
+              className="w-36 h-36 md:w-44 md:h-44 object-contain mx-auto drop-shadow-[0_0_40px_rgba(220,38,38,0.6)] animate-pulse"
+              style={{ animationDuration: '3s' }}
+            />
+          </div>
 
-        <p className="text-ash font-cinzel uppercase tracking-[0.3em] text-sm mb-2">
-          Guilde Clash of Clans · #{(clan?.tag || '29292QPRC').replace('#', '')}
-        </p>
+          {/* Title */}
+          <h1 className="font-cinzel-deco font-black mb-4 leading-tight">
+            <span className="block text-6xl md:text-8xl text-crimson-gradient" style={{ textShadow: '0 0 60px rgba(196,30,58,0.5)' }}>
+              DONJON
+            </span>
+            <span className="block text-6xl md:text-8xl text-gold-gradient" style={{ textShadow: '0 0 60px rgba(184,134,11,0.4)' }}>
+              ROUGE
+            </span>
+          </h1>
 
-        {/* Member counter */}
-        <div className="my-6">
-          <span className="text-5xl font-bold font-cinzel text-gold-light">{memberCount}</span>
-          <span className="text-ash font-cinzel text-lg ml-2">/ {clan?.memberCount || 50} membres</span>
-        </div>
+          <p className="text-ash font-cinzel uppercase tracking-[0.3em] text-sm mb-2">
+            Guilde Clash of Clans · #{(clan?.tag || '29292QPRC').replace('#', '')}
+          </p>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-wrap justify-center gap-3 mt-6">
-          <Link to="/tracker"
-            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white border border-[#dc2626] transition-all duration-200 hover:scale-[1.02]">
-            ⚔️ Tracker Stats
-          </Link>
-          <Link to="/forum"
-            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#333] text-gray-300 hover:border-[#dc2626]/50 hover:text-white transition-all duration-200 hover:scale-[1.02]">
-            💬 Forum
-          </Link>
-          <Link to="/guilde" state={{ openTab: 'inscriptions' }}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#8b6914] text-[#f59e0b] hover:bg-[#f59e0b]/10 transition-all duration-200 hover:scale-[1.02]">
-            ⚔️ Inscriptions GDC/LDC
-          </Link>
-          <a href="https://discord.gg/CXZcs4umFP" target="_blank" rel="noopener noreferrer"
-            className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#5865F2] hover:bg-[#4752c4] text-white border border-[#5865F2] transition-all duration-200 hover:scale-[1.02]">
-            Discord
-          </a>
+          {/* Member counter */}
+          <div className="my-6">
+            <span className="text-5xl font-bold font-cinzel text-gold-light">{memberCount}</span>
+            <span className="text-ash font-cinzel text-lg ml-2">/ {clan?.memberCount || 50} membres</span>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-wrap justify-center gap-3 mt-6">
+            <Link to="/tracker"
+              className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white border border-[#dc2626] transition-all duration-200 hover:scale-[1.02]">
+              ⚔️ Tracker Stats
+            </Link>
+            <Link to="/forum"
+              className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#333] text-gray-300 hover:border-[#dc2626]/50 hover:text-white transition-all duration-200 hover:scale-[1.02]">
+              💬 Forum
+            </Link>
+            <Link to="/guilde" state={{ openTab: 'inscriptions' }}
+              className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#8b6914] text-[#f59e0b] hover:bg-[#f59e0b]/10 transition-all duration-200 hover:scale-[1.02]">
+              ⚔️ Inscriptions GDC/LDC
+            </Link>
+            <a href="https://discord.gg/CXZcs4umFP" target="_blank" rel="noopener noreferrer"
+              className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#5865F2] hover:bg-[#4752c4] text-white border border-[#5865F2] transition-all duration-200 hover:scale-[1.02]">
+              Discord
+            </a>
+          </div>
         </div>
       </section>
 
@@ -150,7 +150,7 @@ export default function Home() {
               {clan.capitalLeague && (
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <img
-                    src={getCapitalLeagueIcon(clan.capitalLeague.name)}
+                    src={getCapitalLeagueIcon(clan.capitalLeague)}
                     alt={clan.capitalLeague.name}
                     className="w-6 h-6 object-contain"
                     onError={(e) => e.currentTarget.style.display = 'none'}

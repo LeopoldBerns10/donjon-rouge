@@ -318,11 +318,20 @@ export function getCapitalHallIcon() {
   return `${SUPABASE_ASSETS}/capital/Building_CC_Capital_Hall_level_10.png`
 }
 
-export function getCapitalLeagueIcon(leagueName) {
-  if (!leagueName) return null
-  const name = leagueName.toLowerCase()
-  if (name.includes('champion'))
-    return `${SUPABASE_ASSETS}/capital/Icon_HV_League_Champion.png`
+export function getCapitalLeagueIcon(capitalLeagueOrName) {
+  if (!capitalLeagueOrName) return null
+
+  // Objet capitalLeague complet — iconUrls en priorité
+  if (typeof capitalLeagueOrName === 'object') {
+    if (capitalLeagueOrName.iconUrls?.medium) return capitalLeagueOrName.iconUrls.medium
+    if (capitalLeagueOrName.iconUrls?.small)  return capitalLeagueOrName.iconUrls.small
+    capitalLeagueOrName = capitalLeagueOrName.name || ''
+  }
+
+  // Fallback Supabase
+  const name = capitalLeagueOrName.toLowerCase()
+  const BASE = `${SUPABASE_ASSETS}/capital`
+  if (name.includes('champion')) return `${BASE}/Icon_HV_League_Champion.png`
   return null
 }
 
