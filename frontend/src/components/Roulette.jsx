@@ -3,14 +3,22 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
 
 const SEGMENTS = [
-  { label: 'Retente !', color: '#1c1c1c', textColor: '#555' },
-  { label: '🔥',        color: '#7f1d1d', textColor: '#ef4444' },
-  { label: 'Retente !', color: '#141414', textColor: '#555' },
-  { label: '⚔️',        color: '#1c1c1c', textColor: '#dc2626' },
-  { label: 'Retente !', color: '#0f0f0f', textColor: '#555' },
-  { label: '🏆',        color: '#78350f', textColor: '#f59e0b' },
-  { label: 'Retente !', color: '#1c1c1c', textColor: '#555' },
-  { label: '⭐',        color: '#1c1c1c', textColor: '#fbbf24' },
+  // Index 0 — REJOUER (1/12)
+  { type: 'replay', label: '🔄 REJOUER', color: '#1a3a1a', borderColor: '#22c55e', textColor: '#4ade80' },
+  // Index 1-9 — PERDU (9/12)
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
+  // Index 10 — GAGNANT (1/12)
+  { type: 'win',    label: '🏆',         color: '#78350f', borderColor: '#f59e0b', textColor: '#f59e0b' },
+  // Index 11 — PERDU (1/12)
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
 ]
 
 const N = SEGMENTS.length
@@ -64,9 +72,9 @@ function RouletteWheel({ rotation, animating }) {
             <path
               d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`}
               fill={seg.color}
-              stroke="#dc2626"
-              strokeWidth="0.8"
-              strokeOpacity="0.25"
+              stroke={seg.borderColor || '#dc2626'}
+              strokeWidth={seg.type === 'lose' ? '0.5' : '1.2'}
+              strokeOpacity={seg.type === 'lose' ? '0.4' : '0.8'}
             />
             <text
               x={lx} y={ly}
@@ -121,20 +129,31 @@ export function Roulette() {
     if (isSpinning) return
     setIsSpinning(true)
 
+    const LOSE_INDICES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 11]
+
+    // Vérification replay en local AVANT l'appel backend
+    const isReplay = Math.random() < 0.08
+
+    let targetSegment
     let isWinner = false
-    try {
-      const res = await api.post('/api/roulette/click')
-      isWinner = res.data.isWinner
-      setHasClickedToday(true)
-    } catch {
-      setIsSpinning(false)
-      return
+
+    if (isReplay) {
+      // Rejouer : pas d'appel API, hasClickedToday reste false
+      targetSegment = 0
+    } else {
+      try {
+        const res = await api.post('/api/roulette/click')
+        isWinner = res.data.isWinner
+        setHasClickedToday(true)
+      } catch {
+        setIsSpinning(false)
+        return
+      }
+      targetSegment = isWinner
+        ? 10 // 🏆
+        : LOSE_INDICES[Math.floor(Math.random() * LOSE_INDICES.length)]
     }
 
-    // Calcul segment cible
-    const targetSegment = isWinner
-      ? 5 // 🏆
-      : [0, 2, 4, 6][Math.floor(Math.random() * 4)] // Retente!
     const targetRotation = rotationRef.current + 1800 + (360 - targetSegment * SEG_ANGLE - SEG_ANGLE / 2)
 
     setWheelAnimating(true)

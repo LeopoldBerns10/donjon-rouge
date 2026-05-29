@@ -300,6 +300,7 @@ export function getCWLLeagueIcon(leagueName) {
   if (name.includes('crystal'))  return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Crystal_1.png`
   if (name.includes('master'))   return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Master_1.png`
   if (name.includes('champion')) return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Champion_1.png`
+  if (name.includes('titan'))    return `${SUPABASE_ASSETS}/ligue-icones/Icon_HV_CWL_Master_1.png`
   return null
 }
 
