@@ -1,8 +1,90 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, createElement } from 'react'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
+import { useAuth } from '../hooks/useAuth.jsx'
+import api from '../lib/api.js'
+
+// ─── EditableText ─────────────────────────────────────────────────────────────
+function EditableText({ value, onSave, tag = 'span', className = '', canEdit }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(value)
+
+  useEffect(() => { setDraft(value) }, [value])
+
+  const save = () => {
+    setEditing(false)
+    if (draft !== value) onSave(draft)
+  }
+
+  if (!canEdit) {
+    const Tag = tag
+    return <Tag className={className}>{value}</Tag>
+  }
+
+  if (editing) {
+    return (
+      <textarea
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
+        onBlur={save}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save() }
+          if (e.key === 'Escape') { setDraft(value); setEditing(false) }
+        }}
+        autoFocus
+        rows={3}
+        className="w-full bg-[#0d0d0d] border border-[#dc2626]/50 rounded-lg p-2 text-white resize-none focus:outline-none focus:border-[#dc2626]"
+      />
+    )
+  }
+
+  const Tag = tag
+  return (
+    <div className="relative group cursor-pointer" onClick={() => setEditing(true)}>
+      <Tag className={className}>{value}</Tag>
+      <div className="absolute inset-0 border border-dashed border-transparent group-hover:border-[#dc2626]/40 rounded-lg transition-colors pointer-events-none" />
+      <span className="absolute top-0.5 right-0.5 text-[10px] opacity-0 group-hover:opacity-60 transition-opacity text-[#dc2626]">✏️</span>
+    </div>
+  )
+}
+
+// ─── EditableAudio ────────────────────────────────────────────────────────────
+function EditableAudio({ audioSrc, onUploaded, canEdit }) {
+  const inputRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+
+  const handleUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    try {
+      const res = await api.post('/api/vitrine/upload-audio', fd)
+      onUploaded(res.data.url)
+    } catch (err) {
+      console.error('Upload audio:', err.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <>
+      {canEdit && (
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="mt-2 w-full px-3 py-1.5 rounded-lg text-xs font-semibold uppercase border border-dashed border-[#dc2626]/30 text-[#dc2626]/60 hover:border-[#dc2626] hover:text-[#dc2626] transition-all disabled:opacity-40">
+          {uploading ? '⏳ Upload...' : '🎵 Remplacer l\'hymne'}
+        </button>
+      )}
+      <input ref={inputRef} type="file" accept="audio/*" className="hidden" onChange={handleUpload} />
+    </>
+  )
+}
 
 // ─── Player Audio Custom ──────────────────────────────────────────────────────
-function AudioPlayer() {
+function AudioPlayer({ src }) {
   const audioRef = useRef(null)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -55,7 +137,7 @@ function AudioPlayer() {
       </h2>
       <audio
         ref={audioRef}
-        src="/audio/hymne.mp3"
+        src={src || '/audio/hymne.mp3'}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onEnded={handleEnded}
@@ -153,6 +235,23 @@ const RL = () => (
 
 // ─── Page Vitrine ─────────────────────────────────────────────────────────────
 export default function Vitrine() {
+  const { user } = useAuth()
+  const canEdit = user?.coc_name === 'CyberAlf' || ['superadmin', 'admin'].includes(user?.site_role)
+  const [content, setContent] = useState({})
+
+  useEffect(() => {
+    api.get('/api/vitrine/content').then(r => {
+      const map = {}
+      r.data.forEach(item => { map[item.key] = item.value })
+      setContent(map)
+    }).catch(() => {})
+  }, [])
+
+  const saveContent = async (key, value) => {
+    setContent(prev => ({ ...prev, [key]: value }))
+    try { await api.put(`/api/vitrine/content/${key}`, { value }) } catch {}
+  }
+
   return (
     <>
       <AnimatedBackground variant="vitrine" />
@@ -185,11 +284,12 @@ export default function Vitrine() {
         <div className="flex items-center gap-3 mb-4">
           <div className="h-px flex-1 bg-[#1a1a1a]" />
           <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-[#111111] border border-[#dc2626]/30 text-[#dc2626]">
-            Hymne du Clan
+            <EditableText value={content.hymne_title || 'Hymne du Clan'} onSave={v => saveContent('hymne_title', v)} canEdit={canEdit} tag="span" />
           </span>
           <div className="h-px flex-1 bg-[#1a1a1a]" />
         </div>
-        <AudioPlayer />
+        <AudioPlayer src={content.hymne_url} />
+        <EditableAudio audioSrc={content.hymne_url} onUploaded={url => saveContent('hymne_url', url)} canEdit={canEdit} />
       </section>
 
       {/* SECTION 3 — Affiche Recrutement */}
@@ -223,15 +323,23 @@ export default function Vitrine() {
 
           {/* Critères */}
           <ul className="flex flex-col gap-3 mb-8">
-            <li className="font-bold text-lg" style={{ color: '#dc2626' }}>🏰 HDV 15 MINIMUM</li>
-            <li style={{ color: '#f0f0f0' }}>✅ ASSIDUITÉ</li>
-            <li style={{ color: '#f0f0f0' }}>✅ ENVIE DE PROGRESSER</li>
-            <li style={{ color: '#f97316' }}>⚠️ RESPECTE LES CONSIGNES</li>
+            <li className="font-bold text-lg" style={{ color: '#dc2626' }}>
+              🏰 <EditableText value={content.recrutement_hdv || 'HDV 15 MINIMUM'} onSave={v => saveContent('recrutement_hdv', v)} canEdit={canEdit} tag="span" />
+            </li>
+            <li style={{ color: '#f0f0f0' }}>
+              ✅ <EditableText value={content.recrutement_assiduite || 'ASSIDUITÉ'} onSave={v => saveContent('recrutement_assiduite', v)} canEdit={canEdit} tag="span" />
+            </li>
+            <li style={{ color: '#f0f0f0' }}>
+              ✅ <EditableText value={content.recrutement_progression || 'ENVIE DE PROGRESSER'} onSave={v => saveContent('recrutement_progression', v)} canEdit={canEdit} tag="span" />
+            </li>
+            <li style={{ color: '#f97316' }}>
+              ⚠️ <EditableText value={content.recrutement_consignes || 'RESPECTE LES CONSIGNES'} onSave={v => saveContent('recrutement_consignes', v)} canEdit={canEdit} tag="span" />
+            </li>
           </ul>
 
           {/* Slogan */}
           <p className="text-xl italic text-center mb-8" style={{ color: '#f59e0b' }}>
-            Viens, combat et conquéris !
+            <EditableText value={content.recrutement_slogan || 'Viens, combat et conquéris !'} onSave={v => saveContent('recrutement_slogan', v)} canEdit={canEdit} tag="span" />
           </p>
 
           {/* Bouton Discord */}

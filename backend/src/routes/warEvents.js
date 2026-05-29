@@ -130,7 +130,7 @@ router.get('/', async (req, res) => {
     const { data: events, error } = await supabase
       .from('war_events')
       .select('*')
-      .in('status', ['open', 'validated'])
+      .in('status', ['open', 'validated', 'closed'])
       .order('proposed_date', { ascending: true })
     if (error) throw error
 
@@ -473,6 +473,42 @@ router.delete('/ldc-warriors/:id', requireAuth, requireAdmin, async (req, res) =
       .eq('id', req.params.id)
     if (error) throw error
     res.json({ success: true })
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/war-events/:id/reopen — rouvrir les inscriptions
+router.post('/:id/reopen', requireAuth, async (req, res) => {
+  try {
+    if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+    const { data, error } = await supabase
+      .from('war_events')
+      .update({ status: 'open' })
+      .eq('id', req.params.id)
+      .eq('status', 'closed')
+      .select()
+      .single()
+    if (error) throw error
+    if (!data) return res.status(400).json({ error: 'Événement non trouvé ou déjà ouvert' })
+    res.json(data)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/war-events/:id/end — terminer définitivement l'événement
+router.post('/:id/end', requireAuth, async (req, res) => {
+  try {
+    if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
+    const { data, error } = await supabase
+      .from('war_events')
+      .update({ status: 'ended' })
+      .eq('id', req.params.id)
+      .select()
+      .single()
+    if (error) throw error
+    res.json(data)
   } catch (err) {
     res.status(500).json({ error: err.message })
   }

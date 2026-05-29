@@ -46,15 +46,20 @@ function calcDates(type, { proposed_date, close_date }) {
   return {}
 }
 
-function getCurrentTier(count) {
-  const tiers = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+function getTiers(eventType) {
+  if (eventType === 'ldc') return [15, 20, 25, 30, 35, 40, 45, 50]
+  return [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+}
+
+function getCurrentTier(count, eventType) {
+  const tiers = getTiers(eventType)
   const reached = tiers.filter(t => count >= t)
   return reached.length > 0 ? Math.max(...reached) : 0
 }
 
-function getNextTier(count) {
-  const tiers = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
-  return tiers.find(t => t > count) || 50
+function getNextTier(count, eventType) {
+  const tiers = getTiers(eventType)
+  return tiers.find(t => t > count) || tiers[tiers.length - 1]
 }
 
 // ─── TypeBadge ────────────────────────────────────────────────────────────────
@@ -77,10 +82,11 @@ function TypeBadge({ type }) {
 
 function StatusBadge({ status }) {
   const config = {
-    open:      { label: 'Ouvert',    className: 'bg-green-900/30 border-green-700/50 text-green-400' },
-    validated: { label: 'Validé',    className: 'bg-blue-900/30 border-blue-700/50 text-blue-400' },
-    closed:    { label: 'Clôturé',   className: 'bg-[#1a1a1a] border-[#333] text-gray-500' },
-    cancelled: { label: 'Annulé',    className: 'bg-red-900/30 border-red-700/50 text-red-400' },
+    open:      { label: 'Inscriptions ouvertes', className: 'bg-green-900/30 border-green-700/50 text-green-400' },
+    validated: { label: 'Validé',                className: 'bg-blue-900/30 border-blue-700/50 text-blue-400' },
+    closed:    { label: 'Inscriptions fermées',  className: 'bg-orange-900/30 border-orange-700/50 text-orange-400' },
+    ended:     { label: 'Terminé',               className: 'bg-[#1a1a1a] border-[#333] text-gray-600' },
+    cancelled: { label: 'Annulé',                className: 'bg-red-900/30 border-red-700/50 text-red-400' },
   }
   const { label, className } = config[status] || config.closed
   return (
@@ -164,7 +170,7 @@ function SignupButton({ event, isSignedUp, onSignup }) {
 
 // ─── SignupsList ──────────────────────────────────────────────────────────────
 
-function SignupsList({ signups, canManage, eventId, onRemove }) {
+function SignupsList({ signups, canManage, eventId, eventType, onRemove }) {
   const [confirmRemove, setConfirmRemove] = useState(null) // { id, name, userId }
 
   if (!signups || signups.length === 0) {
@@ -176,7 +182,7 @@ function SignupsList({ signups, canManage, eventId, onRemove }) {
     )
   }
 
-  const currentTier = getCurrentTier(signups.length)
+  const currentTier = getCurrentTier(signups.length, eventType)
 
   return (
     <div className="mt-2">
@@ -250,13 +256,12 @@ function SignupsList({ signups, canManage, eventId, onRemove }) {
 
 // ─── AdminActions ─────────────────────────────────────────────────────────────
 
-function AdminActions({ event, onValidate, onClose, onEdit, onAddSignup }) {
+function AdminActions({ event, onValidate, onClose, onReopen, onEnd, onEdit, onAddSignup }) {
   const { user } = useAuth()
   const canManage = ['superadmin', 'admin'].includes(user?.site_role) ||
     ['leader', 'coLeader'].includes(user?.coc_role)
-  const canEdit = event.created_by === user?.id ||
-    ['superadmin', 'admin'].includes(user?.site_role) ||
-    ['leader', 'coLeader'].includes(user?.coc_role)
+  const isAuthor = event.created_by === user?.id
+  const canEdit = isAuthor || canManage
 
   if (!canManage && !canEdit) return null
 
@@ -268,19 +273,31 @@ function AdminActions({ event, onValidate, onClose, onEdit, onAddSignup }) {
           ✓ Valider la guerre
         </button>
       )}
-      {canManage && event.status !== 'closed' && (
+      {event.status === 'open' && (canManage || isAuthor) && (
         <button onClick={() => onClose(event.id)}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#dc2626] hover:text-white transition-colors">
-          Clôturer
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-orange-900/30 border border-orange-700/50 text-orange-400 hover:bg-orange-900/50 transition-colors">
+          🔒 Clôturer inscriptions
         </button>
       )}
-      {canEdit && event.status !== 'closed' && (
+      {event.status === 'closed' && canManage && (
+        <button onClick={() => onReopen(event.id)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-green-900/30 border border-green-700/50 text-green-400 hover:bg-green-900/50 transition-colors">
+          🔓 Rouvrir inscriptions
+        </button>
+      )}
+      {event.status !== 'ended' && canManage && (
+        <button onClick={() => onEnd(event.id)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-500 hover:border-[#dc2626]/50 hover:text-[#dc2626] transition-colors">
+          ✓ Terminer l'événement
+        </button>
+      )}
+      {canEdit && event.status !== 'ended' && (
         <button onClick={() => onEdit(event)}
           className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#f59e0b]/50 hover:text-[#f59e0b] transition-colors">
           ✏️ Modifier
         </button>
       )}
-      {canManage && (
+      {canManage && event.status !== 'ended' && (
         <button onClick={() => onAddSignup(event)}
           className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#6366f1]/50 hover:text-[#818cf8] transition-colors">
           ➕ Inscrire un joueur
@@ -292,7 +309,7 @@ function AdminActions({ event, onValidate, onClose, onEdit, onAddSignup }) {
 
 // ─── EventCard ────────────────────────────────────────────────────────────────
 
-function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onEdit, onAddSignup, onRemoveSignup, canManage }) {
+function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onReopen, onEnd, onEdit, onAddSignup, onRemoveSignup, canManage }) {
   const isSignedUp = userSignedUpEventIds.has(event.id)
   const borderClass =
     event.type === 'ldc' ? 'border-[#f59e0b]/40' :
@@ -300,9 +317,10 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
     'border-[#1f1f1f]'
 
   const signupCount = event.signup_count || 0
-  const currentTier = getCurrentTier(signupCount)
-  const nextTier = getNextTier(signupCount)
-  const progress = signupCount >= 50 ? 100 : ((signupCount % 5) / 5) * 100
+  const currentTier = getCurrentTier(signupCount, event.type)
+  const nextTier = getNextTier(signupCount, event.type)
+  const maxTier = getTiers(event.type).at(-1)
+  const progress = signupCount >= maxTier ? 100 : ((signupCount % 5) / 5) * 100
 
   return (
     <div className={`relative rounded-2xl border overflow-hidden bg-gradient-to-br from-[#111111] to-[#0d0d0d] transition-all duration-300 hover:shadow-lg hover:shadow-[#dc2626]/10 ${borderClass}`}>
@@ -363,13 +381,8 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
           </div>
         </div>
 
-        <SignupsList signups={signups[event.id] || []} canManage={canManage} eventId={event.id} onRemove={onRemoveSignup} />
-        <AdminActions event={event} onValidate={onValidate} onClose={onClose} onEdit={onEdit} onAddSignup={onAddSignup} />
-
-        <div className="mt-3 pt-3 border-t border-[#1a1a1a] grid grid-cols-2 gap-2 text-[10px] text-gray-700">
-          <span>📅 Clôture inscriptions : <span className="text-gray-500 ml-1">{formatDate(event.close_date)}</span></span>
-          <span>🗑️ Suppression auto : <span className="text-gray-500 ml-1">{formatDate(event.auto_delete_date)}</span></span>
-        </div>
+        <SignupsList signups={signups[event.id] || []} canManage={canManage} eventId={event.id} eventType={event.type} onRemove={onRemoveSignup} />
+        <AdminActions event={event} onValidate={onValidate} onClose={onClose} onReopen={onReopen} onEnd={onEnd} onEdit={onEdit} onAddSignup={onAddSignup} />
       </div>
     </div>
   )
@@ -1046,8 +1059,20 @@ export default function Inscriptions({ embedded = false }) {
   }
 
   const handleClose = async (eventId) => {
-    if (!window.confirm('Clôturer cet événement ?')) return
+    if (!window.confirm('Clôturer les inscriptions ?')) return
     await api.post(`/api/war-events/${eventId}/close`)
+    await fetchAll()
+  }
+
+  const handleReopen = async (eventId) => {
+    if (!window.confirm('Rouvrir les inscriptions ?')) return
+    await api.post(`/api/war-events/${eventId}/reopen`)
+    await fetchAll()
+  }
+
+  const handleEndEvent = async (eventId) => {
+    if (!window.confirm('Terminer définitivement cet événement ? Il sera masqué de la liste.')) return
+    await api.post(`/api/war-events/${eventId}/end`)
     await fetchAll()
   }
 
@@ -1123,6 +1148,8 @@ export default function Inscriptions({ embedded = false }) {
                 onSignup={handleSignup}
                 onValidate={handleValidate}
                 onClose={handleClose}
+                onReopen={handleReopen}
+                onEnd={handleEndEvent}
                 onEdit={setEditModal}
                 onAddSignup={setAddSignupModal}
                 onRemoveSignup={handleRemoveSignup}

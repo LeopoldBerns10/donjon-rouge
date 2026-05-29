@@ -61,8 +61,8 @@ export default function Home() {
           <img
             src={clan?.badgeUrls?.large || 'https://api-assets.clashofclans.com/badges/512/Cbal0SXAUxTFUsLag6SVrqBsFhAfrPfk9nAANTqQTMM.png'}
             alt="Donjon Rouge"
-            style={{ width: '120px', height: '120px' }}
-            className="object-contain mx-auto drop-shadow-[0_0_30px_rgba(196,30,58,0.8)]"
+            className="w-36 h-36 md:w-44 md:h-44 object-contain mx-auto drop-shadow-[0_0_40px_rgba(220,38,38,0.6)] animate-pulse"
+            style={{ animationDuration: '3s' }}
           />
         </div>
 

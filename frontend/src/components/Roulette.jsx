@@ -1,6 +1,94 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
+
+const SEGMENTS = [
+  { label: 'Retente !', color: '#1c1c1c', textColor: '#555' },
+  { label: '🔥',        color: '#7f1d1d', textColor: '#ef4444' },
+  { label: 'Retente !', color: '#141414', textColor: '#555' },
+  { label: '⚔️',        color: '#1c1c1c', textColor: '#dc2626' },
+  { label: 'Retente !', color: '#0f0f0f', textColor: '#555' },
+  { label: '🏆',        color: '#78350f', textColor: '#f59e0b' },
+  { label: 'Retente !', color: '#1c1c1c', textColor: '#555' },
+  { label: '⭐',        color: '#1c1c1c', textColor: '#fbbf24' },
+]
+
+const N = SEGMENTS.length
+const SEG_ANGLE = 360 / N
+
+// Roue SVG segments + textes
+function RouletteWheel({ rotation, animating }) {
+  const size = 256
+  const cx = size / 2
+  const cy = size / 2
+  const r = cx - 4
+
+  const slices = SEGMENTS.map((seg, i) => {
+    const startAngle = (i * SEG_ANGLE - 90) * (Math.PI / 180)
+    const endAngle = ((i + 1) * SEG_ANGLE - 90) * (Math.PI / 180)
+    const x1 = cx + r * Math.cos(startAngle)
+    const y1 = cy + r * Math.sin(startAngle)
+    const x2 = cx + r * Math.cos(endAngle)
+    const y2 = cy + r * Math.sin(endAngle)
+    const midAngle = ((i + 0.5) * SEG_ANGLE - 90) * (Math.PI / 180)
+    const labelR = r * 0.68
+    const lx = cx + labelR * Math.cos(midAngle)
+    const ly = cy + labelR * Math.sin(midAngle)
+    return { seg, x1, y1, x2, y2, lx, ly, midAngle }
+  })
+
+  return (
+    <div className="relative w-64 h-64 mx-auto select-none">
+      {/* Indicateur haut */}
+      <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
+        <div className="w-0 h-0 border-l-[10px] border-r-[10px] border-b-[22px]
+                        border-l-transparent border-r-transparent border-b-[#dc2626]
+                        drop-shadow-[0_0_6px_rgba(220,38,38,0.9)]" />
+      </div>
+
+      {/* Roue */}
+      <svg
+        width={size} height={size} viewBox={`0 0 ${size} ${size}`}
+        className="w-full h-full"
+        style={{
+          transform: `rotate(${rotation}deg)`,
+          transition: animating ? 'transform 6s cubic-bezier(0.17,0.67,0.12,0.99)' : 'none',
+          filter: 'drop-shadow(0 0 20px rgba(220,38,38,0.3))',
+        }}
+      >
+        {/* Bord extérieur */}
+        <circle cx={cx} cy={cy} r={r + 2} fill="none" stroke="#dc2626" strokeWidth="3" strokeOpacity="0.5" />
+
+        {slices.map(({ seg, x1, y1, x2, y2, lx, ly }, i) => (
+          <g key={i}>
+            <path
+              d={`M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2} Z`}
+              fill={seg.color}
+              stroke="#dc2626"
+              strokeWidth="0.8"
+              strokeOpacity="0.25"
+            />
+            <text
+              x={lx} y={ly}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={seg.label.length > 4 ? '9' : '14'}
+              fontWeight="700"
+              fill={seg.textColor}
+              style={{ userSelect: 'none' }}
+            >
+              {seg.label}
+            </text>
+          </g>
+        ))}
+
+        {/* Centre */}
+        <circle cx={cx} cy={cy} r={28} fill="#0d0d0d" stroke="#dc2626" strokeWidth="2" />
+        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle" fontSize="18">🎰</text>
+      </svg>
+    </div>
+  )
+}
 
 export function Roulette() {
   const { user } = useAuth()
@@ -10,6 +98,9 @@ export function Roulette() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetTitle, setResetTitle] = useState('')
   const [resetPrize, setResetPrize] = useState('')
+  const [wheelRotation, setWheelRotation] = useState(0)
+  const [wheelAnimating, setWheelAnimating] = useState(false)
+  const rotationRef = useRef(0)
 
   const isCyberAlf = user?.coc_name === 'CyberAlf' || user?.site_role === 'superadmin'
 
@@ -19,11 +110,7 @@ export function Roulette() {
     try {
       const res = await api.get('/api/roulette/current')
       const data = res.data
-      if (data.active) {
-        setEvent({ ...data.event, active: true })
-      } else {
-        setEvent(null)
-      }
+      setEvent(data.active ? { ...data.event, active: true } : null)
       setHasClickedToday(data.hasClickedToday || false)
     } catch {
       setEvent(null)
@@ -31,15 +118,34 @@ export function Roulette() {
   }
 
   const handleSpin = async () => {
+    if (isSpinning) return
     setIsSpinning(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    let isWinner = false
     try {
       const res = await api.post('/api/roulette/click')
-      const data = res.data
+      isWinner = res.data.isWinner
       setHasClickedToday(true)
-      if (data.isWinner) triggerWinAnimation()
-    } catch {}
+    } catch {
+      setIsSpinning(false)
+      return
+    }
+
+    // Calcul segment cible
+    const targetSegment = isWinner
+      ? 5 // 🏆
+      : [0, 2, 4, 6][Math.floor(Math.random() * 4)] // Retente!
+    const targetRotation = rotationRef.current + 1800 + (360 - targetSegment * SEG_ANGLE - SEG_ANGLE / 2)
+
+    setWheelAnimating(true)
+    setWheelRotation(targetRotation)
+    rotationRef.current = targetRotation
+
+    await new Promise(resolve => setTimeout(resolve, 6400))
+    setWheelAnimating(false)
     setIsSpinning(false)
+
+    if (isWinner) triggerWinAnimation()
     fetchEvent()
   }
 
@@ -59,7 +165,7 @@ export function Roulette() {
   const triggerWinAnimation = () => {
     const toast = document.createElement('div')
     toast.innerHTML = `
-      <div style="position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99999;
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;
                   display:flex;flex-direction:column;align-items:center;
                   justify-content:center;animation:fadeIn 0.3s ease">
         <div style="font-size:80px;animation:bounce 0.5s infinite alternate">🏆</div>
@@ -88,7 +194,7 @@ export function Roulette() {
   return (
     <div className="my-8 mx-4">
 
-      {/* Bouton lancer event — CyberAlf only, si pas d'event actif */}
+      {/* Bouton lancer — CyberAlf seulement */}
       {(!event || !event.active) && isCyberAlf && (
         <div className="flex justify-center">
           <button
@@ -104,131 +210,108 @@ export function Roulette() {
 
       {/* Roulette active */}
       {event?.active && !event.isWon && (
-        <div className="relative rounded-2xl overflow-hidden border border-[#1f1f1f]
-                        bg-gradient-to-b from-[#111111] to-[#0a0a0a]
-                        shadow-2xl shadow-black/50">
+        <div className="relative rounded-3xl overflow-hidden
+                        bg-gradient-to-b from-[#1a0000] via-[#111111] to-[#0d0d0d]
+                        border border-[#dc2626]/30 shadow-2xl shadow-[#dc2626]/10">
+
+          {/* Trait brillant haut */}
+          <div className="absolute top-0 left-0 right-0 h-px
+                          bg-gradient-to-r from-transparent via-[#dc2626]/60 to-transparent" />
 
           {/* Header */}
-          <div className="px-6 py-4 border-b border-[#1f1f1f] text-center">
-            <p className="text-[10px] uppercase tracking-widest text-[#f59e0b] mb-1">
-              🎰 Événement Spécial
-            </p>
-            <h3 className="text-lg font-black text-white uppercase tracking-wide">
-              {event.title}
+          <div className="px-6 pt-6 pb-4 text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full
+                            bg-[#dc2626]/10 border border-[#dc2626]/30 mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626] animate-pulse" />
+              <span className="text-[10px] uppercase tracking-widest text-[#dc2626] font-bold">
+                Événement Spécial
+              </span>
+            </div>
+            <h3 className="text-2xl font-black text-white uppercase tracking-wide mb-1">
+              ROULETTE
             </h3>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-400">{event.title}</p>
+            <p className="text-xs text-gray-600 mt-1">
               Le 100ème joueur à tourner la roulette remporte le lot !
             </p>
           </div>
 
-          {/* Zone roulette */}
-          <div className="px-6 py-8 flex flex-col items-center gap-6">
+          {/* Roue */}
+          <div className="px-6 py-4 flex flex-col items-center gap-6">
+            <RouletteWheel rotation={wheelRotation} animating={wheelAnimating} />
 
-            {/* Roulette visuelle */}
-            <div className="relative">
-              <div
-                className={`w-48 h-48 rounded-full border-4 border-[#1a1a1a]
-                              bg-[#0a0a0a] relative overflow-hidden
-                              ${isSpinning ? 'animate-spin' : ''}`}
-                style={{ animationDuration: '0.5s' }}>
-
-                {[...Array(12)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute inset-0"
-                    style={{
-                      background: `conic-gradient(
-                        from ${i * 30}deg,
-                        #111111 0deg,
-                        #111111 28deg,
-                        #dc2626 28deg,
-                        #dc2626 30deg
-                      )`
-                    }}
-                  />
-                ))}
-
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-16 h-16 rounded-full bg-[#0d0d0d] border-2
-                                  border-[#dc2626]/30 flex items-center justify-center">
-                    <span className="text-2xl">🎰</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Indicateur rouge en haut */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1
-                              w-0 h-0 border-l-[8px] border-r-[8px] border-b-[16px]
-                              border-l-transparent border-r-transparent border-b-[#dc2626]
-                              z-10" />
-            </div>
-
-            {/* Prix */}
-            <div className="text-center">
+            {/* Lot */}
+            <div className="text-center px-6 py-3 rounded-2xl
+                            bg-[#111111] border border-[#f59e0b]/20 w-full max-w-xs">
               <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-1">
                 Lot à gagner
               </p>
-              <p className="text-xl font-black text-[#f59e0b]">
-                🏆 {event.prize}
-              </p>
-              <p className="text-xs text-gray-600 mt-1">
-                Offert par CyberAlf
-              </p>
+              <p className="text-xl font-black text-[#f59e0b]">🏆 {event.prize}</p>
+              <p className="text-xs text-gray-600 mt-0.5">Offert par CyberAlf</p>
             </div>
 
-            {/* Compteur (admins seulement) */}
+            {/* Compteur admin */}
             {isCyberAlf && (
-              <div className="px-4 py-2 rounded-xl bg-[#0a0a0a] border border-[#dc2626]/20">
-                <p className="text-xs text-center text-gray-500">
-                  Compteur admin :
-                  <span className="text-[#dc2626] font-bold ml-1">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-xl
+                              bg-[#0a0a0a] border border-[#dc2626]/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626]" />
+                <span className="text-xs text-gray-500">
+                  Compteur : <span className="text-[#dc2626] font-bold">
                     {event.currentClicks} / {event.targetClicks}
                   </span>
-                </p>
+                </span>
               </div>
             )}
 
             {/* Bouton jouer */}
-            {user ? (
-              hasClickedToday ? (
-                <div className="text-center">
-                  <p className="text-sm text-gray-500">
-                    ✓ Tu as déjà tourné aujourd'hui
-                  </p>
-                  <p className="text-xs text-gray-700 mt-1">
-                    Reviens demain pour une nouvelle chance !
-                  </p>
-                </div>
-              ) : (
-                <button
-                  onClick={handleSpin}
-                  disabled={isSpinning}
-                  className="px-8 py-4 rounded-2xl text-base font-black uppercase
-                             tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white
-                             shadow-lg shadow-[#dc2626]/30
-                             disabled:opacity-50 disabled:cursor-not-allowed
-                             transition-all duration-200 hover:scale-105
-                             border-2 border-[#ef4444]/50">
-                  {isSpinning ? '🎰 En cours...' : '🎰 Tourner la roulette !'}
-                </button>
-              )
-            ) : (
+            {user && !hasClickedToday && (
+              <button
+                onClick={handleSpin}
+                disabled={isSpinning}
+                className="relative px-10 py-4 rounded-2xl text-base font-black
+                           uppercase tracking-widest text-white
+                           bg-gradient-to-r from-[#dc2626] to-[#7f1d1d]
+                           hover:from-[#ef4444] hover:to-[#dc2626]
+                           shadow-lg shadow-[#dc2626]/30
+                           disabled:opacity-50 transition-all duration-300
+                           hover:scale-105 border border-[#ef4444]/30
+                           overflow-hidden group">
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent
+                                 via-white/10 to-transparent -translate-x-full
+                                 group-hover:translate-x-full transition-transform duration-700" />
+                <span className="relative">
+                  {isSpinning ? '🎰 En cours...' : '🎰 Tenter sa chance !'}
+                </span>
+              </button>
+            )}
+
+            {user && hasClickedToday && (
+              <div className="text-center py-3 px-6 rounded-2xl bg-[#111111]
+                              border border-[#1f1f1f] w-full max-w-xs">
+                <p className="text-sm text-gray-400">✓ Déjà joué aujourd'hui</p>
+                <p className="text-xs text-gray-600 mt-1">Reviens demain !</p>
+              </div>
+            )}
+
+            {!user && (
               <p className="text-sm text-gray-600">
-                Connecte-toi pour participer !
+                Connecte-toi pour participer
               </p>
             )}
           </div>
+
+          {/* Trait brillant bas */}
+          <div className="absolute bottom-0 left-0 right-0 h-px
+                          bg-gradient-to-r from-transparent via-[#dc2626]/30 to-transparent" />
         </div>
       )}
 
-      {/* Gagnant annoncé publiquement */}
+      {/* Gagnant annoncé */}
       {event?.isWon && (
         <div className="rounded-2xl border border-[#f59e0b]/40 bg-[#111111]
                         p-6 text-center shadow-2xl shadow-[#f59e0b]/10">
           <p className="text-4xl mb-3">🏆</p>
-          <h3 className="text-xl font-black text-[#f59e0b] uppercase mb-2">
-            Félicitations !
-          </h3>
+          <h3 className="text-xl font-black text-[#f59e0b] uppercase mb-2">Félicitations !</h3>
           <p className="text-white font-bold text-lg">{event.winnerName}</p>
           <p className="text-sm text-gray-400 mt-1">
             a remporté le <span className="text-[#f59e0b] font-bold">{event.prize}</span> !
@@ -236,7 +319,6 @@ export function Roulette() {
           <p className="text-xs text-gray-600 mt-3">
             Contacte CyberAlf sur Discord pour récupérer ton lot 🎉
           </p>
-
           {isCyberAlf && (
             <button
               onClick={() => setShowResetModal(true)}
@@ -249,16 +331,14 @@ export function Roulette() {
         </div>
       )}
 
-      {/* Modal reset (CyberAlf only) */}
+      {/* Modal reset — CyberAlf */}
       {showResetModal && (
-        <div
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999]
-                      flex items-center justify-center p-4"
-          onClick={() => setShowResetModal(false)}>
-          <div
-            className="bg-[#111111] border border-[#1f1f1f] rounded-2xl
-                        p-6 w-full max-w-sm shadow-2xl"
-            onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999]
+                        flex items-center justify-center p-4"
+             onClick={() => setShowResetModal(false)}>
+          <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl
+                          p-6 w-full max-w-sm shadow-2xl"
+               onClick={e => e.stopPropagation()}>
             <h3 className="text-base font-bold text-white uppercase mb-4">
               🎰 Nouvel événement roulette
             </h3>
@@ -277,14 +357,12 @@ export function Roulette() {
                          text-white text-sm mb-4 focus:outline-none focus:border-[#dc2626]/50"
             />
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowResetModal(false)}
+              <button onClick={() => setShowResetModal(false)}
                 className="flex-1 py-2.5 rounded-xl border border-[#333] text-gray-400
                            text-sm font-semibold uppercase hover:border-[#555]">
                 Annuler
               </button>
-              <button
-                onClick={handleReset}
+              <button onClick={handleReset}
                 className="flex-1 py-2.5 rounded-xl bg-[#dc2626] text-white
                            text-sm font-semibold uppercase hover:bg-[#b91c1c]">
                 Lancer 🎰

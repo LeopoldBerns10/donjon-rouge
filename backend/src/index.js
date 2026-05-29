@@ -18,6 +18,7 @@ import warEventsRoutes from './routes/warEvents.js'
 import ldcBoardRoutes from './routes/ldcBoard.js'
 import adminRoutes from './routes/admin.js'
 import rouletteRoutes from './routes/roulette.js'
+import vitrineRoutes from './routes/vitrine.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -48,6 +49,7 @@ app.use('/api/war-events', warEventsRoutes)
 app.use('/api/ldc-board', ldcBoardRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/roulette', rouletteRoutes)
+app.use('/api/vitrine', vitrineRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
   const result = await syncMembers()
@@ -162,50 +164,6 @@ httpServer.listen(PORT, async () => {
   await syncMembers()
   console.log('✅ Initialisation terminée')
   setInterval(syncMembers, 60 * 60 * 1000)
-
-  // Clôture automatique des événements de guerre expirés
-  const autoCloseEvents = async () => {
-    try {
-      const today = new Date().toISOString().split('T')[0]
-
-      // Clôturer les inscriptions expirées
-      const { error: closeErr } = await supabase
-        .from('war_events')
-        .update({ status: 'closed' })
-        .eq('status', 'open')
-        .lte('close_date', today)
-      if (closeErr) console.error('autoCloseEvents (close):', closeErr.message)
-
-      // Supprimer les postes dont la date de suppression est dépassée
-      const { error: deleteErr } = await supabase
-        .from('war_events')
-        .delete()
-        .lte('auto_delete_date', today)
-        .in('status', ['closed', 'validated'])
-      if (deleteErr) console.error('autoCloseEvents (delete):', deleteErr.message)
-
-      // Vider le tableau ldc_board si la LDC liée est clôturée depuis 7j
-      const sevenDaysAgo = new Date()
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-      const { data: closedLdc } = await supabase
-        .from('war_events')
-        .select('id')
-        .eq('type', 'ldc')
-        .eq('status', 'closed')
-        .lte('updated_at', sevenDaysAgo.toISOString())
-      if (closedLdc?.length > 0) {
-        await supabase
-          .from('ldc_board_warriors')
-          .delete()
-          .neq('id', '00000000-0000-0000-0000-000000000000')
-        console.log('✅ Tableau ldc_board_warriors vidé (LDC clôturée depuis >7j)')
-      }
-    } catch (err) {
-      console.error('autoCloseEvents:', err.message)
-    }
-  }
-  autoCloseEvents()
-  setInterval(autoCloseEvents, 60 * 60 * 1000)
 
   // Vérification toutes les heures : si guerre en cours depuis > 24h → reset inscriptions
   setInterval(async () => {
