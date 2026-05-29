@@ -252,7 +252,7 @@ router.post('/:id/signup-admin', requireAuth, async (req, res) => {
   try {
     if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
 
-    const { coc_tag } = req.body
+    const { coc_tag, clan_tag } = req.body
     if (!coc_tag) return res.status(400).json({ error: 'coc_tag requis' })
 
     const { data: event, error: evErr } = await supabase
@@ -264,7 +264,7 @@ router.post('/:id/signup-admin', requireAuth, async (req, res) => {
 
     const { data: userData, error: userErr } = await supabase
       .from('users')
-      .select('id, coc_name, coc_tag, coc_role')
+      .select('id, coc_name, coc_tag, coc_role, clan_tag')
       .eq('coc_tag', coc_tag)
       .single()
     if (userErr || !userData) return res.status(404).json({ error: 'Joueur introuvable dans la base' })
@@ -276,7 +276,8 @@ router.post('/:id/signup-admin', requireAuth, async (req, res) => {
         user_id: userData.id,
         coc_name: userData.coc_name,
         coc_tag: userData.coc_tag,
-        coc_role: userData.coc_role
+        coc_role: userData.coc_role,
+        clan_tag: clan_tag || userData.clan_tag || 'DR1'
       })
       .select()
       .single()

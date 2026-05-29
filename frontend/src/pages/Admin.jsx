@@ -82,7 +82,7 @@ function ConfirmModal({ isOpen, title, message, onConfirm, onCancel, confirmLabe
 
 // ── Tableau des membres ───────────────────────────────────────────────────────
 
-function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
+function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading, adminFilter, setAdminFilter }) {
   const [modal, setModal] = useState({
     isOpen: false, title: '', message: '',
     onConfirm: null, confirmLabel: '', confirmClass: '',
@@ -148,6 +148,14 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
     )
   }
 
+  const dr1Count = users.filter(u => u.clan_tag !== '#2RCGG9YR9').length
+  const dr2Count = users.filter(u => u.clan_tag === '#2RCGG9YR9').length
+  const filteredUsers = users.filter(u => {
+    if (adminFilter === 'dr1') return u.clan_tag !== '#2RCGG9YR9'
+    if (adminFilter === 'dr2') return u.clan_tag === '#2RCGG9YR9'
+    return true
+  })
+
   if (loading) return <p className="text-ash font-cinzel animate-pulse text-center py-10">Chargement...</p>
 
   return (
@@ -161,6 +169,36 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
         confirmLabel={modal.confirmLabel}
         confirmClass={modal.confirmClass}
       />
+
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <button
+          onClick={() => setAdminFilter('all')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold uppercase border transition-all ${
+            adminFilter === 'all'
+              ? 'bg-[#1a1a1a] border-[#555] text-white'
+              : 'bg-[#111111] border-[#2a2a2a] text-gray-500 hover:border-[#555] hover:text-gray-300'
+          }`}>
+          Tous ({users.length})
+        </button>
+        <button
+          onClick={() => setAdminFilter('dr1')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold uppercase border transition-all ${
+            adminFilter === 'dr1'
+              ? 'bg-[#dc2626]/20 border-[#dc2626] text-[#dc2626]'
+              : 'bg-[#111111] border-[#2a2a2a] text-gray-500 hover:border-[#dc2626]/40 hover:text-[#dc2626]/60'
+          }`}>
+          🔴 DR1 ({dr1Count})
+        </button>
+        <button
+          onClick={() => setAdminFilter('dr2')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold uppercase border transition-all ${
+            adminFilter === 'dr2'
+              ? 'bg-[#f59e0b]/20 border-[#f59e0b] text-[#f59e0b]'
+              : 'bg-[#111111] border-[#2a2a2a] text-gray-500 hover:border-[#f59e0b]/40 hover:text-[#f59e0b]/60'
+          }`}>
+          🟡 DR2 ({dr2Count})
+        </button>
+      </div>
 
       <div className="overflow-x-auto rounded-lg border border-fog/30">
         <table className="w-full text-sm">
@@ -176,13 +214,22 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading }) {
             </tr>
           </thead>
           <tbody>
-            {users.map((u, i) => (
+            {filteredUsers.map((u, i) => (
               <tr key={u.id} className="border-b border-fog/20"
                 style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111', opacity: u.is_disabled ? 0.5 : 1 }}>
 
                 {/* Joueur */}
                 <td className="py-3 px-4">
-                  <div className="font-semibold text-bone text-sm">{u.coc_name}</div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${
+                      u.clan_tag === '#2RCGG9YR9'
+                        ? 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30'
+                        : 'bg-[#dc2626]/20 text-[#dc2626] border border-[#dc2626]/30'
+                    }`}>
+                      {u.clan_tag === '#2RCGG9YR9' ? 'DR2' : 'DR1'}
+                    </span>
+                    <span className="font-semibold text-bone text-sm">{u.coc_name}</span>
+                  </div>
                   <div className="text-xs text-ash/60">{u.coc_tag}</div>
                 </td>
 
@@ -280,6 +327,7 @@ export default function Admin() {
   const [usersLoading, setUsersLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [adminFilter, setAdminFilter] = useState('all')
 
   useEffect(() => {
     if (!authLoading && !isAdmin) navigate('/')
@@ -371,6 +419,8 @@ export default function Admin() {
         isSuperAdmin={isSuperAdmin}
         onAction={handleAction}
         loading={usersLoading}
+        adminFilter={adminFilter}
+        setAdminFilter={setAdminFilter}
       />
     </div>
     </>

@@ -219,6 +219,13 @@ function SignupsList({ signups, canManage, eventId, eventType, onRemove }) {
               }`}>
                 {s.coc_name?.charAt(0).toUpperCase()}
               </div>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black flex-shrink-0 ${
+                s.clan_tag === '#2RCGG9YR9'
+                  ? 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30'
+                  : 'bg-[#dc2626]/20 text-[#dc2626] border border-[#dc2626]/30'
+              }`}>
+                {s.clan_tag === '#2RCGG9YR9' ? 'DR2' : 'DR1'}
+              </span>
               <span className={`text-sm font-medium flex-1 ${isInTier ? 'text-green-300' : 'text-gray-200'}`}>
                 {s.coc_name}
               </span>
@@ -411,27 +418,37 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
 // ─── AddSignupModal ───────────────────────────────────────────────────────────
 
 function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
-  const [members, setMembers] = useState([])
+  const [dr1Members, setDr1Members] = useState([])
+  const [dr2Members, setDr2Members] = useState([])
   const [selectedTag, setSelectedTag] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    api.get('/api/coc/clan/members').then(r => {
-      const items = r.data?.items || r.data || []
-      const signedTags = new Set((currentSignups || []).map(s => s.coc_tag))
-      const filtered = items.filter(m => !signedTags.has(m.tag))
-      setMembers(filtered)
-      if (filtered.length > 0) setSelectedTag(filtered[0].tag)
+    const signedTags = new Set((currentSignups || []).map(s => s.coc_tag))
+    Promise.all([
+      api.get('/api/coc/clan/dr1/members'),
+      api.get('/api/coc/clan/dr2/members'),
+    ]).then(([r1, r2]) => {
+      const items1 = (r1.data?.items || r1.data || []).filter(m => !signedTags.has(m.tag))
+      const items2 = (r2.data?.items || r2.data || []).filter(m => !signedTags.has(m.tag))
+      setDr1Members(items1)
+      setDr2Members(items2)
+      const first = items1[0] || items2[0]
+      if (first) setSelectedTag(first.tag)
     }).catch(() => {})
   }, [currentSignups])
+
+  const allMembers = [...dr1Members, ...dr2Members]
 
   const handleConfirm = async () => {
     if (!selectedTag) return
     setLoading(true)
     setError(null)
     try {
-      await api.post(`/api/war-events/${event.id}/signup-admin`, { coc_tag: selectedTag })
+      const member = allMembers.find(m => m.tag === selectedTag)
+      const clan_tag = dr2Members.find(m => m.tag === selectedTag) ? '#2RCGG9YR9' : '#29292QPRC'
+      await api.post(`/api/war-events/${event.id}/signup-admin`, { coc_tag: selectedTag, clan_tag })
       onAdded()
       onClose()
     } catch (err) {
@@ -447,14 +464,22 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
         <p className="text-white font-bold text-center mb-1">Inscrire un joueur</p>
         <p className="text-xs text-gray-500 text-center mb-5 uppercase tracking-wide">{event.title}</p>
 
-        {members.length === 0 ? (
+        {allMembers.length === 0 ? (
           <p className="text-sm text-gray-600 text-center py-4">Tous les membres sont déjà inscrits</p>
         ) : (
           <select value={selectedTag} onChange={e => setSelectedTag(e.target.value)}
             className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#6366f1]/50 mb-4">
-            {members.map(m => (
-              <option key={m.tag} value={m.tag}>{m.name} — {formatCocRole(m.role)}</option>
-            ))}
+            <option value="">Sélectionner un joueur...</option>
+            <optgroup label="🔴 Donjon Rouge 1">
+              {dr1Members.map(m => (
+                <option key={m.tag} value={m.tag}>{m.name} — HV{m.townHallLevel}</option>
+              ))}
+            </optgroup>
+            <optgroup label="🟡 Donjon Rouge 2">
+              {dr2Members.map(m => (
+                <option key={m.tag} value={m.tag}>{m.name} — HV{m.townHallLevel}</option>
+              ))}
+            </optgroup>
           </select>
         )}
 
