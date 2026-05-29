@@ -86,7 +86,7 @@ function AddBlockButton({ section, onAdd, canEdit, placeholder = 'Nouveau bloc..
     try {
       const res = await api.post('/api/vitrine/blocks', {
         section,
-        key: `custom_${Date.now()}`,
+        key: `custom_${section}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         type: 'text',
         value: newValue.trim(),
         order_index: 99,
@@ -547,6 +547,8 @@ export default function Vitrine() {
               if (hymneAudio) updateBlock(hymneAudio.id, url)
             }}
           />
+          <AddBlockButton section="hymne" canEdit={canEdit} onAdd={addBlock}
+                          placeholder="Nouveau bloc hymne..." />
         </section>
 
         {/* SECTION 3 — Recrutement */}
@@ -673,7 +675,7 @@ export default function Vitrine() {
           <SectionHeader label="Identité Visuelle" />
           <div className="grid md:grid-cols-2 gap-6">
 
-            <div>
+            <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl p-4">
               <p className="text-xs uppercase tracking-widest text-gray-600 mb-3">Logo Officiel</p>
               <EditableImage src="/images/logo_2.png" storageKey="logo"
                              canEdit={canEdit} label="Logo Officiel" />
@@ -684,7 +686,7 @@ export default function Vitrine() {
               </a>
             </div>
 
-            <div>
+            <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl p-4">
               <p className="text-xs uppercase tracking-widest text-gray-600 mb-3">Affiche Recrutement</p>
               <EditableImage src="/images/recru.png" storageKey="recrutement"
                              canEdit={canEdit} label="Affiche Recrutement" />
@@ -696,6 +698,8 @@ export default function Vitrine() {
             </div>
 
           </div>
+          <AddBlockButton section="identite" canEdit={canEdit} onAdd={addBlock}
+                          placeholder="Nouveau bloc identité..." />
         </section>
 
         {/* SECTIONS CUSTOM */}
