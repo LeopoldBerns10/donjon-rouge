@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import api from '../lib/api.js'
 import { useAuth } from '../hooks/useAuth.jsx'
 
@@ -117,8 +118,9 @@ function StatusBadge({ status }) {
 
 function WarningModal({ type, onConfirm, onCancel }) {
   const isLdc = type === 'ldc'
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onCancel}>
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+         style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={onCancel}>
       <div className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl shadow-[#dc2626]/20 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-8 pb-2">
           <div className="w-16 h-16 rounded-full bg-[#dc2626]/10 border-2 border-[#dc2626]/40 flex items-center justify-center text-3xl">⚔️</div>
@@ -148,7 +150,8 @@ function WarningModal({ type, onConfirm, onCancel }) {
           <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white transition-all duration-200 shadow-lg shadow-[#dc2626]/20">Je confirme</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -254,8 +257,9 @@ function SignupsList({ signups, canManage, eventId, eventType, onRemove }) {
         )}
       </div>
 
-      {confirmRemove && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setConfirmRemove(null)}>
+      {confirmRemove && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+             style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={() => setConfirmRemove(null)}>
           <div className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <p className="text-white font-bold text-center mb-2">Retirer un joueur</p>
             <p className="text-sm text-gray-400 text-center mb-6">
@@ -272,7 +276,8 @@ function SignupsList({ signups, canManage, eventId, eventType, onRemove }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -495,8 +500,9 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+         style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={onClose}>
       <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <h3 className="text-base font-bold text-white uppercase tracking-wide mb-1">Inscrire un joueur</h3>
         <p className="text-xs text-gray-500 mb-4">{event.title}</p>
@@ -539,7 +545,8 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -583,8 +590,9 @@ function CreateEventModal({ type, onClose, onCreated }) {
   const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#dc2626]/50'
   const labelCls = 'text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5'
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+         style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={onClose}>
       <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-5 border-b border-[#1a1a1a]">
           <h3 className="text-lg font-bold text-white uppercase tracking-wide">Créer — {typeLabels[type]}</h3>
@@ -695,7 +703,8 @@ function CreateEventModal({ type, onClose, onCreated }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -732,8 +741,9 @@ function EditEventModal({ event, onClose, onSaved }) {
   const inputCls = 'w-full bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#f59e0b]/50'
   const labelCls = 'text-[10px] uppercase tracking-widest text-gray-500 block mb-1.5'
 
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={onClose}>
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+         style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={onClose}>
       <div className="bg-[#111111] border border-[#f59e0b]/30 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="px-6 py-5 border-b border-[#1a1a1a]">
           <h3 className="text-lg font-bold text-white uppercase tracking-wide">✏️ Modifier l'événement</h3>
@@ -804,7 +814,8 @@ function EditEventModal({ event, onClose, onSaved }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -987,8 +998,9 @@ function LdcBoard({ canManage, onRefreshEvents }) {
       </div>
 
       {/* Modal confirmation CLEAR */}
-      {showClearConfirm && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setShowClearConfirm(false)}>
+      {showClearConfirm && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+             style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={() => setShowClearConfirm(false)}>
           <div className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e => e.stopPropagation()}>
             <p className="text-white font-bold text-center mb-2">⚠️ Vider le tableau</p>
             <p className="text-sm text-gray-400 text-center mb-6">
@@ -1005,12 +1017,14 @@ function LdcBoard({ canManage, onRefreshEvents }) {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal Lancer la LDC */}
-      {showLaunchModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setShowLaunchModal(false)}>
+      {showLaunchModal && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
+             style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={() => setShowLaunchModal(false)}>
           <div className="bg-[#111111] border border-[#f59e0b]/40 rounded-2xl shadow-2xl w-full max-w-md" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 border-b border-[#f59e0b]/20 text-center">
               <p className="text-lg font-black text-white uppercase tracking-widest">⚔️ Lancer la LDC</p>
@@ -1056,7 +1070,8 @@ function LdcBoard({ canManage, onRefreshEvents }) {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
