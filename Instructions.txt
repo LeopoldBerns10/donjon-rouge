@@ -1,14 +1,10 @@
-Dans bot/src/setup/, créer sendReglementPublic.js qui poste un message dans le salon ID 768557389154615307 :
+Dans bot/src/scripts/migrateExistingMembers.js, créer un script one-shot qui :
 
-Utiliser buildReglementEmbed et REGLEMENT_TEXT déjà exportés depuis sendReglement.js
-Même embed exactement, sans aucun bouton (pas d'ActionRow)
-Stocker l'ID de ce message dans Supabase bot_config avec key "reglement_public_message_id"
+Fetch tous les membres du serveur Discord
+Pour chaque membre qui a le rôle DONJON_ROUGE (611125112519000064) ou VISITEUR (1072532916955009095)
+Vérifier s'il a déjà le rôle LIE (1511096527664320655)
+Si non → attribuer le rôle LIE automatiquement
+Logger chaque attribution : "✅ [pseudo] → rôle Lié attribué"
+À la fin : "Migration terminée : X membres mis à jour"
 
-Dans bot/src/events/interactionCreate.js, dans le handler modal_reglement (quand le chef modifie le règlement) :
-
-Après avoir mis à jour le message dans #lit-le-règlement
-Récupérer aussi l'ID du message public depuis bot_config key "reglement_public_message_id"
-Mettre à jour ce message avec le même nouveau texte automatiquement
-Les deux messages sont toujours synchronisés
-
-Créer une commande admin /setupreglementpublic dans bot/src/commands/setupreglementpublic.js qui appelle sendReglementPublic().
+Ajouter dans package.json : "migrate-members": "node src/scripts/migrateExistingMembers.js"
