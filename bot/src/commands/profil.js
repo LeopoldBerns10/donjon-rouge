@@ -8,6 +8,7 @@ const {
 } = require('discord.js')
 const { getPlayer } = require('../cocApi.js')
 const supabase = require('../supabase.js')
+const { buildNavComponents, resetNavTimer } = require('../utils/performances.js')
 
 function buildEmbed(p) {
   return new EmbedBuilder()
@@ -69,11 +70,21 @@ module.exports = {
     }
 
     if (links.length === 1) {
-      return interaction.editReply({ embeds: [buildEmbed(player)] })
+      const msg = await interaction.editReply({
+        embeds: [buildEmbed(player)],
+        components: buildNavComponents(activeTag, 'profil'),
+      })
+      resetNavTimer(msg)
+      return
     }
 
-    const row = new ActionRowBuilder().addComponents(buildMenu(links, activeTag))
-    const response = await interaction.editReply({ embeds: [buildEmbed(player)], components: [row] })
+    const selectRow = new ActionRowBuilder().addComponents(buildMenu(links, activeTag))
+    const navRow    = buildNavComponents(activeTag, 'profil')[0]
+    const response  = await interaction.editReply({
+      embeds: [buildEmbed(player)],
+      components: [selectRow, navRow],
+    })
+    resetNavTimer(response)
 
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,
@@ -86,15 +97,16 @@ module.exports = {
       await i.deferUpdate()
       try {
         const p = await getPlayer(activeTag)
-        const newRow = new ActionRowBuilder().addComponents(buildMenu(links, activeTag))
-        await interaction.editReply({ embeds: [buildEmbed(p)], components: [newRow] })
+        const newSelectRow = new ActionRowBuilder().addComponents(buildMenu(links, activeTag))
+        const newNavRow    = buildNavComponents(activeTag, 'profil')[0]
+        await interaction.editReply({ embeds: [buildEmbed(p)], components: [newSelectRow, newNavRow] })
       } catch {
         await interaction.editReply({ content: `Impossible de récupérer le profil pour \`${activeTag}\`.`, components: [] })
       }
     })
 
     collector.on('end', () => {
-      interaction.editReply({ components: [] }).catch(() => {})
+      interaction.editReply({ components: buildNavComponents(activeTag, 'profil') }).catch(() => {})
     })
   },
 }
