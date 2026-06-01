@@ -5,7 +5,8 @@
   "start": "node index.js",
   "dev": "node --watch index.js",
   "deploy-commands": "node src/deploy-commands.js",
-  "setup-roles": "node src/scripts/setupRoles.js"
+  "setup-roles": "node src/scripts/setupRoles.js",
+  "setup-lie-role": "node src/scripts/setupLieRole.js"
 },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

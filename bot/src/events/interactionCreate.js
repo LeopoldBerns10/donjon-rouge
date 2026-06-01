@@ -3,6 +3,9 @@ const {
   ActionRowBuilder,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
   ComponentType,
 } = require('discord.js')
 const supabase = require('../supabase.js')
@@ -13,6 +16,11 @@ const {
   buildNavComponents,
   resetNavTimer,
 } = require('../utils/performances.js')
+const { ROLES } = require('../config/onboarding.js')
+const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
+const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
+
+const CHEF_ROLE_ID = '611123759864348672'
 
 // ─── Traductions EN → FR ──────────────────────────────────────────────────────
 
@@ -271,11 +279,71 @@ async function handleStatsTroupes(interaction, tag) {
 
 // ─── Routing ──────────────────────────────────────────────────────────────────
 
+async function handleEditReglement(interaction) {
+  if (!interaction.member.roles.cache.has(CHEF_ROLE_ID)) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+
+  const currentText = interaction.message.embeds[0]?.description ?? REGLEMENT_TEXT
+
+  const modal = new ModalBuilder()
+    .setCustomId(`modal_reglement:${interaction.channelId}:${interaction.message.id}`)
+    .setTitle('Modifier le règlement')
+
+  const input = new TextInputBuilder()
+    .setCustomId('reglement_content')
+    .setLabel('Texte du règlement')
+    .setStyle(TextInputStyle.Paragraph)
+    .setValue(currentText)
+    .setMaxLength(4000)
+    .setRequired(true)
+
+  modal.addComponents(new ActionRowBuilder().addComponents(input))
+  await interaction.showModal(modal)
+}
+
+async function handleRoleDonjonRouge(interaction) {
+  const member = interaction.member
+  await member.roles.remove(ROLES.VERIFIE).catch(() => {})
+  await member.roles.add(ROLES.DONJON_ROUGE)
+  await interaction.reply({ content: '🏆 Bienvenue guerrier ! Tu as accès au serveur Donjon Rouge.', ephemeral: true })
+}
+
+async function handleRoleVisiteur(interaction) {
+  const member = interaction.member
+  await member.roles.remove(ROLES.VERIFIE).catch(() => {})
+  await member.roles.add(ROLES.VISITEUR)
+  await interaction.reply({ content: '👋 Bienvenue visiteur !', ephemeral: true })
+}
+
+async function handleRoleRien(interaction) {
+  await interaction.member.roles.remove(ROLES.VERIFIE).catch(() => {})
+  await interaction.reply({ content: 'Ok, tu peux fermer Discord.', ephemeral: true })
+}
+
+async function handleKaptchaVerify(interaction) {
+  const member = interaction.member
+  if (!member.roles.cache.has(ROLES.NON_VERIFIE)) {
+    return interaction.reply({ content: 'Tu es déjà vérifié.', ephemeral: true })
+  }
+  await member.roles.remove(ROLES.NON_VERIFIE)
+  await member.roles.add(ROLES.VERIFIE)
+  await interaction.reply({
+    content: '✅ Vérifié ! Rends-toi dans #lit-le-règlement pour continuer.',
+    ephemeral: true,
+  })
+}
+
 const BUTTON_HANDLERS = {
   mes_performances: handleMesPerformances,
   voir_mon_compte:  handleMesPerformances,
   lier_compte:      handleLierCompte,
   stats_clan:       handleStatsClan,
+  kaptcha_verify:    handleKaptchaVerify,
+  role_donjon_rouge: handleRoleDonjonRouge,
+  role_visiteur:     handleRoleVisiteur,
+  role_rien:         handleRoleRien,
+  edit_reglement:    handleEditReglement,
 }
 
 module.exports = {
@@ -306,6 +374,41 @@ module.exports = {
         } else {
           await interaction.reply(payload)
         }
+      }
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_reglement:')) {
+      const parts     = interaction.customId.split(':')
+      const channelId = parts[1]
+      const messageId = parts[2]
+      const newText   = interaction.fields.getTextInputValue('reglement_content')
+
+      try {
+        const channel = await interaction.client.channels.fetch(channelId)
+        const message = await channel.messages.fetch(messageId)
+        await message.edit({ embeds: [buildReglementEmbed(newText)] })
+
+        const { data } = await supabase
+          .from('bot_config')
+          .select('value')
+          .eq('key', 'reglement_public_message_id')
+          .maybeSingle()
+
+        if (data?.value) {
+          try {
+            const publicChannel = await interaction.client.channels.fetch(PUBLIC_CHANNEL_ID)
+            const publicMessage = await publicChannel.messages.fetch(data.value)
+            await publicMessage.edit({ embeds: [buildReglementEmbed(newText)] })
+          } catch (syncErr) {
+            console.error('[modal_reglement] Sync public échoué:', syncErr)
+          }
+        }
+
+        await interaction.reply({ content: '✅ Règlement mis à jour.', ephemeral: true })
+      } catch (err) {
+        console.error('[modal_reglement]', err)
+        await interaction.reply({ content: '❌ Impossible de mettre à jour le règlement.', ephemeral: true })
       }
       return
     }

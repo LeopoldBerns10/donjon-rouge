@@ -1,0 +1,14 @@
+Dans bot/src/setup/, créer sendReglementPublic.js qui poste un message dans le salon ID 768557389154615307 :
+
+Utiliser buildReglementEmbed et REGLEMENT_TEXT déjà exportés depuis sendReglement.js
+Même embed exactement, sans aucun bouton (pas d'ActionRow)
+Stocker l'ID de ce message dans Supabase bot_config avec key "reglement_public_message_id"
+
+Dans bot/src/events/interactionCreate.js, dans le handler modal_reglement (quand le chef modifie le règlement) :
+
+Après avoir mis à jour le message dans #lit-le-règlement
+Récupérer aussi l'ID du message public depuis bot_config key "reglement_public_message_id"
+Mettre à jour ce message avec le même nouveau texte automatiquement
+Les deux messages sont toujours synchronisés
+
+Créer une commande admin /setupreglementpublic dans bot/src/commands/setupreglementpublic.js qui appelle sendReglementPublic().

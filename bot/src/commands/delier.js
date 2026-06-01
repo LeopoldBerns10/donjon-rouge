@@ -7,6 +7,7 @@ const {
 } = require('discord.js')
 const supabase = require('../supabase.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
+const { ROLES } = require('../config/onboarding.js')
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -75,6 +76,19 @@ module.exports = {
       assignLeagueRole(interaction.member, null).catch(err => {
         console.error('Erreur retrait rôle ligue:', err)
       })
+    }
+
+    if (interaction.member && ROLES.LIE) {
+      const { count } = await supabase
+        .from('discord_links')
+        .select('id', { count: 'exact', head: true })
+        .eq('discord_id', interaction.user.id)
+
+      if (count === 0) {
+        interaction.member.roles.remove(ROLES.LIE).catch(err => {
+          console.error('Erreur retrait rôle Lié:', err)
+        })
+      }
     }
 
     if (selected.is_primary) {
