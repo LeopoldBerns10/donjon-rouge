@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, Collection } = require('discord.js')
 const { readdirSync } = require('fs')
 const { join } = require('path')
 const { startScheduler } = require('./src/scheduler.js')
+const { getOrCreateAccountMessage } = require('./src/accountMessage.js')
 
 const client = new Client({
   intents: [
@@ -34,6 +35,7 @@ for (const file of readdirSync(eventsPath).filter(f => f.endsWith('.js'))) {
 
 client.once('ready', () => {
   startScheduler(client)
+  getOrCreateAccountMessage(client).catch(e => console.error('[AccountMessage] Erreur démarrage:', e))
 })
 
 client.login(process.env.DISCORD_TOKEN)

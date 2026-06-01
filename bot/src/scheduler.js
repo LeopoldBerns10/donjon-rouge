@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js')
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('./supabase.js')
 const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
 
@@ -38,38 +38,79 @@ async function getDiscordIds(cocTags) {
 
 function getWarFieldValue(war) {
   if (!war || war.state === 'notInWar' || war.state === 'warEnded') {
-    return '😴 Aucune guerre active'
+    return '😴 Au repos'
   }
-  if (war.state === 'preparation') return '🛡️ Phase de préparation'
+  if (war.state === 'preparation') {
+    const startTime = parseWarTime(war.startTime)
+    if (startTime) {
+      const hoursLeft = Math.max(0, Math.ceil((startTime.getTime() - Date.now()) / 3600000))
+      return `🛡️ Préparation\n⏳ Début dans ${hoursLeft}h`
+    }
+    return '🛡️ Préparation\n⏳ Début bientôt'
+  }
   if (war.state === 'inWar') {
-    const count = (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) === 0).length
-    return `⚔️ En cours — ${count} guerrier${count !== 1 ? 's' : ''} n'ont pas attaqué`
+    const members = war.clan?.members || []
+    const attacksPerMember = war.attacksPerMember || 2
+    const done = members.reduce((acc, m) => acc + (m.attacks?.length ?? 0), 0)
+    const total = members.length * attacksPerMember
+    const late = members.filter(m => (m.attacks?.length ?? 0) === 0).length
+    return `⚔️ Guerre active\n✅ ${done}/${total} attaques faites\n❌ ${late} guerrier${late !== 1 ? 's' : ''} en retard`
   }
   return `❓ ${war.state}`
 }
 
 function getRaidFieldValue(raid) {
-  if (!raid) return '😴 Aucun raid en cours'
-  const count = (raid.members || []).filter(m => (m.attacks ?? 0) === 0).length
-  return `💎 Raid en cours — ${count} membre${count !== 1 ? 's' : ''} n'ont pas attaqué`
+  if (!raid) return '😴 Prochain raid vendredi'
+  const attacksUsed = (raid.members || []).reduce((acc, m) => acc + (m.attacks ?? 0), 0)
+  return `💎 Raid actif\n⚔️ ${attacksUsed} attaques utilisées\n⏰ Fin dimanche soir`
 }
 
 function buildStatusEmbed(warDR1, warDR2, raid) {
-  const anyActive =
-    (warDR1?.state === 'inWar' || warDR1?.state === 'preparation') ||
-    (warDR2?.state === 'inWar' || warDR2?.state === 'preparation') ||
-    !!raid
+  const warActive =
+    warDR1?.state === 'inWar' || warDR1?.state === 'preparation' ||
+    warDR2?.state === 'inWar' || warDR2?.state === 'preparation'
+  const raidActive = !!raid
 
-  return new EmbedBuilder()
-    .setColor(anyActive ? 0xFF6600 : 0x8B0000)
-    .setTitle('⚔️ État des combats — Donjon Rouge')
+  let color
+  if (warActive && raidActive) color = 0xCC3300
+  else if (warActive)          color = 0xFF6600
+  else if (raidActive)         color = 0x7B2FBE
+  else                         color = 0x8B0000
+
+  const badgeUrl = warDR1?.clan?.badgeUrls?.medium
+    || warDR2?.clan?.badgeUrls?.medium
+    || null
+
+  const footer = badgeUrl
+    ? { text: 'Donjon Rouge • Mis à jour', iconURL: badgeUrl }
+    : { text: 'Donjon Rouge • Mis à jour' }
+
+  const embed = new EmbedBuilder()
+    .setColor(color)
+    .setTitle('🏰 Donjon Rouge — Situation des combats')
     .addFields(
-      { name: '🏰 DR1 — Guerre', value: getWarFieldValue(warDR1),  inline: false },
-      { name: '🏰 DR2 — Guerre', value: getWarFieldValue(warDR2),  inline: false },
-      { name: '💎 Raid Capital',  value: getRaidFieldValue(raid),   inline: false },
+      { name: '🏰 DR1 — Guerre', value: getWarFieldValue(warDR1), inline: true },
+      { name: '​',           value: '​',                 inline: true },
+      { name: '🏰 DR2 — Guerre', value: getWarFieldValue(warDR2), inline: true },
+      { name: '💎 Raid Capital',  value: getRaidFieldValue(raid),  inline: false },
     )
-    .setFooter({ text: 'Dernière mise à jour :' })
+    .setFooter(footer)
     .setTimestamp()
+
+  if (badgeUrl) embed.setThumbnail(badgeUrl)
+
+  return embed
+}
+
+function buildStatusComponents() {
+  return [
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId('mes_performances')
+        .setLabel('📊 Mes performances')
+        .setStyle(ButtonStyle.Primary)
+    )
+  ]
 }
 
 // ─── Message épinglé (stocké dans bot_config) ─────────────────────────────────
@@ -102,7 +143,7 @@ async function getOrCreateStatusMessage(channel) {
   }
 
   // Création du nouveau message
-  const msg = await channel.send({ embeds: [buildStatusEmbed(null, null, null)] })
+  const msg = await channel.send({ embeds: [buildStatusEmbed(null, null, null)], components: buildStatusComponents() })
   await supabase
     .from('bot_config')
     .upsert({ key: 'status_message_id', value: msg.id, updated_at: new Date().toISOString() })
@@ -150,12 +191,17 @@ async function checkAndUpdate(client) {
   let currentRaid = null
   try {
     const raidData = await apiGet('/clan/raids')
-    currentRaid = raidData?.items?.[0] || null
+    const latest = raidData?.items?.[0] || null
+    if (latest?.startTime) {
+      const start = parseWarTime(latest.startTime) || new Date(latest.startTime)
+      const sevenDaysAgo = Date.now() - 7 * 24 * 3600000
+      if (!isNaN(start) && start.getTime() > sevenDaysAgo) currentRaid = latest
+    }
   } catch {}
 
   // Met à jour l'embed de statut
   const statusMsg = await getOrCreateStatusMessage(channel)
-  await statusMsg.edit({ embeds: [buildStatusEmbed(wars.dr1, wars.dr2, currentRaid)] })
+  await statusMsg.edit({ embeds: [buildStatusEmbed(wars.dr1, wars.dr2, currentRaid)], components: buildStatusComponents() })
 
   // Rappels individuels — guerres
   for (const clanKey of CLANS) {

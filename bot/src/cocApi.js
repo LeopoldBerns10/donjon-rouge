@@ -7,11 +7,12 @@ async function get(path) {
 }
 
 const getClanInfo    = ()    => get('/clan')
-const getClanMembers = ()    => get('/clan/members')
+const getClanMembers    = ()    => get('/clan/members')
+const getClanMembersDR2 = ()    => get('/clan/dr2/members')
 const getCurrentWar  = ()    => get('/clan/war')
 const getWarLog      = ()    => get('/clan/warlog')
 const getRaidSeasons = ()    => get('/clan/raids')
 const getCwl         = ()    => get('/clan/cwl')
 const getPlayer      = (tag) => get(`/player/${encodeURIComponent(tag)}`)
 
-module.exports = { getClanInfo, getClanMembers, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer }
+module.exports = { getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer }
