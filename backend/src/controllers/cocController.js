@@ -86,7 +86,8 @@ export async function cwl(req, res) {
 }
 
 export async function player(req, res) {
-  const tag = req.params.tag
+  const tag = decodeURIComponent(req.params.tag)
+  if (!tag) return res.status(400).json({ error: 'Tag manquant' })
   try {
     const data = await getCached(`player:${tag}`, () => getPlayerInfo(tag))
     res.json(data)
