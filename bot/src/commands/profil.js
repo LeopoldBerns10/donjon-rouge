@@ -1,55 +1,100 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js')
+const {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  StringSelectMenuBuilder,
+  StringSelectMenuOptionBuilder,
+  ActionRowBuilder,
+  ComponentType,
+} = require('discord.js')
 const { getPlayer } = require('../cocApi.js')
 const supabase = require('../supabase.js')
+
+function buildEmbed(p) {
+  return new EmbedBuilder()
+    .setTitle(`${p.name} (${p.tag})`)
+    .setColor(0xC0392B)
+    .addFields(
+      { name: 'HDV',         value: String(p.townHallLevel),  inline: true },
+      { name: 'Niveau',      value: String(p.expLevel),       inline: true },
+      { name: 'Trophées',    value: String(p.trophies),       inline: true },
+      { name: 'Clan',        value: p.clan?.name ?? 'Aucun',  inline: true },
+      { name: 'Rôle',        value: p.role ?? '-',            inline: true },
+      { name: 'Étoiles GDC', value: String(p.warStars ?? 0),  inline: true },
+    )
+    .setFooter({ text: 'Donjon Rouge' })
+    .setTimestamp()
+}
+
+function buildMenu(links, activeTag) {
+  return new StringSelectMenuBuilder()
+    .setCustomId('select_profil')
+    .setPlaceholder('Voir un autre compte')
+    .addOptions(
+      links.map(link =>
+        new StringSelectMenuOptionBuilder()
+          .setLabel(link.is_primary ? `⭐ ${link.coc_name}` : link.coc_name)
+          .setValue(link.coc_tag)
+          .setDescription(link.coc_tag)
+          .setDefault(link.coc_tag === activeTag)
+      )
+    )
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('profil')
-    .setDescription('Affiche le profil CoC d\'un joueur')
-    .addStringOption(opt =>
-      opt.setName('tag')
-        .setDescription('Tag CoC (ex: #ABC123). Laisse vide pour ton compte lié.')
-        .setRequired(false)
-    ),
+    .setDescription('Affiche ton profil CoC'),
 
   async execute(interaction) {
     await interaction.deferReply()
 
-    let tag = interaction.options.getString('tag')
+    const { data: links, error } = await supabase
+      .from('discord_links')
+      .select('coc_tag, coc_name, is_primary')
+      .eq('discord_id', interaction.user.id)
+      .order('created_at', { ascending: true })
 
-    if (!tag) {
-      const { data } = await supabase
-        .from('discord_links')
-        .select('coc_tag')
-        .eq('discord_id', interaction.user.id)
-        .single()
-
-      if (!data) {
-        return interaction.editReply('Aucun compte CoC lié. Utilise `/lier <tag>` pour associer ton tag.')
-      }
-      tag = data.coc_tag
+    if (error || !links || links.length === 0) {
+      return interaction.editReply('Aucun compte CoC lié. Utilise `/lier` d\'abord.')
     }
 
+    const primary = links.find(l => l.is_primary) ?? links[0]
+    let activeTag = primary.coc_tag
+
+    let player
     try {
-      const p = await getPlayer(tag)
-
-      const embed = new EmbedBuilder()
-        .setTitle(`${p.name} (${p.tag})`)
-        .setColor(0xC0392B)
-        .addFields(
-          { name: 'HDV',       value: String(p.townHallLevel),  inline: true },
-          { name: 'Niveau',    value: String(p.expLevel),       inline: true },
-          { name: 'Trophées',  value: String(p.trophies),       inline: true },
-          { name: 'Clan',      value: p.clan?.name ?? 'Aucun',  inline: true },
-          { name: 'Rôle',      value: p.role ?? '-',            inline: true },
-          { name: 'Étoiles GDC', value: String(p.warStars ?? 0), inline: true },
-        )
-        .setFooter({ text: 'Donjon Rouge' })
-        .setTimestamp()
-
-      await interaction.editReply({ embeds: [embed] })
+      player = await getPlayer(activeTag)
     } catch {
-      await interaction.editReply(`Joueur introuvable pour le tag \`${tag}\`. Vérifie le format (ex: \`#ABC123\`).`)
+      return interaction.editReply(`Impossible de récupérer le profil pour \`${activeTag}\`.`)
     }
-  }
+
+    if (links.length === 1) {
+      return interaction.editReply({ embeds: [buildEmbed(player)] })
+    }
+
+    const row = new ActionRowBuilder().addComponents(buildMenu(links, activeTag))
+    const response = await interaction.editReply({ embeds: [buildEmbed(player)], components: [row] })
+
+    const collector = response.createMessageComponentCollector({
+      componentType: ComponentType.StringSelect,
+      filter: i => i.user.id === interaction.user.id,
+      time: 120_000,
+    })
+
+    collector.on('collect', async i => {
+      activeTag = i.values[0]
+      await i.deferUpdate()
+      try {
+        const p = await getPlayer(activeTag)
+        const newRow = new ActionRowBuilder().addComponents(buildMenu(links, activeTag))
+        await interaction.editReply({ embeds: [buildEmbed(p)], components: [newRow] })
+      } catch {
+        await interaction.editReply({ content: `Impossible de récupérer le profil pour \`${activeTag}\`.`, components: [] })
+      }
+    })
+
+    collector.on('end', () => {
+      interaction.editReply({ components: [] }).catch(() => {})
+    })
+  },
 }

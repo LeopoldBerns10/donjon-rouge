@@ -1,0 +1,7 @@
+services:
+  - type: worker
+    name: donjon-rouge-bot
+    runtime: node
+    rootDir: bot
+    buildCommand: npm install
+    startCommand: node index.js

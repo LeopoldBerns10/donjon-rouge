@@ -2,6 +2,7 @@ require('dotenv').config()
 const { Client, GatewayIntentBits, Collection } = require('discord.js')
 const { readdirSync } = require('fs')
 const { join } = require('path')
+const { startScheduler } = require('./src/scheduler.js')
 
 const client = new Client({
   intents: [
@@ -30,5 +31,9 @@ for (const file of readdirSync(eventsPath).filter(f => f.endsWith('.js'))) {
     client.on(event.name, (...args) => event.execute(...args, client))
   }
 }
+
+client.once('ready', () => {
+  startScheduler(client)
+})
 
 client.login(process.env.DISCORD_TOKEN)
