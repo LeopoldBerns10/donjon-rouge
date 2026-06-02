@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const { CHANNELS } = require('../config/onboarding.js')
+const supabase = require('../supabase.js')
 
 async function sendKaptcha(client) {
   const channel = await client.channels.fetch(CHANNELS.VERIFICATION)
@@ -17,7 +18,8 @@ async function sendKaptcha(client) {
       .setStyle(ButtonStyle.Success)
   )
 
-  await channel.send({ embeds: [embed], components: [row] })
+  const msg = await channel.send({ embeds: [embed], components: [row] })
+  await supabase.from('bot_config').upsert({ key: 'kaptcha_message_id', value: msg.id, updated_at: new Date().toISOString() })
 }
 
 module.exports = { sendKaptcha }

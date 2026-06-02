@@ -1,4 +1,5 @@
 const { ROLES } = require('../config/onboarding.js')
+const { invalidateMembresCache } = require('../lib/panelHandlers.js')
 
 module.exports = {
   name: 'guildMemberAdd',
@@ -16,5 +17,7 @@ module.exports = {
     } catch {
       // DMs désactivés
     }
+
+    invalidateMembresCache()
   },
 }

@@ -96,4 +96,8 @@ async function getOrCreateAccountMessage(client) {
   console.log(`[AccountMessage] Nouveau message créé : ${msg.id}`)
 }
 
-module.exports = { getOrCreateAccountMessage }
+function getAccountMessageId() {
+  return accountMessageId
+}
+
+module.exports = { getOrCreateAccountMessage, getAccountMessageId }

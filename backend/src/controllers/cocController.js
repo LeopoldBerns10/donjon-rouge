@@ -142,6 +142,41 @@ export async function ldcWar(req, res) {
   }
 }
 
+export async function ldcCurrentDR2(req, res) {
+  const DR2_TAG = CLAN_TAGS.dr2
+  try {
+    const group = await getCached(`ldc:group:${DR2_TAG}`, () => getClanLeagueGroup(DR2_TAG))
+
+    if (!group || !group.rounds) {
+      return res.json({ state: 'notInWar', rounds: [] })
+    }
+
+    const rounds = await Promise.all(
+      (group.rounds || []).map(async (round, idx) => {
+        const tags = (round.warTags || []).filter((t) => t !== '#0')
+        const wars = await Promise.all(
+          tags.map(async (tag) => {
+            try {
+              const war = await getCached(`ldc:war:${tag}`, () => getLdcWarDetail(tag))
+              return war
+            } catch {
+              return { warTag: tag, state: 'notStarted' }
+            }
+          })
+        )
+        const ourWar = wars.find((w) =>
+          w?.clan?.tag === DR2_TAG || w?.opponent?.tag === DR2_TAG
+        )
+        return { roundIndex: idx + 1, warTag: ourWar?.tag || tags[0] || null, war: ourWar || null }
+      })
+    )
+
+    res.json({ ...group, rounds })
+  } catch (e) {
+    res.status(502).json({ error: e.message })
+  }
+}
+
 // ─── Routes dynamiques DR1 / DR2 ─────────────────────────────────────────────
 
 const CLAN_TAGS = {

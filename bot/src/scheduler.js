@@ -65,7 +65,62 @@ function getRaidFieldValue(raid) {
   return `💎 Raid actif\n⚔️ ${attacksUsed} attaques utilisées\n⏰ Fin dimanche soir`
 }
 
-function buildStatusEmbed(warDR1, warDR2, raid) {
+async function buildWarDetailFields(war, label) {
+  if (!war || war.state === 'notInWar' || war.state === 'warEnded') return []
+
+  if (war.state === 'preparation') {
+    const ours   = [...(war.clan?.members   || [])].sort((a, b) => b.townhallLevel - a.townhallLevel).slice(0, 15)
+    const theirs = [...(war.opponent?.members || [])].sort((a, b) => b.townhallLevel - a.townhallLevel).slice(0, 15)
+
+    const oursValue   = ours.length   ? ours.map(m   => `\`HDV${m.townhallLevel}\` ${m.name}`).join('\n')   : '—'
+    const theirsValue = theirs.length ? theirs.map(m => `\`HDV${m.townhallLevel}\` ${m.name}`).join('\n') : '—'
+
+    return [
+      { name: `🛡️ ${label} — Nos guerriers`,   value: oursValue.slice(0, 1024),   inline: true },
+      { name: `⚔️ ${label} — Leurs guerriers`, value: theirsValue.slice(0, 1024), inline: true },
+      { name: '​',                          value: '​',                   inline: true },
+    ]
+  }
+
+  if (war.state === 'inWar') {
+    const attacksPerMember = war.attacksPerMember || 2
+    const clanStars     = war.clan?.stars ?? 0
+    const opponentStars = war.opponent?.stars ?? 0
+    const attacksUsed   = (war.clan?.members || []).reduce((acc, m) => acc + (m.attacks?.length ?? 0), 0)
+    const totalAttacks  = (war.clan?.members || []).length * attacksPerMember
+
+    const sorted = [...(war.clan?.members || [])].sort((a, b) => {
+      const aA = a.attacks?.length ?? 0
+      const bA = b.attacks?.length ?? 0
+      if (aA === 0 && bA !== 0) return -1
+      if (aA !== 0 && bA === 0) return 1
+      if (aA < attacksPerMember && bA === attacksPerMember) return -1
+      if (aA === attacksPerMember && bA < attacksPerMember) return 1
+      return b.townhallLevel - a.townhallLevel
+    }).slice(0, 15)
+
+    const discordMap = await getDiscordIds(sorted.map(m => m.tag))
+
+    const lines = sorted.map(m => {
+      const atks  = m.attacks?.length ?? 0
+      const icon  = atks === 0 ? '❌' : atks < attacksPerMember ? '⚡' : '✅'
+      const ids   = discordMap[m.tag] || []
+      const mention = ids.length > 0 ? ` ${ids.map(id => `<@${id}>`).join('')}` : ''
+      return `${icon} \`HDV${m.townhallLevel}\` ${m.name}${mention} — ${atks}/${attacksPerMember} att.`
+    })
+
+    const value = `⭐ ${clanStars} vs ⭐ ${opponentStars}  |  ⚔️ ${attacksUsed}/${totalAttacks} attaques\n\n${lines.join('\n')}`
+    return [{
+      name:   `⚔️ ${label} — Guerre active`,
+      value:  value.slice(0, 1024),
+      inline: false,
+    }]
+  }
+
+  return []
+}
+
+async function buildStatusEmbed(warDR1, warDR2, raid) {
   const warActive =
     warDR1?.state === 'inWar' || warDR1?.state === 'preparation' ||
     warDR2?.state === 'inWar' || warDR2?.state === 'preparation'
@@ -77,12 +132,14 @@ function buildStatusEmbed(warDR1, warDR2, raid) {
   else if (raidActive)         color = 0x7B2FBE
   else                         color = 0x8B0000
 
-  const badgeUrl = warDR1?.clan?.badgeUrls?.medium
-    || warDR2?.clan?.badgeUrls?.medium
-    || null
+  const ownBadge = warDR1?.clan?.badgeUrls?.medium || warDR2?.clan?.badgeUrls?.medium || null
+  const oppBadge =
+    warDR1?.state === 'preparation' ? (warDR1?.opponent?.badgeUrls?.medium ?? null) :
+    warDR2?.state === 'preparation' ? (warDR2?.opponent?.badgeUrls?.medium ?? null) : null
+  const thumbUrl = oppBadge || ownBadge
 
-  const footer = badgeUrl
-    ? { text: 'Donjon Rouge • Mis à jour', iconURL: badgeUrl }
+  const footer = ownBadge
+    ? { text: 'Donjon Rouge • Mis à jour', iconURL: ownBadge }
     : { text: 'Donjon Rouge • Mis à jour' }
 
   const embed = new EmbedBuilder()
@@ -97,7 +154,13 @@ function buildStatusEmbed(warDR1, warDR2, raid) {
     .setFooter(footer)
     .setTimestamp()
 
-  if (badgeUrl) embed.setThumbnail(badgeUrl)
+  if (thumbUrl) embed.setThumbnail(thumbUrl)
+
+  const [dr1Fields, dr2Fields] = await Promise.all([
+    buildWarDetailFields(warDR1, 'DR1'),
+    buildWarDetailFields(warDR2, 'DR2'),
+  ])
+  for (const field of [...dr1Fields, ...dr2Fields]) embed.addFields(field)
 
   return embed
 }
@@ -138,12 +201,13 @@ async function getOrCreateStatusMessage(channel) {
       statusMessageId = msg.id
       return msg
     } catch {
-      // Message supprimé, on en crée un nouveau
+      // Message supprimé — on nettoie Supabase et on recrée
+      await supabase.from('bot_config').delete().eq('key', 'status_message_id')
     }
   }
 
   // Création du nouveau message
-  const msg = await channel.send({ embeds: [buildStatusEmbed(null, null, null)], components: buildStatusComponents() })
+  const msg = await channel.send({ embeds: [await buildStatusEmbed(null, null, null)], components: buildStatusComponents() })
   await supabase
     .from('bot_config')
     .upsert({ key: 'status_message_id', value: msg.id, updated_at: new Date().toISOString() })
@@ -187,6 +251,29 @@ async function checkAndUpdate(client) {
     try { wars[clanKey] = await apiGet(`/clan/${clanKey}/war`) }
     catch { wars[clanKey] = null }
   }
+  // Fallback LDC pour DR1 si pas en guerre normale
+  const dr1Inactive = !wars.dr1 || wars.dr1.state === 'notInWar' || wars.dr1.state === 'warEnded'
+  if (dr1Inactive) {
+    try {
+      const ldc = await apiGet('/ldc/current')
+      if (ldc?.rounds) {
+        const activeRound = ldc.rounds.find(r => r.war != null)
+        if (activeRound?.war) wars.dr1 = activeRound.war
+      }
+    } catch {}
+  }
+
+  // Fallback LDC pour DR2 si pas en guerre normale
+  const dr2Inactive = !wars.dr2 || wars.dr2.state === 'notInWar' || wars.dr2.state === 'warEnded'
+  if (dr2Inactive) {
+    try {
+      const ldc2 = await apiGet('/ldc/dr2/current')
+      if (ldc2?.rounds) {
+        const activeRound2 = ldc2.rounds.find(r => r.war != null)
+        if (activeRound2?.war) wars.dr2 = activeRound2.war
+      }
+    } catch {}
+  }
 
   let currentRaid = null
   try {
@@ -201,7 +288,7 @@ async function checkAndUpdate(client) {
 
   // Met à jour l'embed de statut
   const statusMsg = await getOrCreateStatusMessage(channel)
-  await statusMsg.edit({ embeds: [buildStatusEmbed(wars.dr1, wars.dr2, currentRaid)], components: buildStatusComponents() })
+  await statusMsg.edit({ embeds: [await buildStatusEmbed(wars.dr1, wars.dr2, currentRaid)], components: buildStatusComponents() })
 
   // Rappels individuels — guerres
   for (const clanKey of CLANS) {
@@ -272,4 +359,9 @@ async function forceRefresh(client) {
   await checkAndUpdate(client)
 }
 
-module.exports = { startScheduler, forceRefresh }
+async function resetStatus() {
+  statusMessageId = null
+  await supabase.from('bot_config').delete().eq('key', 'status_message_id')
+}
+
+module.exports = { startScheduler, forceRefresh, resetStatus }

@@ -6,13 +6,13 @@ const { getPlayer } = require('../cocApi.js')
 
 const navTimers = new Map()
 
-function resetNavTimer(message) {
+function resetNavTimer(message, timeout = 10 * 60 * 1000) {
   const existing = navTimers.get(message.id)
   if (existing) clearTimeout(existing)
   const timer = setTimeout(() => {
     message.delete().catch(() => {})
     navTimers.delete(message.id)
-  }, 10 * 60 * 1000)
+  }, timeout)
   navTimers.set(message.id, timer)
 }
 

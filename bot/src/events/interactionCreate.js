@@ -1,6 +1,8 @@
 const {
   EmbedBuilder,
   ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
   StringSelectMenuBuilder,
   StringSelectMenuOptionBuilder,
   ModalBuilder,
@@ -16,11 +18,119 @@ const {
   buildNavComponents,
   resetNavTimer,
 } = require('../utils/performances.js')
-const { ROLES } = require('../config/onboarding.js')
+const { ROLES, CHANNELS } = require('../config/onboarding.js')
+const { TICKET_CHANNEL_ID, ROLES: TICKET_ROLES, VERIFIE } = require('../config/tickets.js')
+const { ACCOUNT_CHANNEL_ID } = require('../config/reminders.js')
+const { sendWelcomeMessage } = require('../welcome.js')
+const {
+  handlePanelHome,
+  handlePanelMembres, handlePanelMembresNav, handlePanelCsv,
+  handlePanelMessages, handlePanelConfig, handlePanelAdmins,
+  handlePanelToggleScheduler, handlePanelToggleRappels,
+  handlePanelModalReglement, handlePanelModalAdminAdd, handlePanelAdminRemove,
+  handlePanelLierMembre,
+  handlePanelMembresDR1, handlePanelMembresDR2, handlePanelMembresDRNav,
+  handlePanelDelierMembre, handlePanelDelierSelect,
+  handlePanelMsgVerification, handlePanelMsgReglement, handlePanelMsgReglementPublic,
+  handlePanelMsgMonCompte, handlePanelMsgTickets,
+  handleModalPanelReglement, handleModalPanelAdminAdd, handleModalPanelLier, handleModalPanelMsg,
+} = require('../lib/panelHandlers.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
+
+// ─── Bouton open_ticket ───────────────────────────────────────────────────────
+
+async function handleOpenTicket(interaction) {
+  const member = interaction.member
+
+  const DONJON_ROUGE = '611125112519000064'
+  const VISITEUR     = '1072532916955009095'
+
+  if (!member.roles.cache.has(DONJON_ROUGE) && !member.roles.cache.has(VISITEUR)) {
+    return interaction.reply({
+      content: '❌ Tu dois avoir validé le règlement pour ouvrir un ticket.',
+      ephemeral: true,
+    })
+  }
+
+  const existing = interaction.guild.channels.cache.find(
+    c => c.name === `ticket-${member.user.username.toLowerCase().replace(/\s+/g, '-')}`
+  )
+  if (existing) {
+    return interaction.reply({
+      content: `❌ Tu as déjà un ticket ouvert : ${existing}`,
+      ephemeral: true,
+    })
+  }
+
+  const ticketChannel = await interaction.client.channels.fetch(TICKET_CHANNEL_ID)
+  const category = ticketChannel.parentId
+
+  const ticketName = `ticket-${member.user.username.toLowerCase().replace(/\s+/g, '-')}`
+
+  const salon = await interaction.guild.channels.create({
+    name: ticketName,
+    parent: category,
+    permissionOverwrites: [
+      { id: interaction.guild.roles.everyone, deny: ['ViewChannel'] },
+      { id: member.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+      { id: TICKET_ROLES.CHEF,         allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+      { id: TICKET_ROLES.CHEF_ADJOINT, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+      { id: TICKET_ROLES.ADJOINT,      allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+      { id: interaction.client.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels'] },
+    ],
+  })
+
+  const embed = new EmbedBuilder()
+    .setColor(0x8B0000)
+    .setTitle(`🎫 Ticket de ${member.user.username}`)
+    .setDescription(`Bonjour ${member} ! Explique-nous ton problème et le staff te répondra rapidement.`)
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`close_ticket:${salon.id}`)
+      .setLabel('🔒 Clôturer le ticket')
+      .setStyle(ButtonStyle.Danger)
+  )
+
+  await salon.send({
+    content: `<@&${TICKET_ROLES.CHEF}> <@&${TICKET_ROLES.CHEF_ADJOINT}> <@&${TICKET_ROLES.ADJOINT}>`,
+    embeds: [embed],
+    components: [row],
+  })
+
+  await interaction.reply({
+    content: `✅ Ton ticket a été créé : ${salon}`,
+    ephemeral: true,
+  })
+}
+
+// ─── Bouton close_ticket ──────────────────────────────────────────────────────
+
+async function handleCloseTicket(interaction, channelId) {
+  const member = interaction.member
+  const isStaff = [TICKET_ROLES.CHEF, TICKET_ROLES.CHEF_ADJOINT, TICKET_ROLES.ADJOINT]
+    .some(roleId => member.roles.cache.has(roleId))
+
+  const ticketChannel = await interaction.client.channels.fetch(channelId).catch(() => null)
+  if (!ticketChannel) {
+    return interaction.reply({ content: '❌ Salon introuvable.', ephemeral: true })
+  }
+
+  const isCreator = ticketChannel.name === `ticket-${member.user.username.toLowerCase().replace(/\s+/g, '-')}`
+
+  if (!isStaff && !isCreator) {
+    return interaction.reply({
+      content: '❌ Tu n\'as pas la permission de clôturer ce ticket.',
+      ephemeral: true,
+    })
+  }
+
+  await interaction.reply({ content: `🔒 Ticket clôturé par ${member.user.username}` })
+  setTimeout(() => ticketChannel.delete().catch(() => {}), 5000)
+}
 
 // ─── Traductions EN → FR ──────────────────────────────────────────────────────
 
@@ -307,6 +417,7 @@ async function handleRoleDonjonRouge(interaction) {
   await member.roles.remove(ROLES.VERIFIE).catch(() => {})
   await member.roles.add(ROLES.DONJON_ROUGE)
   await interaction.reply({ content: '🏆 Bienvenue guerrier ! Tu as accès au serveur Donjon Rouge.', ephemeral: true })
+  sendWelcomeMessage(member, 'donjon_rouge').catch(err => console.error('[welcome] donjon_rouge:', err))
 }
 
 async function handleRoleVisiteur(interaction) {
@@ -314,6 +425,7 @@ async function handleRoleVisiteur(interaction) {
   await member.roles.remove(ROLES.VERIFIE).catch(() => {})
   await member.roles.add(ROLES.VISITEUR)
   await interaction.reply({ content: '👋 Bienvenue visiteur !', ephemeral: true })
+  sendWelcomeMessage(member, 'visiteur').catch(err => console.error('[welcome] visiteur:', err))
 }
 
 async function handleRoleRien(interaction) {
@@ -335,27 +447,47 @@ async function handleKaptchaVerify(interaction) {
 }
 
 const BUTTON_HANDLERS = {
-  mes_performances: handleMesPerformances,
-  voir_mon_compte:  handleMesPerformances,
-  lier_compte:      handleLierCompte,
-  stats_clan:       handleStatsClan,
+  mes_performances:  handleMesPerformances,
+  voir_mon_compte:   handleMesPerformances,
+  lier_compte:       handleLierCompte,
+  stats_clan:        handleStatsClan,
   kaptcha_verify:    handleKaptchaVerify,
   role_donjon_rouge: handleRoleDonjonRouge,
   role_visiteur:     handleRoleVisiteur,
   role_rien:         handleRoleRien,
   edit_reglement:    handleEditReglement,
+  open_ticket:             handleOpenTicket,
+  panel_home:              handlePanelHome,
+  panel_membres:           handlePanelMembres,
+  panel_csv:               handlePanelCsv,
+  panel_messages:          handlePanelMessages,
+  panel_config:            handlePanelConfig,
+  panel_admins:            handlePanelAdmins,
+  panel_toggle_scheduler:  handlePanelToggleScheduler,
+  panel_toggle_rappels:    handlePanelToggleRappels,
+  panel_modal_reglement:   handlePanelModalReglement,
+  panel_modal_admin_add:   handlePanelModalAdminAdd,
+  panel_lier_membre:          handlePanelLierMembre,
+  panel_membres_dr1:          handlePanelMembresDR1,
+  panel_membres_dr2:          handlePanelMembresDR2,
+  panel_msg_verification:     handlePanelMsgVerification,
+  panel_msg_reglement:        handlePanelMsgReglement,
+  panel_msg_reglement_public: handlePanelMsgReglementPublic,
+  panel_msg_moncompte:        handlePanelMsgMonCompte,
+  panel_msg_tickets:          handlePanelMsgTickets,
+  panel_delier_membre:     handlePanelDelierMembre,
 }
 
 module.exports = {
   name: 'interactionCreate',
   async execute(interaction, client) {
-    if (interaction.isButton()) {
+    if (interaction.isButton() || interaction.isStringSelectMenu()) {
       const colonIdx = interaction.customId.indexOf(':')
       const prefix   = colonIdx >= 0 ? interaction.customId.slice(0, colonIdx) : interaction.customId
       const argTag   = colonIdx >= 0 ? interaction.customId.slice(colonIdx + 1) : null
 
       try {
-        if (BUTTON_HANDLERS[interaction.customId]) {
+        if (interaction.isButton() && BUTTON_HANDLERS[interaction.customId]) {
           await BUTTON_HANDLERS[interaction.customId](interaction)
         } else if (prefix === 'stats_profil'  && argTag) {
           await handleStatsProfil(interaction, argTag)
@@ -365,6 +497,24 @@ module.exports = {
           await handleStatsSorts(interaction, argTag)
         } else if (prefix === 'stats_troupes' && argTag) {
           await handleStatsTroupes(interaction, argTag)
+        } else if (prefix === 'close_ticket'        && argTag) {
+          await handleCloseTicket(interaction, argTag)
+        } else if (prefix === 'panel_membres_prev'  && argTag) {
+          await handlePanelMembresNav(interaction, 'prev', parseInt(argTag))
+        } else if (prefix === 'panel_membres_next'  && argTag) {
+          await handlePanelMembresNav(interaction, 'next', parseInt(argTag))
+        } else if (interaction.customId === 'panel_admin_remove') {
+          await handlePanelAdminRemove(interaction)
+        } else if (interaction.customId === 'panel_delier_select') {
+          await handlePanelDelierSelect(interaction)
+        } else if (prefix === 'panel_membres_dr1_prev') {
+          await handlePanelMembresDRNav(interaction, 'dr1', 'prev', parseInt(argTag))
+        } else if (prefix === 'panel_membres_dr1_next') {
+          await handlePanelMembresDRNav(interaction, 'dr1', 'next', parseInt(argTag))
+        } else if (prefix === 'panel_membres_dr2_prev') {
+          await handlePanelMembresDRNav(interaction, 'dr2', 'prev', parseInt(argTag))
+        } else if (prefix === 'panel_membres_dr2_next') {
+          await handlePanelMembresDRNav(interaction, 'dr2', 'next', parseInt(argTag))
         }
       } catch (err) {
         console.error(`[Button] ${interaction.customId}:`, err)
@@ -410,6 +560,34 @@ module.exports = {
         console.error('[modal_reglement]', err)
         await interaction.reply({ content: '❌ Impossible de mettre à jour le règlement.', ephemeral: true })
       }
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_panel_reglement') {
+      await handleModalPanelReglement(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_panel_admin_add') {
+      await handleModalPanelAdminAdd(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_panel_lier') {
+      await handleModalPanelLier(interaction)
+      return
+    }
+
+    const MSG_MODAL_MAP = {
+      modal_panel_msg_verification:     [CHANNELS.VERIFICATION,    'kaptcha_message_id'],
+      modal_panel_msg_reglement:        [CHANNELS.REGLEMENT,       'reglement_message_id'],
+      modal_panel_msg_reglement_public: ['768557389154615307',     'reglement_public_message_id'],
+      modal_panel_msg_moncompte:        [ACCOUNT_CHANNEL_ID,       'account_message_id'],
+      modal_panel_msg_tickets:          [TICKET_CHANNEL_ID,        'ticket_message_id'],
+    }
+    if (interaction.isModalSubmit() && MSG_MODAL_MAP[interaction.customId]) {
+      const [channelId, configKey] = MSG_MODAL_MAP[interaction.customId]
+      await handleModalPanelMsg(interaction, channelId, configKey)
       return
     }
 

@@ -9,6 +9,7 @@ const {
 const { getPlayer } = require('../cocApi.js')
 const supabase = require('../supabase.js')
 const { buildNavComponents, resetNavTimer } = require('../utils/performances.js')
+const { ACCOUNT_CHANNEL_ID } = require('../config/reminders.js')
 
 function buildEmbed(p) {
   return new EmbedBuilder()
@@ -48,6 +49,7 @@ module.exports = {
 
   async execute(interaction) {
     await interaction.deferReply()
+    const navTimeout = interaction.channelId === ACCOUNT_CHANNEL_ID ? 5 * 60 * 1000 : 10 * 60 * 1000
 
     const { data: links, error } = await supabase
       .from('discord_links')
@@ -74,7 +76,7 @@ module.exports = {
         embeds: [buildEmbed(player)],
         components: buildNavComponents(activeTag, 'profil'),
       })
-      resetNavTimer(msg)
+      resetNavTimer(msg, navTimeout)
       return
     }
 
@@ -84,7 +86,7 @@ module.exports = {
       embeds: [buildEmbed(player)],
       components: [selectRow, navRow],
     })
-    resetNavTimer(response)
+    resetNavTimer(response, navTimeout)
 
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.StringSelect,

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { clan, members, war, warlog, raids, cwl, player, ldcCurrent, ldcWar, clanByKey, membersByKey, warByKey, warlogByKey } from '../controllers/cocController.js'
+import { clan, members, war, warlog, raids, cwl, player, ldcCurrent, ldcCurrentDR2, ldcWar, clanByKey, membersByKey, warByKey, warlogByKey } from '../controllers/cocController.js'
 
 const router = Router()
 
@@ -13,6 +13,7 @@ router.get('/player/:tag', player)
 
 // LDC détail 7 jours
 router.get('/ldc/current', ldcCurrent)
+router.get('/ldc/dr2/current', ldcCurrentDR2)
 router.get('/ldc/war/:warTag', ldcWar)
 
 // Routes DR1 / DR2 explicites (avant le :clanKey dynamique)

@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const { CHANNELS } = require('../config/onboarding.js')
+const supabase = require('../supabase.js')
 
 const REGLEMENT_TEXT = `# 🏰 Bienvenue sur le serveur Donjon Rouge
 *L'accès aux salons ne sera effectif qu'après validation du règlement.*
@@ -72,7 +73,12 @@ async function sendReglement(client) {
       .setStyle(ButtonStyle.Secondary),
   )
 
-  await channel.send({ embeds: [buildReglementEmbed(REGLEMENT_TEXT)], components: [rowRoles, rowEdit] })
+  const msg = await channel.send({ embeds: [buildReglementEmbed(REGLEMENT_TEXT)], components: [rowRoles, rowEdit] })
+  await supabase.from('bot_config').upsert({
+    key: 'reglement_message_id',
+    value: msg.id,
+    updated_at: new Date().toISOString(),
+  })
 }
 
 module.exports = { sendReglement, buildReglementEmbed, REGLEMENT_TEXT }

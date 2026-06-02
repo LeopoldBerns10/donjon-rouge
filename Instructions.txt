@@ -1,10 +1,6 @@
-Dans bot/src/scripts/migrateExistingMembers.js, créer un script one-shot qui :
+Dans bot/src/scheduler.js, deux corrections :
 
-Fetch tous les membres du serveur Discord
-Pour chaque membre qui a le rôle DONJON_ROUGE (611125112519000064) ou VISITEUR (1072532916955009095)
-Vérifier s'il a déjà le rôle LIE (1511096527664320655)
-Si non → attribuer le rôle LIE automatiquement
-Logger chaque attribution : "✅ [pseudo] → rôle Lié attribué"
-À la fin : "Migration terminée : X membres mis à jour"
+Augmenter la limite d'affichage des membres de 10 à 15 dans buildWarDetailFields()
+Appliquer le même fallback LDC pour DR2 que pour DR1 : si getCurrentWar() pour DR2 retourne notInWar ou warEnded, appeler getLdcCurrent() mais chercher le clan DR2 (#CLAN_TAG_DR2) dans les rounds au lieu de DR1. Ajouter dans cocApi.js si nécessaire : getLdcCurrentDR2 ou passer le tag du clan en paramètre.
 
-Ajouter dans package.json : "migrate-members": "node src/scripts/migrateExistingMembers.js"
+Le tag DR2 est à trouver dans la config existante ou les variables d'env.
