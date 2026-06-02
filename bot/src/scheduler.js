@@ -239,6 +239,17 @@ async function sendReminder(channel, members, discordMap, label) {
   setTimeout(() => msg.delete().catch(() => {}), 2 * 60 * 60 * 1000)
 }
 
+// ─── Normalisation de guerre (LDC) ───────────────────────────────────────────
+
+function normalizeWar(war, ourTag) {
+  if (!war) return war
+  if (war.clan?.tag === ourTag) return war
+  if (war.opponent?.tag === ourTag) {
+    return { ...war, clan: war.opponent, opponent: war.clan }
+  }
+  return war
+}
+
 // ─── Boucle principale ────────────────────────────────────────────────────────
 
 async function checkAndUpdate(client) {
@@ -251,6 +262,9 @@ async function checkAndUpdate(client) {
     try { wars[clanKey] = await apiGet(`/clan/${clanKey}/war`) }
     catch { wars[clanKey] = null }
   }
+  const DR1_TAG = '#29292QPRC'
+  const DR2_TAG = '#2RCGG9YR9'
+
   // Fallback LDC pour DR1 si pas en guerre normale
   const dr1Inactive = !wars.dr1 || wars.dr1.state === 'notInWar' || wars.dr1.state === 'warEnded'
   if (dr1Inactive) {
@@ -258,7 +272,7 @@ async function checkAndUpdate(client) {
       const ldc = await apiGet('/ldc/current')
       if (ldc?.rounds) {
         const activeRound = ldc.rounds.find(r => r.war != null)
-        if (activeRound?.war) wars.dr1 = activeRound.war
+        if (activeRound?.war) wars.dr1 = normalizeWar(activeRound.war, DR1_TAG)
       }
     } catch {}
   }
@@ -270,7 +284,7 @@ async function checkAndUpdate(client) {
       const ldc2 = await apiGet('/ldc/dr2/current')
       if (ldc2?.rounds) {
         const activeRound2 = ldc2.rounds.find(r => r.war != null)
-        if (activeRound2?.war) wars.dr2 = activeRound2.war
+        if (activeRound2?.war) wars.dr2 = normalizeWar(activeRound2.war, DR2_TAG)
       }
     } catch {}
   }

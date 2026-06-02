@@ -1,6 +1,8 @@
-Dans bot/src/scheduler.js, deux corrections :
+Dans bot/src/scheduler.js, dans le fallback LDC, corriger la détection du bon côté pour DR2 :
+Après avoir trouvé le round actif, vérifier si notre clan est dans war.clan ou war.opponent en comparant les tags :
 
-Augmenter la limite d'affichage des membres de 10 à 15 dans buildWarDetailFields()
-Appliquer le même fallback LDC pour DR2 que pour DR1 : si getCurrentWar() pour DR2 retourne notInWar ou warEnded, appeler getLdcCurrent() mais chercher le clan DR2 (#CLAN_TAG_DR2) dans les rounds au lieu de DR1. Ajouter dans cocApi.js si nécessaire : getLdcCurrentDR2 ou passer le tag du clan en paramètre.
+Si war.clan.tag === DR2_TAG → notre clan est dans war.clan, adversaire dans war.opponent
+Si war.opponent.tag === DR2_TAG → inverser : notre clan = war.opponent, adversaire = war.clan
 
-Le tag DR2 est à trouver dans la config existante ou les variables d'env.
+Faire pareil pour DR1 avec CLAN_TAG (#29292QPRC).
+Créer une fonction normalizeWar(war, ourTag) qui retourne toujours { ...war, clan: notreClan, opponent: adversaire } peu importe de quel côté on est.
