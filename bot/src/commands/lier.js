@@ -52,7 +52,7 @@ module.exports = {
 
       if (error) throw error
 
-      if (interaction.member && player.leagueTier?.name) {
+      if (isPrimary && interaction.member && player.leagueTier?.name) {
         assignLeagueRole(interaction.member, player.leagueTier.name).catch(err => {
           console.error('Erreur assignation rôle ligue:', err)
         })

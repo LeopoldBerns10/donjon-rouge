@@ -5,6 +5,7 @@ const { join } = require('path')
 const { startScheduler } = require('./src/scheduler.js')
 const { getOrCreateAccountMessage } = require('./src/accountMessage.js')
 
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,

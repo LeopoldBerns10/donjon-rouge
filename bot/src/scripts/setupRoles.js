@@ -4,31 +4,33 @@ const { writeFileSync, readFileSync, mkdirSync } = require('fs')
 const path = require('path')
 
 const LEAGUES = [
-  { name: 'Squelette',      color: 0x5D6D7E },
-  { name: 'Barbare',        color: 0x8B4513 },
-  { name: 'Archer',         color: 0x2E7D32 },
-  { name: 'Sorcier',        color: 0x1565C0 },
-  { name: 'Valkyrie',       color: 0xC62828 },
-  { name: 'Sorcière',       color: 0x6A1B9A },
-  { name: 'Golem',          color: 0x607D8B },
-  { name: 'P.E.K.K.A',      color: 0x0D47A1 },
-  { name: 'Electro Titan',  color: 0xF9A825 },
-  { name: 'Dragon',         color: 0xE65100 },
-  { name: 'Electro Dragon', color: 0x00ACC1 },
-  { name: 'Légende',        color: 0xFFD700, single: true },
+  { name: 'Squelette',      color: 0x5D6D7E, tiers: [1, 2, 3] },
+  { name: 'Barbare',        color: 0x8B4513, tiers: [4, 5, 6] },
+  { name: 'Archer',         color: 0x2E7D32, tiers: [7, 8, 9] },
+  { name: 'Sorcier',        color: 0x1565C0, tiers: [10, 11, 12] },
+  { name: 'Valkyrie',       color: 0xC62828, tiers: [13, 14, 15] },
+  { name: 'Sorcière',       color: 0x6A1B9A, tiers: [16, 17, 18] },
+  { name: 'Golem',          color: 0x607D8B, tiers: [19, 20, 21] },
+  { name: 'P.E.K.K.A',      color: 0x0D47A1, tiers: [22, 23, 24] },
+  { name: 'Electro Titan',  color: 0xF9A825, tiers: [25, 26, 27] },
+  { name: 'Dragon',         color: 0xE65100, tiers: [28, 29, 30] },
+  { name: 'Electro Dragon', color: 0x00ACC1, tiers: [31, 32, 33] },
+  { name: 'Légende',        color: 0xFFD700, tiers: [] },
 ]
 
-const TIERS = ['I', 'II', 'III']
+// Noms à supprimer : anciens chiffres romains + nouveaux numéros + variantes
+const ROMAN_TIERS = ['I', 'II', 'III']
+const BASE_NAMES = ['Squelette', 'Barbare', 'Archer', 'Sorcier', 'Valkyrie', 'Sorcière',
+  'Golem', 'P.E.K.K.A', 'Electro Titan', 'Dragon', 'Electro Dragon']
 
-// Tous les noms complets possibles (anciens + nouveaux) pour le nettoyage par nom
 const CLEANUP_NAMES = new Set([
-  // anciens
+  // Anciens avec chiffres romains
+  ...BASE_NAMES.flatMap(n => ROMAN_TIERS.map(t => `${n} ${t}`)),
+  // Anciennes variantes
   'Électro I', 'Électro II', 'Électro III',
   'Légende I', 'Légende II', 'Légende III',
-  // nouveaux + ceux communs aux deux générations
-  ...['Squelette', 'Barbare', 'Archer', 'Sorcier', 'Valkyrie', 'Sorcière',
-     'Golem', 'P.E.K.K.A', 'Electro Titan', 'Dragon', 'Electro Dragon']
-    .flatMap(n => TIERS.map(t => `${n} ${t}`)),
+  // Nouveaux avec numéros (au cas où re-run)
+  ...LEAGUES.flatMap(l => l.tiers.map(t => `${l.name} ${t}`)),
   'Légende',
 ])
 
@@ -42,7 +44,8 @@ function loadExistingIds() {
 }
 
 function getRoleNames(league) {
-  return league.single ? [league.name] : TIERS.map(t => `${league.name} ${t}`)
+  if (league.tiers.length === 0) return [league.name]
+  return league.tiers.map(t => `${league.name} ${t}`)
 }
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
@@ -100,7 +103,7 @@ client.once('ready', async () => {
           reason: 'Setup automatique des rôles de ligue CoC',
         })
         result[roleName] = role.id
-        console.log(`✓ ${roleName.padEnd(20)} → ${role.id}`)
+        console.log(`✓ ${roleName.padEnd(22)} → ${role.id}`)
       } catch (err) {
         console.error(`✗ ${roleName} : ${err.message}`)
       }
