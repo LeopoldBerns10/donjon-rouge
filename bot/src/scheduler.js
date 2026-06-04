@@ -1,6 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('./supabase.js')
 const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
+const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 
 const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -378,6 +379,7 @@ async function checkAndUpdate(client) {
   const warData = await fetchWarData()
   await _doUpdateReminderMessages(channel, warData)
   await checkWarReminders(channel, warData)
+  await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))
 }
 
 // ─── Point d'entrée ───────────────────────────────────────────────────────────

@@ -6,19 +6,12 @@ const { getClanInfo } = require('./cocApi.js')
 let accountMessageId = null
 
 function buildAccountEmbed(badgeUrl) {
-  const commands = [
-    '⚔️  `/lier`        — Associe ton tag CoC',
-    '👁️  `/profil`      — Affiche ton profil CoC',
-    '⭐  `/principal`   — Change ton compte principal',
-    '🗑️  `/delier`      — Supprime un compte lié',
-  ].join('\n')
-
   const embed = new EmbedBuilder()
     .setColor(0x8B0000)
     .setTitle('⚔️ Espace Guerrier — Donjon Rouge')
-    .setDescription('Bienvenue guerrier ! Lie ton compte Clash of Clans pour rejoindre les rangs du Donjon Rouge et accéder à toutes les fonctionnalités.')
-    .addFields({ name: '📋 Commandes disponibles', value: commands, inline: false })
-    .setFooter({ text: 'Donjon Rouge • Seuls les membres liés reçoivent les rappels de guerre' })
+    .setDescription('Bienvenue guerrier ! Accède à ton espace personnel ou explore les stats du clan.')
+    .addFields({ name: '🔗 Pas encore lié ?', value: 'Utilise `/lier` pour associer ton compte CoC', inline: false })
+    .setFooter({ text: 'Donjon Rouge • Espace Guerrier' })
 
   if (badgeUrl) embed.setThumbnail(badgeUrl)
 
@@ -29,8 +22,8 @@ function buildAccountComponents() {
   return [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId('voir_mon_compte')
-        .setLabel('📊 Voir mon compte')
+        .setCustomId('open_warrior_space')
+        .setLabel('👤 Mon espace guerrier')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId('lier_compte')

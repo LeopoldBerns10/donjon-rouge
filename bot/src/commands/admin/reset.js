@@ -6,6 +6,8 @@ const { TICKET_CHANNEL_ID } = require('../../config/tickets.js')
 const { CHANNELS } = require('../../config/onboarding.js')
 const { getOrCreateAccountMessage } = require('../../accountMessage.js')
 const { resetStatus, forceRefresh } = require('../../scheduler.js')
+const { updateEventsMessage, resetEventsMessage, EVENTS_CHANNEL_ID } = require('../../setup/sendEventsPanel.js')
+const { sendCommandsPanel, COMMANDS_CHANNEL_ID } = require('../../setup/sendCommandsPanel.js')
 const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../../warMessages.js')
 const { sendTicketMessage } = require('../../setup/sendTicketMessage.js')
 const { sendKaptcha } = require('../../setup/sendKaptcha.js')
@@ -70,6 +72,15 @@ module.exports = {
       } else if (channelId === CHANNELS.REGLEMENT) {
         await bulkDeleteAll(channel)
         await sendReglement(client)
+
+      } else if (channelId === EVENTS_CHANNEL_ID) {
+        await bulkDeleteAll(channel)
+        await resetEventsMessage()
+        await updateEventsMessage(client)
+
+      } else if (channelId === COMMANDS_CHANNEL_ID) {
+        await bulkDeleteAll(channel)
+        await sendCommandsPanel(client)
 
       } else {
         return interaction.editReply('❌ Ce salon n\'a pas de reset configuré.')

@@ -1,0 +1,49 @@
+Donne ce prompt à Claude Code :
+
+Dans bot/src/lib/performances.js, utiliser les emojis Discord dans les embeds héros, sorts et troupes.
+Charger cocEmojis.json depuis bot/src/config/cocEmojis.json.
+Créer une fonction getEmoji(name) qui retourne <:name:ID> depuis le JSON, ou '' si pas trouvé.
+Mapping nom FR → clé emoji :
+js// Héros
+'Roi Barbare' → 'coc_roi_barbare'
+'Reine Archère' → 'coc_reine_archere'
+'Grand Gardien' → 'coc_grand_gardien'
+'Champion Royal' → 'coc_champion_royal'
+'Prince Démon' → 'coc_prince_demon'
+'Machine de Combat' → 'coc_machine_combat'
+'Hélicoptère' → 'coc_helicoptere'
+
+// Sorts
+'Éclair' → 'coc_sort_eclair'
+'Soin' → 'coc_sort_soin'
+'Rage' → 'coc_sort_rage'
+'Saut' → 'coc_sort_saut'
+'Gel' → 'coc_sort_gel'
+'Clonage' → 'coc_sort_clone'
+'Invisibilité' → 'coc_sort_invisibilite'
+'Rappel' → 'coc_sort_rappel'
+'Poison' → 'coc_sort_poison'
+'Tremblement' → 'coc_sort_tremblement'
+'Célérité' → 'coc_sort_celerite'
+'Squelette' → 'coc_sort_squelette'
+'Chauve-Souris' → 'coc_sort_chauvesouris'
+'Surcroissance' → 'coc_sort_surcroissance'
+'Bloc de Glace' → 'coc_sort_glace'
+
+// Troupes
+'Barbare' → 'coc_barbare'
+'Archère' → 'coc_archere'
+'Géant' → 'coc_geant'
+'Dragon' → 'coc_dragon'
+'Golem' → 'coc_golem'
+'Electro Dragon' → 'coc_electro_dragon'
+'Electro Titan' → 'coc_electro_titan'
+'Chevaucheur' → 'coc_chevaucheur'
+'Limace de Lave' → 'coc_limace_lave'
+'Guérisseuse' → 'coc_guerisseuse'
+Dans buildHeroesEmbed() — format par héros :
+[emoji] **Roi Barbare** — Niv. 85 / 105
+Dans buildSpellsEmbed() — format par sort :
+[emoji] **Éclair** — Niv. 9 / 13
+Dans buildTroopsEmbed() — format par troupe :
+[emoji] **Barbare** — Niv. 9 / 13
