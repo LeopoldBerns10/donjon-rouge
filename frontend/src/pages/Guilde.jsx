@@ -351,8 +351,6 @@ function AttaquesTab({ members, loading, error }) {
 
 // ─── Composant LDC Détail 7 jours ─────────────────────────────────────────
 
-const CLAN_TAG = '#29292QPRC'
-
 function parseCocDate(str) {
   if (!str) return null
   return new Date(str.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6Z'))
@@ -512,17 +510,23 @@ function RoundCard({ round, index, ourTag }) {
   )
 }
 
-function LdcSection() {
+function LdcSection({ activeClan = 'dr1' }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const clanTag     = activeClan === 'dr1' ? '#29292QPRC' : '#2RCGG9YR9'
+  const ldcEndpoint = activeClan === 'dr1' ? '/api/coc/ldc/current' : '/api/coc/ldc/dr2/current'
+
   useEffect(() => {
-    api.get('/api/coc/ldc/current')
+    setLoading(true)
+    setError(null)
+    setData(null)
+    api.get(ldcEndpoint)
       .then((r) => setData(r.data))
       .catch((e) => setError(e.response?.data?.error || e.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [activeClan])
 
   if (loading) return <Spinner />
   if (error) return <ErrorMsg msg={error} />
@@ -531,7 +535,7 @@ function LdcSection() {
   }
 
   const rounds = data.rounds || []
-  const ourClan = (data.clans || []).find((c) => c.tag === CLAN_TAG)
+  const ourClan = (data.clans || []).find((c) => c.tag === clanTag)
 
   // Bilan global
   let wins = 0, losses = 0, draws = 0, totalStars = 0
@@ -540,8 +544,8 @@ function LdcSection() {
   for (const r of rounds) {
     const war = r.war
     if (!war || war.state !== 'warEnded') continue
-    const our = war.clan?.tag === CLAN_TAG ? war.clan : war.opponent
-    const opp = war.clan?.tag === CLAN_TAG ? war.opponent : war.clan
+    const our = war.clan?.tag === clanTag ? war.clan : war.opponent
+    const opp = war.clan?.tag === clanTag ? war.opponent : war.clan
     if (!our || !opp) continue
     if (our.stars > opp.stars) wins++
     else if (our.stars < opp.stars) losses++
@@ -576,7 +580,7 @@ function LdcSection() {
       {/* 7 rounds */}
       <h3 className="font-cinzel text-gold-bright uppercase text-xs tracking-widest mb-3">Les 7 matchs de la semaine</h3>
       {rounds.map((r) => (
-        <RoundCard key={r.roundIndex} round={r} index={r.roundIndex} ourTag={CLAN_TAG} />
+        <RoundCard key={r.roundIndex} round={r} index={r.roundIndex} ourTag={clanTag} />
       ))}
 
       {/* Bilan global */}
@@ -746,7 +750,7 @@ function GdcLdcTab({ loading, error, activeClan }) {
           <span>🏆 Ligue de Guerre de Clans (LDC)</span>
           <div className="flex-1 h-px bg-fog/40" />
         </h2>
-        <LdcSection />
+        <LdcSection activeClan={activeClan} />
       </div>
     </div>
   )

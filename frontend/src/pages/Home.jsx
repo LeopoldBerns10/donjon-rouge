@@ -6,6 +6,7 @@ import FireIntro from '../components/FireIntro.jsx'
 import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import { getCapitalHallIcon } from '../utils/cocHelpers.js'
 import { Roulette } from '../components/Roulette.jsx'
+import api from '../lib/api.js'
 
 function useCountUp(target, duration = 1500) {
   const [count, setCount] = useState(0)
@@ -29,7 +30,16 @@ function useCountUp(target, duration = 1500) {
 
 export default function Home() {
   const { data: clan, loading } = useCocClan()
-  const memberCount = useCountUp(clan?.members || 0)
+  const [dr2Members, setDr2Members] = useState(0)
+
+  useEffect(() => {
+    api.get('/api/coc/clan/dr2')
+      .then(res => setDr2Members(res.data?.members || 0))
+      .catch(() => {})
+  }, [])
+
+  const totalMembers = (clan?.members || 0) + dr2Members
+  const memberCount = useCountUp(totalMembers)
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -64,9 +74,9 @@ export default function Home() {
           </p>
 
           {/* Member counter */}
-          <div className="my-6">
+          <div className="my-6 flex flex-col items-center">
             <span className="text-5xl font-bold font-cinzel text-gold-light">{memberCount}</span>
-            <span className="text-ash font-cinzel text-lg ml-2">/ {clan?.memberCount || 50} membres</span>
+            <span className="text-ash font-cinzel text-sm uppercase tracking-widest mt-1">MEMBRES</span>
           </div>
 
           {/* CTA Buttons */}
