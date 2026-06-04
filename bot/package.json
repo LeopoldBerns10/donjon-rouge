@@ -7,7 +7,8 @@
     "deploy-commands": "node src/deploy-commands.js",
     "setup-roles": "node src/scripts/setupRoles.js",
     "setup-lie-role": "node src/scripts/setupLieRole.js",
-    "migrate-members": "node src/scripts/migrateExistingMembers.js"
+    "migrate-members": "node src/scripts/migrateExistingMembers.js",
+    "setup-voice": "node src/scripts/setupVoice.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

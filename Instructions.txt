@@ -1,14 +1,12 @@
-Dans bot/src/warMessages.js, améliorer les embeds :
-buildWarActiveEmbed — dans le statut des guerriers, ajouter les étoiles par attaque :
+Dans bot/src/lib/messagingHandlers.js, simplifier handleMsgCustom() :
+Au lieu du select menu (limite 25), quand le bouton "✏️ Message personnalisé" est cliqué, ouvrir directement une Modal avec :
 
-Format : "✅ HDV18 KD2L — 1/1 att. ⭐⭐⭐" (étoiles obtenues)
-"⚡ HDV18 CyberAlf — 1/2 att. ⭐⭐"
-"❌ HDV16 Didousse — 0/1 att."
-Récupérer les étoiles depuis war.clan.members[].attacks[].stars
+Champ 1 "Destinataires" (short) : placeholder "@joueur1 @joueur2 ou 'tous'"
+Champ 2 "Sujet" (short) : placeholder "ex: Rappel GDC"
+Champ 3 "Message" (paragraph) : placeholder "Ton message ici..."
 
-buildLdcRecapEmbed — tableau de performance des joueurs sur la saison :
-Ajouter un champ "🏹 Performances guerriers" trié par total étoiles desc :
+Dans handleModalMsgCustom(), parser le champ destinataires :
 
-Format par ligne : "⭐ X | NomJoueur — X att."
-Exemple : "⭐ 3 | KD2L — 1 att.", "⭐ 0 | Didousse — 0 att."
-Afficher tous les membres participants
+Si "tous" → envoyer à tous les membres liés
+Sinon extraire les IDs Discord depuis les mentions @joueur (format @ID ou juste l'ID)
+Preview embed avec liste des destinataires trouvés + bouton confirmer/annuler

@@ -38,6 +38,14 @@ const {
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { forceRefresh } = require('../scheduler.js')
+const { buildVoiceManageEmbed, buildVoiceManageComponents, isVoicePrivate, LIE_ROLE_ID } = require('../lib/voiceManage.js')
+const {
+  handleMsgRappelGuerre, handleMsgRappelGuerreConfirm,
+  handleMsgRappelRaid,   handleMsgRappelRaidConfirm,
+  handleMsgRappelCancel,
+  handleMsgCustom, handleModalMsgCustom,
+  handleMsgCustomConfirm, handleMsgCustomCancel,
+} = require('../lib/messagingHandlers.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
 
@@ -448,8 +456,162 @@ async function handleKaptchaVerify(interaction) {
   await interaction.editReply({ content: '✅ Vérifié ! Rends-toi dans #lit-le-règlement pour continuer.' })
 }
 
+// ─── Gestion vocale ───────────────────────────────────────────────────────────
+
+async function getVoiceData(channelId) {
+  const { data } = await supabase
+    .from('voice_channels')
+    .select('channel_id, owner_id')
+    .eq('text_channel_id', channelId)
+    .maybeSingle()
+  return data
+}
+
+async function handleVoiceTogglePrivate(interaction) {
+  await interaction.deferUpdate()
+  const data = await getVoiceData(interaction.channelId)
+  if (!data || data.owner_id !== interaction.user.id) {
+    return interaction.followUp({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+  const voiceChannel = await interaction.guild.channels.fetch(data.channel_id).catch(() => null)
+  if (!voiceChannel) return interaction.followUp({ content: '❌ Salon vocal introuvable.', ephemeral: true })
+
+  const currentlyPrivate = isVoicePrivate(voiceChannel)
+  if (currentlyPrivate) {
+    await voiceChannel.permissionOverwrites.edit(LIE_ROLE_ID, { ViewChannel: true, Connect: true, Speak: true })
+  } else {
+    await voiceChannel.permissionOverwrites.edit(LIE_ROLE_ID, { ViewChannel: false, Connect: false, Speak: false })
+  }
+  const newPrivate = !currentlyPrivate
+  const embed = buildVoiceManageEmbed(voiceChannel.name, interaction.member.displayName, newPrivate, voiceChannel.userLimit)
+  await interaction.editReply({ embeds: [embed], components: buildVoiceManageComponents(newPrivate) })
+}
+
+async function handleVoiceSetLimit(interaction) {
+  const data = await getVoiceData(interaction.channelId)
+  if (!data || data.owner_id !== interaction.user.id) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+  const modal = new ModalBuilder()
+    .setCustomId('modal_voice_limit')
+    .setTitle('Limite de places')
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('voice_limit_value')
+        .setLabel('Nombre de places (0 = illimité, max 10)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMinLength(1)
+        .setMaxLength(2)
+        .setPlaceholder('0')
+    )
+  )
+  await interaction.showModal(modal)
+}
+
+async function handleVoiceKickMember(interaction) {
+  const data = await getVoiceData(interaction.channelId)
+  if (!data || data.owner_id !== interaction.user.id) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+  const voiceChannel = await interaction.guild.channels.fetch(data.channel_id).catch(() => null)
+  if (!voiceChannel) return interaction.reply({ content: '❌ Salon vocal introuvable.', ephemeral: true })
+
+  const members = [...voiceChannel.members.values()].filter(m => m.id !== interaction.user.id)
+  if (!members.length) return interaction.reply({ content: '❌ Aucun autre membre dans le salon.', ephemeral: true })
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId('voice_kick_select')
+    .setPlaceholder('Sélectionne un membre à expulser')
+    .addOptions(members.map(m => new StringSelectMenuOptionBuilder().setLabel(m.displayName).setValue(m.id)))
+
+  await interaction.reply({
+    content: 'Sélectionne le membre à expulser :',
+    components: [new ActionRowBuilder().addComponents(select)],
+    ephemeral: true,
+  })
+}
+
+async function handleVoiceMuteMember(interaction) {
+  const data = await getVoiceData(interaction.channelId)
+  if (!data || data.owner_id !== interaction.user.id) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+  const voiceChannel = await interaction.guild.channels.fetch(data.channel_id).catch(() => null)
+  if (!voiceChannel) return interaction.reply({ content: '❌ Salon vocal introuvable.', ephemeral: true })
+
+  const members = [...voiceChannel.members.values()].filter(m => m.id !== interaction.user.id)
+  if (!members.length) return interaction.reply({ content: '❌ Aucun autre membre dans le salon.', ephemeral: true })
+
+  const select = new StringSelectMenuBuilder()
+    .setCustomId('voice_mute_select')
+    .setPlaceholder('Sélectionne un membre à muter/démuter')
+    .addOptions(members.map(m => new StringSelectMenuOptionBuilder()
+      .setLabel(m.displayName)
+      .setDescription(m.voice.serverMute ? 'Actuellement muté' : 'Non muté')
+      .setValue(m.id)
+    ))
+
+  await interaction.reply({
+    content: 'Sélectionne le membre à muter/démuter :',
+    components: [new ActionRowBuilder().addComponents(select)],
+    ephemeral: true,
+  })
+}
+
+async function handleVoiceKickSelect(interaction) {
+  await interaction.deferUpdate()
+  const target = interaction.guild.members.cache.get(interaction.values[0])
+  if (!target?.voice.channel) {
+    return interaction.editReply({ content: '❌ Ce membre n\'est plus dans le salon.', components: [] })
+  }
+  await target.voice.disconnect().catch(() => {})
+  await interaction.editReply({ content: `✅ **${target.displayName}** a été expulsé.`, components: [] })
+}
+
+async function handleVoiceMuteSelect(interaction) {
+  await interaction.deferUpdate()
+  const target = interaction.guild.members.cache.get(interaction.values[0])
+  if (!target?.voice.channel) {
+    return interaction.editReply({ content: '❌ Ce membre n\'est plus dans le salon.', components: [] })
+  }
+  const isMuted = target.voice.serverMute
+  await target.voice.setMute(!isMuted).catch(() => {})
+  const msg = isMuted ? `🔊 **${target.displayName}** a été démuté.` : `🔇 **${target.displayName}** a été muté.`
+  await interaction.editReply({ content: msg, components: [] })
+}
+
+async function handleModalVoiceLimit(interaction) {
+  const raw = interaction.fields.getTextInputValue('voice_limit_value')
+  const limit = parseInt(raw, 10)
+  if (isNaN(limit) || limit < 0 || limit > 10) {
+    return interaction.reply({ content: '❌ Valeur invalide. Saisis un nombre entre 0 et 10.', ephemeral: true })
+  }
+  const data = await getVoiceData(interaction.channelId)
+  if (!data || data.owner_id !== interaction.user.id) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+  const voiceChannel = await interaction.guild.channels.fetch(data.channel_id).catch(() => null)
+  if (!voiceChannel) return interaction.reply({ content: '❌ Salon vocal introuvable.', ephemeral: true })
+
+  await voiceChannel.setUserLimit(limit)
+
+  const currentlyPrivate = isVoicePrivate(voiceChannel)
+  const embed = buildVoiceManageEmbed(voiceChannel.name, interaction.member.displayName, currentlyPrivate, limit)
+  const messages = await interaction.channel.messages.fetch({ limit: 10 })
+  const mgmtMsg = messages.find(m => m.author.id === interaction.client.user.id && m.embeds.length > 0)
+  if (mgmtMsg) await mgmtMsg.edit({ embeds: [embed], components: buildVoiceManageComponents(currentlyPrivate) })
+
+  const txt = limit === 0 ? 'illimitée' : `**${limit}** personne(s)`
+  await interaction.reply({ content: `✅ Limite fixée à ${txt}.`, ephemeral: true })
+}
+
 const BUTTON_HANDLERS = {
-  refresh_status:    handleRefreshStatus,
+  refresh_status:       handleRefreshStatus,
+  refresh_reminder_dr1: handleRefreshStatus,
+  refresh_reminder_dr2: handleRefreshStatus,
+  refresh_reminder_raid: handleRefreshStatus,
   mes_performances:  handleMesPerformances,
   voir_mon_compte:   handleMesPerformances,
   lier_compte:       handleLierCompte,
@@ -479,6 +641,18 @@ const BUTTON_HANDLERS = {
   panel_msg_moncompte:        handlePanelMsgMonCompte,
   panel_msg_tickets:          handlePanelMsgTickets,
   panel_delier_membre:     handlePanelDelierMembre,
+  voice_toggle_private: handleVoiceTogglePrivate,
+  voice_set_limit:      handleVoiceSetLimit,
+  voice_kick_member:    handleVoiceKickMember,
+  voice_mute_member:    handleVoiceMuteMember,
+  msg_rappel_guerre:         handleMsgRappelGuerre,
+  msg_rappel_raid:           handleMsgRappelRaid,
+  msg_custom:                handleMsgCustom,
+  msg_rappel_guerre_confirm: handleMsgRappelGuerreConfirm,
+  msg_rappel_raid_confirm:   handleMsgRappelRaidConfirm,
+  msg_rappel_cancel:         handleMsgRappelCancel,
+  msg_custom_confirm:        handleMsgCustomConfirm,
+  msg_custom_cancel:         handleMsgCustomCancel,
 }
 
 module.exports = {
@@ -510,6 +684,10 @@ module.exports = {
           await handlePanelAdminRemove(interaction)
         } else if (interaction.customId === 'panel_delier_select') {
           await handlePanelDelierSelect(interaction)
+        } else if (interaction.customId === 'voice_kick_select') {
+          await handleVoiceKickSelect(interaction)
+        } else if (interaction.customId === 'voice_mute_select') {
+          await handleVoiceMuteSelect(interaction)
         } else if (prefix === 'panel_membres_dr1_prev') {
           await handlePanelMembresDRNav(interaction, 'dr1', 'prev', parseInt(argTag))
         } else if (prefix === 'panel_membres_dr1_next') {
@@ -578,6 +756,16 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_panel_lier') {
       await handleModalPanelLier(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_voice_limit') {
+      await handleModalVoiceLimit(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_custom') {
+      await handleModalMsgCustom(interaction)
       return
     }
 
