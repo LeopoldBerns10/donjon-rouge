@@ -1,8 +1,14 @@
-Dans bot/src/scheduler.js, dans le fallback LDC, corriger la détection du bon côté pour DR2 :
-Après avoir trouvé le round actif, vérifier si notre clan est dans war.clan ou war.opponent en comparant les tags :
+Dans bot/src/warMessages.js, améliorer les embeds :
+buildWarActiveEmbed — dans le statut des guerriers, ajouter les étoiles par attaque :
 
-Si war.clan.tag === DR2_TAG → notre clan est dans war.clan, adversaire dans war.opponent
-Si war.opponent.tag === DR2_TAG → inverser : notre clan = war.opponent, adversaire = war.clan
+Format : "✅ HDV18 KD2L — 1/1 att. ⭐⭐⭐" (étoiles obtenues)
+"⚡ HDV18 CyberAlf — 1/2 att. ⭐⭐"
+"❌ HDV16 Didousse — 0/1 att."
+Récupérer les étoiles depuis war.clan.members[].attacks[].stars
 
-Faire pareil pour DR1 avec CLAN_TAG (#29292QPRC).
-Créer une fonction normalizeWar(war, ourTag) qui retourne toujours { ...war, clan: notreClan, opponent: adversaire } peu importe de quel côté on est.
+buildLdcRecapEmbed — tableau de performance des joueurs sur la saison :
+Ajouter un champ "🏹 Performances guerriers" trié par total étoiles desc :
+
+Format par ligne : "⭐ X | NomJoueur — X att."
+Exemple : "⭐ 3 | KD2L — 1 att.", "⭐ 0 | Didousse — 0 att."
+Afficher tous les membres participants

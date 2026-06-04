@@ -316,24 +316,27 @@ async function refreshPanelMessage(client, payload) {
 // ─── Handlers boutons panel ───────────────────────────────────────────────────
 
 async function handlePanelHome(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildHomePayload())
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildHomePayload())
 }
 
 async function handlePanelMembres(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildMembresPayload(interaction.guild, 0))
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildMembresPayload(interaction.guild, 0))
 }
 
 async function handlePanelMembresNav(interaction, dir, currentPage) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
   const nextPage = dir === 'prev' ? currentPage - 1 : currentPage + 1
-  await interaction.update(await buildMembresPayload(interaction.guild, nextPage))
+  await interaction.editReply(await buildMembresPayload(interaction.guild, nextPage))
 }
 
 async function handlePanelCsv(interaction) {
   if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.deferUpdate()
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
 
   const guildMembers = await interaction.guild.members.fetch()
   const { data: links } = await supabase.from('discord_links').select('*')
@@ -360,34 +363,39 @@ async function handlePanelCsv(interaction) {
 }
 
 async function handlePanelMessages(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildMessagesPayload())
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildMessagesPayload())
 }
 
 async function handlePanelConfig(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildConfigPayload())
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildConfigPayload())
 }
 
 async function handlePanelAdmins(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildAdminsPayload(interaction.guild))
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildAdminsPayload(interaction.guild))
 }
 
 async function handlePanelToggleScheduler(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
   const { data } = await supabase.from('bot_config').select('value').eq('key', 'scheduler_enabled').maybeSingle()
   const newVal = data?.value === 'false' ? 'true' : 'false'
   await supabase.from('bot_config').upsert({ key: 'scheduler_enabled', value: newVal, updated_at: new Date().toISOString() })
-  await interaction.update(await buildConfigPayload())
+  await interaction.editReply(await buildConfigPayload())
 }
 
 async function handlePanelToggleRappels(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
   const { data } = await supabase.from('bot_config').select('value').eq('key', 'rappels_enabled').maybeSingle()
   const newVal = data?.value === 'false' ? 'true' : 'false'
   await supabase.from('bot_config').upsert({ key: 'rappels_enabled', value: newVal, updated_at: new Date().toISOString() })
-  await interaction.update(await buildConfigPayload())
+  await interaction.editReply(await buildConfigPayload())
 }
 
 async function handlePanelModalReglement(interaction) {
@@ -436,11 +444,12 @@ async function handlePanelModalAdminAdd(interaction) {
 }
 
 async function handlePanelAdminRemove(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
   const removeId = interaction.values[0]
   const dynamic = await getDynamicAdmins()
   await saveDynamicAdmins(dynamic.filter(id => id !== removeId))
-  await interaction.update(await buildAdminsPayload(interaction.guild))
+  await interaction.editReply(await buildAdminsPayload(interaction.guild))
 }
 
 // ─── Onglets DR1 / DR2 ───────────────────────────────────────────────────────
@@ -496,19 +505,22 @@ async function buildMembresDRPayload(guild, clan, page = 0) {
 }
 
 async function handlePanelMembresDR1(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildMembresDRPayload(interaction.guild, 'dr1', 0))
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildMembresDRPayload(interaction.guild, 'dr1', 0))
 }
 
 async function handlePanelMembresDR2(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildMembresDRPayload(interaction.guild, 'dr2', 0))
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildMembresDRPayload(interaction.guild, 'dr2', 0))
 }
 
 async function handlePanelMembresDRNav(interaction, clan, dir, currentPage) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
   const nextPage = dir === 'prev' ? currentPage - 1 : currentPage + 1
-  await interaction.update(await buildMembresDRPayload(interaction.guild, clan, nextPage))
+  await interaction.editReply(await buildMembresDRPayload(interaction.guild, clan, nextPage))
 }
 
 // ─── Lier membre — modal simple ───────────────────────────────────────────────
@@ -541,12 +553,14 @@ async function handlePanelLierMembre(interaction) {
 }
 
 async function handlePanelDelierMembre(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
-  await interaction.update(await buildDelierPayload(interaction.guild))
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
+  await interaction.editReply(await buildDelierPayload(interaction.guild))
 }
 
 async function handlePanelDelierSelect(interaction) {
-  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
+  if (!await isAdmin(interaction.member)) return interaction.followUp({ content: '❌ Accès refusé.', ephemeral: true })
 
   const [discordId, cocTag] = interaction.values[0].split(':')
 
@@ -558,7 +572,7 @@ async function handlePanelDelierSelect(interaction) {
     .maybeSingle()
 
   if (!link) {
-    return interaction.update(await buildMembresPayload(interaction.guild, 0))
+    return interaction.editReply(await buildMembresPayload(interaction.guild, 0))
   }
 
   await supabase.from('discord_links').delete().eq('discord_id', discordId).eq('coc_tag', cocTag)
@@ -580,7 +594,7 @@ async function handlePanelDelierSelect(interaction) {
     }
   }
 
-  await interaction.update(await buildMembresPayload(interaction.guild, 0))
+  await interaction.editReply(await buildMembresPayload(interaction.guild, 0))
 }
 
 // ─── Messages modifiables — helpers et handlers ───────────────────────────────

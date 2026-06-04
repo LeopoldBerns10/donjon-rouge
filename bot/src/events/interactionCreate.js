@@ -37,8 +37,17 @@ const {
 } = require('../lib/panelHandlers.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
+const { forceRefresh } = require('../scheduler.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
+
+// ─── Bouton refresh_status ────────────────────────────────────────────────────
+
+async function handleRefreshStatus(interaction) {
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  await forceRefresh(interaction.client)
+  await interaction.editReply('✅ Statut actualisé.')
+}
 
 // ─── Bouton open_ticket ───────────────────────────────────────────────────────
 
@@ -48,26 +57,21 @@ async function handleOpenTicket(interaction) {
   const DONJON_ROUGE = '611125112519000064'
   const VISITEUR     = '1072532916955009095'
 
+  // Vérifications synchrones avant le defer
   if (!member.roles.cache.has(DONJON_ROUGE) && !member.roles.cache.has(VISITEUR)) {
-    return interaction.reply({
-      content: '❌ Tu dois avoir validé le règlement pour ouvrir un ticket.',
-      ephemeral: true,
-    })
+    return interaction.reply({ content: '❌ Tu dois avoir validé le règlement pour ouvrir un ticket.', ephemeral: true })
   }
-
   const existing = interaction.guild.channels.cache.find(
     c => c.name === `ticket-${member.user.username.toLowerCase().replace(/\s+/g, '-')}`
   )
   if (existing) {
-    return interaction.reply({
-      content: `❌ Tu as déjà un ticket ouvert : ${existing}`,
-      ephemeral: true,
-    })
+    return interaction.reply({ content: `❌ Tu as déjà un ticket ouvert : ${existing}`, ephemeral: true })
   }
+
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
   const ticketChannel = await interaction.client.channels.fetch(TICKET_CHANNEL_ID)
   const category = ticketChannel.parentId
-
   const ticketName = `ticket-${member.user.username.toLowerCase().replace(/\s+/g, '-')}`
 
   const salon = await interaction.guild.channels.create({
@@ -101,34 +105,31 @@ async function handleOpenTicket(interaction) {
     components: [row],
   })
 
-  await interaction.reply({
-    content: `✅ Ton ticket a été créé : ${salon}`,
-    ephemeral: true,
-  })
+  await interaction.editReply({ content: `✅ Ton ticket a été créé : ${salon}` })
 }
 
 // ─── Bouton close_ticket ──────────────────────────────────────────────────────
 
 async function handleCloseTicket(interaction, channelId) {
   const member = interaction.member
+
+  // Vérifications synchrones avant le defer
   const isStaff = [TICKET_ROLES.CHEF, TICKET_ROLES.CHEF_ADJOINT, TICKET_ROLES.ADJOINT]
     .some(roleId => member.roles.cache.has(roleId))
+  const isCreator = interaction.channel?.name === `ticket-${member.user.username.toLowerCase().replace(/\s+/g, '-')}`
+
+  if (!isStaff && !isCreator) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission de clôturer ce ticket.', ephemeral: true })
+  }
+
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply()
 
   const ticketChannel = await interaction.client.channels.fetch(channelId).catch(() => null)
   if (!ticketChannel) {
-    return interaction.reply({ content: '❌ Salon introuvable.', ephemeral: true })
+    return interaction.editReply({ content: '❌ Salon introuvable.' })
   }
 
-  const isCreator = ticketChannel.name === `ticket-${member.user.username.toLowerCase().replace(/\s+/g, '-')}`
-
-  if (!isStaff && !isCreator) {
-    return interaction.reply({
-      content: '❌ Tu n\'as pas la permission de clôturer ce ticket.',
-      ephemeral: true,
-    })
-  }
-
-  await interaction.reply({ content: `🔒 Ticket clôturé par ${member.user.username}` })
+  await interaction.editReply({ content: `🔒 Ticket clôturé par ${member.user.username}` })
   setTimeout(() => ticketChannel.delete().catch(() => {}), 5000)
 }
 
@@ -198,7 +199,7 @@ function buildMembersRow(members, customId, placeholder) {
 }
 
 async function handleStatsClan(interaction) {
-  await interaction.deferReply({ ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
   const [resDR1, resDR2] = await Promise.allSettled([getClanMembers(), getClanMembersDR2()])
 
@@ -251,7 +252,7 @@ async function handleStatsClan(interaction) {
 // ─── Navigation héros / sorts / troupes / profil ──────────────────────────────
 
 async function handleStatsProfil(interaction, tag) {
-  await interaction.deferUpdate()
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
 
   let player
   try {
@@ -272,7 +273,7 @@ async function handleStatsProfil(interaction, tag) {
 }
 
 async function handleStatsHeros(interaction, tag) {
-  await interaction.deferUpdate()
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
 
   let player
   try {
@@ -307,7 +308,7 @@ async function handleStatsHeros(interaction, tag) {
 }
 
 async function handleStatsSorts(interaction, tag) {
-  await interaction.deferUpdate()
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
 
   let player
   try {
@@ -345,7 +346,7 @@ const SIEGE_MACHINES = new Set([
 ])
 
 async function handleStatsTroupes(interaction, tag) {
-  await interaction.deferUpdate()
+  if (!interaction.deferred && !interaction.replied) await interaction.deferUpdate()
 
   let player
   try {
@@ -413,24 +414,27 @@ async function handleEditReglement(interaction) {
 }
 
 async function handleRoleDonjonRouge(interaction) {
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   const member = interaction.member
   await member.roles.remove(ROLES.VERIFIE).catch(() => {})
   await member.roles.add(ROLES.DONJON_ROUGE)
-  await interaction.reply({ content: '🏆 Bienvenue guerrier ! Tu as accès au serveur Donjon Rouge.', ephemeral: true })
+  await interaction.editReply({ content: '🏆 Bienvenue guerrier ! Tu as accès au serveur Donjon Rouge.' })
   sendWelcomeMessage(member, 'donjon_rouge').catch(err => console.error('[welcome] donjon_rouge:', err))
 }
 
 async function handleRoleVisiteur(interaction) {
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   const member = interaction.member
   await member.roles.remove(ROLES.VERIFIE).catch(() => {})
   await member.roles.add(ROLES.VISITEUR)
-  await interaction.reply({ content: '👋 Bienvenue visiteur !', ephemeral: true })
+  await interaction.editReply({ content: '👋 Bienvenue visiteur !' })
   sendWelcomeMessage(member, 'visiteur').catch(err => console.error('[welcome] visiteur:', err))
 }
 
 async function handleRoleRien(interaction) {
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   await interaction.member.roles.remove(ROLES.VERIFIE).catch(() => {})
-  await interaction.reply({ content: 'Ok, tu peux fermer Discord.', ephemeral: true })
+  await interaction.editReply({ content: 'Ok, tu peux fermer Discord.' })
 }
 
 async function handleKaptchaVerify(interaction) {
@@ -438,15 +442,14 @@ async function handleKaptchaVerify(interaction) {
   if (!member.roles.cache.has(ROLES.NON_VERIFIE)) {
     return interaction.reply({ content: 'Tu es déjà vérifié.', ephemeral: true })
   }
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   await member.roles.remove(ROLES.NON_VERIFIE)
   await member.roles.add(ROLES.VERIFIE)
-  await interaction.reply({
-    content: '✅ Vérifié ! Rends-toi dans #lit-le-règlement pour continuer.',
-    ephemeral: true,
-  })
+  await interaction.editReply({ content: '✅ Vérifié ! Rends-toi dans #lit-le-règlement pour continuer.' })
 }
 
 const BUTTON_HANDLERS = {
+  refresh_status:    handleRefreshStatus,
   mes_performances:  handleMesPerformances,
   voir_mon_compte:   handleMesPerformances,
   lier_compte:       handleLierCompte,

@@ -83,7 +83,7 @@ function buildNavComponents(tag, current) {
 // ─── Handler mes_performances ─────────────────────────────────────────────────
 
 async function handleMesPerformances(interaction) {
-  await interaction.deferReply()
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply()
 
   const { data: links } = await supabase
     .from('discord_links')

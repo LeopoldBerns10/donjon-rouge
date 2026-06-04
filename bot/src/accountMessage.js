@@ -51,6 +51,40 @@ async function getOrCreateAccountMessage(client) {
     return
   }
 
+  // Vérifie le cache mémoire
+  if (accountMessageId) {
+    try {
+      await channel.messages.fetch(accountMessageId)
+      return // Message existe — on ne touche pas au démarrage
+    } catch {
+      accountMessageId = null
+    }
+  }
+
+  // Vérifie Supabase
+  const { data } = await supabase
+    .from('bot_config')
+    .select('value')
+    .eq('key', 'account_message_id')
+    .maybeSingle()
+
+  if (data?.value) {
+    try {
+      await channel.messages.fetch(data.value)
+      accountMessageId = data.value
+      return // Message existe — restaure l'ID sans éditer
+    } catch (e) {
+      if (e.code === 10008 || e.httpStatus === 404) {
+        await supabase.from('bot_config').delete().eq('key', 'account_message_id')
+      } else {
+        return // Erreur transitoire — ne pas recréer
+      }
+    }
+  }
+
+  // Nettoie le salon avant de créer un nouveau message
+  await channel.bulkDelete(100).catch(() => {})
+
   let badgeUrl = null
   try {
     const clan = await getClanInfo()
@@ -60,34 +94,6 @@ async function getOrCreateAccountMessage(client) {
   }
 
   const payload = { embeds: [buildAccountEmbed(badgeUrl)], components: buildAccountComponents() }
-
-  if (accountMessageId) {
-    try {
-      const msg = await channel.messages.fetch(accountMessageId)
-      await msg.edit(payload)
-      return
-    } catch {
-      accountMessageId = null
-    }
-  }
-
-  const { data } = await supabase
-    .from('bot_config')
-    .select('value')
-    .eq('key', 'account_message_id')
-    .maybeSingle()
-
-  if (data?.value) {
-    try {
-      const msg = await channel.messages.fetch(data.value)
-      accountMessageId = msg.id
-      await msg.edit(payload)
-      return
-    } catch {
-      // Message supprimé, on en crée un nouveau
-    }
-  }
-
   const msg = await channel.send(payload)
   await supabase
     .from('bot_config')
