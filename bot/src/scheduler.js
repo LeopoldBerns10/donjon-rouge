@@ -55,27 +55,47 @@ async function fetchWarData() {
     try { wars[clanKey] = await apiGet(`/clan/${clanKey}/war`) }
     catch { wars[clanKey] = null }
   }
+  console.log('[fetchWarData] DR1 war.state:', wars.dr1?.state)
+  console.log('[fetchWarData] DR2 war.state:', wars.dr2?.state)
 
   let dr1IsLdc = false
+  let dr1LdcBetweenRounds = false
   const dr1Inactive = !wars.dr1 || wars.dr1.state === 'notInWar' || wars.dr1.state === 'warEnded'
   if (dr1Inactive) {
     try {
       const ldc = await apiGet('/ldc/current')
       if (ldc?.rounds) {
-        const activeRound = ldc.rounds.find(r => r.war != null)
-        if (activeRound?.war) { wars.dr1 = normalizeWar(activeRound.war, DR1_TAG); dr1IsLdc = true }
+        const activeRound =
+          ldc.rounds.find(r => r.war?.state === 'inWar') ||
+          ldc.rounds.find(r => r.war?.state === 'preparation') ||
+          ldc.rounds.find(r => r.war?.state === 'warEnded')
+        console.log('[fetchWarData] LDC DR1 round trouvé:', activeRound?.war?.state)
+        if (activeRound?.war) {
+          wars.dr1 = normalizeWar(activeRound.war, DR1_TAG)
+          dr1IsLdc = true
+          if (activeRound.war.state === 'warEnded') dr1LdcBetweenRounds = true
+        }
       }
     } catch {}
   }
 
   let dr2IsLdc = false
+  let dr2LdcBetweenRounds = false
   const dr2Inactive = !wars.dr2 || wars.dr2.state === 'notInWar' || wars.dr2.state === 'warEnded'
   if (dr2Inactive) {
     try {
       const ldc2 = await apiGet('/ldc/dr2/current')
       if (ldc2?.rounds) {
-        const activeRound2 = ldc2.rounds.find(r => r.war != null)
-        if (activeRound2?.war) { wars.dr2 = normalizeWar(activeRound2.war, DR2_TAG); dr2IsLdc = true }
+        const activeRound2 =
+          ldc2.rounds.find(r => r.war?.state === 'inWar') ||
+          ldc2.rounds.find(r => r.war?.state === 'preparation') ||
+          ldc2.rounds.find(r => r.war?.state === 'warEnded')
+        console.log('[fetchWarData] LDC DR2 round trouvé:', activeRound2?.war?.state)
+        if (activeRound2?.war) {
+          wars.dr2 = normalizeWar(activeRound2.war, DR2_TAG)
+          dr2IsLdc = true
+          if (activeRound2.war.state === 'warEnded') dr2LdcBetweenRounds = true
+        }
       }
     } catch {}
   }
@@ -94,19 +114,30 @@ async function fetchWarData() {
     }
   } catch {}
 
-  return { wars, dr1IsLdc, dr2IsLdc, currentRaid }
+  return { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds, currentRaid }
 }
 
 // ─── Embeds des messages persistants ─────────────────────────────────────────
 
-async function buildReminderDR(war, clanLabel, isLdc) {
+async function buildReminderDR(war, clanLabel, isLdc, isBetweenRounds = false) {
   const maxAttaques = isLdc ? 1 : 2
 
-  if (!war || war.state === 'notInWar' || war.state === 'warEnded') {
+  if (!war || war.state === 'notInWar') {
     return new EmbedBuilder()
       .setColor(0x8B0000)
       .setTitle(`😴 ${clanLabel} — Au repos`)
       .setDescription('😴 Aucune guerre en cours')
+      .setFooter({ text: 'Donjon Rouge • Rappel de guerre' })
+      .setTimestamp()
+  }
+
+  if (war.state === 'warEnded') {
+    const title = isBetweenRounds ? `😴 ${clanLabel} — Entre deux rounds` : `😴 ${clanLabel} — Au repos`
+    const description = isBetweenRounds ? '😴 Entre deux rounds — prochain combat bientôt' : '😴 Aucune guerre en cours'
+    return new EmbedBuilder()
+      .setColor(0x8B0000)
+      .setTitle(title)
+      .setDescription(description)
       .setFooter({ text: 'Donjon Rouge • Rappel de guerre' })
       .setTimestamp()
   }
@@ -139,32 +170,39 @@ async function buildReminderDR(war, clanLabel, isLdc) {
     const opponentName = war.opponent?.name || 'Adversaire'
     const warType = isLdc ? 'LDC' : 'GDC'
 
-    const sorted = [...members].sort((a, b) => {
-      const aA = a.attacks?.length ?? 0
-      const bA = b.attacks?.length ?? 0
-      if (aA === 0 && bA !== 0) return -1
-      if (aA !== 0 && bA === 0) return 1
-      if (aA < maxAttaques && bA === maxAttaques) return -1
-      if (aA === maxAttaques && bA < maxAttaques) return 1
-      return b.townhallLevel - a.townhallLevel
-    })
+    const warStartTime = parseWarTime(war.startTime)
+    const hoursElapsed = warStartTime ? (Date.now() - warStartTime.getTime()) / 3600000 : null
+    let countdownText
+    if (hoursElapsed === null) {
+      countdownText = '—'
+    } else if (hoursElapsed < 10) {
+      const rem = 10 - hoursElapsed
+      countdownText = `⏰ Rappel automatique dans ${Math.floor(rem)}h ${Math.round((rem % 1) * 60)}min`
+    } else if (hoursElapsed < 20) {
+      const rem = 20 - hoursElapsed
+      countdownText = `⚠️ Rappel envoyé à 10h — prochain dans ${Math.floor(rem)}h ${Math.round((rem % 1) * 60)}min (20h)`
+    } else {
+      countdownText = '🚨 Rappels terminés — guerre bientôt finie'
+    }
 
-    const discordMap = await getDiscordIds(sorted.map(m => m.tag))
-
-    const lines = sorted.map(m => {
-      const atks = m.attacks?.length ?? 0
-      const icon = atks === 0 ? '❌' : atks < maxAttaques ? '⚡' : '✅'
+    const discordMap = late.length > 0 ? await getDiscordIds(late.map(m => m.tag)) : {}
+    const lateLines = late.map(m => {
       const ids = discordMap[m.tag] || []
-      const mentionPart = ids.length > 0 ? `<@${ids[0]}>` : m.name
-      return `${icon} ${mentionPart} — ${m.name} ${m.tag} — ${atks}/${maxAttaques} att.`
+      const mention = ids.length > 0 ? `<@${ids[0]}>` : m.name
+      return `❌ ${mention} — ${m.name} ${m.tag}`
     })
+
+    const warriorsValue = late.length === 0
+      ? '✅ Tous les guerriers ont attaqué !'
+      : lateLines.join('\n').slice(0, 1024)
 
     const embed = new EmbedBuilder()
       .setColor(late.length === 0 ? 0x2E7D32 : 0xFF6600)
       .setTitle(`⚔️ ${clanLabel} — ${warType} vs ${opponentName}`)
       .addFields(
         { name: '📊 Score', value: `⭐ ${clanStars} vs ⭐ ${opponentStars} | ⚔️ ${attacksUsed}/${totalAttacks} attaques`, inline: false },
-        { name: '🏹 Guerriers', value: lines.join('\n').slice(0, 1024) || '—', inline: false },
+        { name: '❌ Retardataires', value: warriorsValue, inline: false },
+        { name: '⏱️ Rappels', value: countdownText, inline: false },
       )
       .setFooter({ text: 'Donjon Rouge • Rappel de guerre' })
       .setTimestamp()
@@ -267,12 +305,11 @@ async function ensureReminderMessage(channel, key, embed, components) {
 }
 
 async function _doUpdateReminderMessages(channel, warData) {
-  const { wars, dr1IsLdc, dr2IsLdc, currentRaid } = warData
+  const { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds } = warData
 
-  const [embedDR1, embedDR2, embedRaid] = await Promise.all([
-    buildReminderDR(wars.dr1, '🏰 DR1', dr1IsLdc),
-    buildReminderDR(wars.dr2, '🏰 DR2', dr2IsLdc),
-    buildReminderRaid(currentRaid),
+  const [embedDR1, embedDR2] = await Promise.all([
+    buildReminderDR(wars.dr1, '🏰 DR1', dr1IsLdc, dr1LdcBetweenRounds),
+    buildReminderDR(wars.dr2, '🏰 DR2', dr2IsLdc, dr2LdcBetweenRounds),
   ])
 
   const makeRow = (customId) => [
@@ -281,11 +318,8 @@ async function _doUpdateReminderMessages(channel, warData) {
     ),
   ]
 
-  await Promise.allSettled([
-    ensureReminderMessage(channel, 'reminder_dr1_msg',  embedDR1,  makeRow('refresh_reminder_dr1')),
-    ensureReminderMessage(channel, 'reminder_dr2_msg',  embedDR2,  makeRow('refresh_reminder_dr2')),
-    ensureReminderMessage(channel, 'reminder_raid_msg', embedRaid, makeRow('refresh_reminder_raid')),
-  ])
+  await ensureReminderMessage(channel, 'reminder_dr1_msg', embedDR1, makeRow('refresh_reminder_dr1'))
+  await ensureReminderMessage(channel, 'reminder_dr2_msg', embedDR2, makeRow('refresh_reminder_dr2'))
 }
 
 async function updateReminderMessages(client) {
@@ -306,7 +340,7 @@ function buildReminderText(members, discordMap, label) {
     const mention = ids.length > 0 ? `<@${ids[0]}>` : m.name
     return `${mention} — ${m.name} ${m.tag} n'a pas attaqué !`
   })
-  return `${label}\n${lines.join('\n')}`
+  return `${label}\n${lines.join('\n')}\n\n⚠️ Selon le règlement, un joueur n'ayant pas attaqué peut être remplacé pour la prochaine guerre.`
 }
 
 async function sendReminder(channel, members, discordMap, label) {
@@ -352,6 +386,21 @@ async function checkWarReminders(channel, { wars, dr1IsLdc, dr2IsLdc, currentRai
         }
       }
     }
+
+    if (hoursElapsed >= 22 && hoursElapsed < 23) {
+      const key = `${warId}_22h_${clanKey}`
+      if (!sentWarReminders.has(key)) {
+        const laggards = isLdc
+          ? (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) === 0)
+          : (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) < 2)
+        if (laggards.length > 0) {
+          const discordMap = await getDiscordIds(laggards.map(m => m.tag))
+          const type = isLdc ? 'LDC' : 'GDC'
+          await sendReminder(channel, laggards, discordMap, `🚨 [${clanKey.toUpperCase()}] Dernière chance ! Rappel 22h ${type}`)
+          sentWarReminders.add(key)
+        }
+      }
+    }
   }
 
   if (currentRaid) {
@@ -385,6 +434,9 @@ async function checkAndUpdate(client) {
 // ─── Point d'entrée ───────────────────────────────────────────────────────────
 
 function startScheduler(client) {
+  reminderMsgCache['reminder_raid_msg'] = null
+  supabase.from('bot_config').delete().eq('key', 'reminder_raid_msg').then(() => {}).catch(() => {})
+
   const run = async () => {
     try { await checkAndUpdate(client) }
     catch (e) { console.error('[Scheduler] Erreur:', e) }
@@ -399,7 +451,7 @@ async function forceRefresh(client) {
 }
 
 async function resetStatus() {
-  for (const key of ['reminder_dr1_msg', 'reminder_dr2_msg', 'reminder_raid_msg']) {
+  for (const key of ['reminder_dr1_msg', 'reminder_dr2_msg']) {
     reminderMsgCache[key] = null
     await supabase.from('bot_config').delete().eq('key', key)
   }
