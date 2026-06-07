@@ -230,17 +230,46 @@ async function buildReminderRaid(raid) {
       .setTimestamp()
   }
 
-  const members = raid.members || []
-  const noAttack = members.filter(m => (m.attacks ?? 0) === 0)
-  const attacksUsed = members.reduce((acc, m) => acc + (m.attacks ?? 0), 0)
+  const raidMap     = new Map((raid.members || []).map(m => [m.tag, m]))
+  const attacksUsed = (raid.members || []).reduce((acc, m) => acc + (m.attacks ?? 0), 0)
 
-  const discordMap = noAttack.length > 0 ? await getDiscordIds(noAttack.map(m => m.tag)) : {}
+  let allMembers = []
+  try {
+    const [membersDR1, membersDR2] = await Promise.all([
+      apiGet('/clan/dr1/members'),
+      apiGet('/clan/dr2/members'),
+    ])
+    allMembers = [...(membersDR1?.items || []), ...(membersDR2?.items || [])]
+    console.log('[Raid] Membres DR1:', (membersDR1?.items || []).map(m => m.tag))
+    console.log('[Raid] Membres DR2:', (membersDR2?.items || []).map(m => m.tag))
+  } catch {}
 
-  const lines = noAttack.map(m => {
-    const ids = discordMap[m.tag] || []
-    const mention = ids.length > 0 ? `<@${ids[0]}>` : m.name
-    return `❌ ${mention} — ${m.name} — 0 att.`
+  console.log('[Raid] Membres raid:', (raid.members || []).map(m => m.tag))
+  console.log('[Raid] Tag ORYX recherché: #2CP089GL0')
+
+  const noAttack = allMembers.filter(m => !raidMap.has(m.tag))
+  const partial  = allMembers.filter(m => {
+    const rm = raidMap.get(m.tag)
+    return rm && (rm.attacks ?? 0) > 0 && (rm.attacks ?? 0) < (rm.attackLimit ?? 5)
   })
+
+  const allTags = [...noAttack, ...partial].map(m => m.tag)
+  const discordMap = allTags.length > 0 ? await getDiscordIds(allTags) : {}
+
+  const fmt = (m, icon, suffix) => {
+    const ids = discordMap[m.tag] || []
+    return ids.length > 0
+      ? `${icon} <@${ids[0]}> — ${m.name} — ${suffix}`
+      : `${icon} ${m.name} — ${suffix}`
+  }
+
+  const lines = [
+    ...noAttack.map(m => fmt(m, '❌', '0/5 att.')),
+    ...partial.map(m => {
+      const rm = raidMap.get(m.tag)
+      return fmt(m, '⚡', `${rm.attacks}/${rm.attackLimit ?? 5} att.`)
+    }),
+  ]
 
   const description = lines.length === 0
     ? `✅ Tous les membres ont attaqué !\n⚔️ ${attacksUsed} attaques au total`
@@ -305,11 +334,12 @@ async function ensureReminderMessage(channel, key, embed, components) {
 }
 
 async function _doUpdateReminderMessages(channel, warData) {
-  const { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds } = warData
+  const { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds, currentRaid } = warData
 
-  const [embedDR1, embedDR2] = await Promise.all([
+  const [embedDR1, embedDR2, embedRaid] = await Promise.all([
     buildReminderDR(wars.dr1, '🏰 DR1', dr1IsLdc, dr1LdcBetweenRounds),
     buildReminderDR(wars.dr2, '🏰 DR2', dr2IsLdc, dr2LdcBetweenRounds),
+    buildReminderRaid(currentRaid),
   ])
 
   const makeRow = (customId) => [
@@ -320,6 +350,7 @@ async function _doUpdateReminderMessages(channel, warData) {
 
   await ensureReminderMessage(channel, 'reminder_dr1_msg', embedDR1, makeRow('refresh_reminder_dr1'))
   await ensureReminderMessage(channel, 'reminder_dr2_msg', embedDR2, makeRow('refresh_reminder_dr2'))
+  await ensureReminderMessage(channel, 'reminder_raid_msg', embedRaid, makeRow('refresh_reminder_raid'))
 }
 
 async function updateReminderMessages(client) {
@@ -408,7 +439,16 @@ async function checkWarReminders(channel, { wars, dr1IsLdc, dr2IsLdc, currentRai
     if (utcPlus2.getUTCDay() === 0 && utcPlus2.getUTCHours() >= 12 && utcPlus2.getUTCHours() < 13) {
       const key = `raid_${currentRaid.startTime || 'current'}`
       if (!sentRaidReminders.has(key)) {
-        const noAttack = (currentRaid.members || []).filter(m => (m.attacks ?? 0) === 0)
+        let allMembers = []
+        try {
+          const [membersDR1, membersDR2] = await Promise.all([
+            apiGet('/clan/dr1/members'),
+            apiGet('/clan/dr2/members'),
+          ])
+          allMembers = [...(membersDR1?.items || []), ...(membersDR2?.items || [])]
+        } catch {}
+        const raidMap  = new Map((currentRaid.members || []).map(m => [m.tag, m]))
+        const noAttack = allMembers.filter(m => !raidMap.has(m.tag))
         if (noAttack.length > 0) {
           const discordMap = await getDiscordIds(noAttack.map(m => m.tag))
           await sendReminder(channel, noAttack, discordMap, '🏰 Rappel Raid du Capital')
@@ -434,9 +474,6 @@ async function checkAndUpdate(client) {
 // ─── Point d'entrée ───────────────────────────────────────────────────────────
 
 function startScheduler(client) {
-  reminderMsgCache['reminder_raid_msg'] = null
-  supabase.from('bot_config').delete().eq('key', 'reminder_raid_msg').then(() => {}).catch(() => {})
-
   const run = async () => {
     try { await checkAndUpdate(client) }
     catch (e) { console.error('[Scheduler] Erreur:', e) }
@@ -451,7 +488,7 @@ async function forceRefresh(client) {
 }
 
 async function resetStatus() {
-  for (const key of ['reminder_dr1_msg', 'reminder_dr2_msg']) {
+  for (const key of ['reminder_dr1_msg', 'reminder_dr2_msg', 'reminder_raid_msg']) {
     reminderMsgCache[key] = null
     await supabase.from('bot_config').delete().eq('key', key)
   }

@@ -26,12 +26,13 @@ module.exports = {
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
+    await interaction.deferReply({ ephemeral: true })
+
     if (!await isAdmin(interaction.member)) {
-      return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+      return interaction.editReply({ content: '❌ Accès refusé.' })
     }
 
     const { channelId, channel, client } = interaction
-    await interaction.deferReply({ ephemeral: true })
 
     try {
       if (channelId === ACCOUNT_CHANNEL_ID) {

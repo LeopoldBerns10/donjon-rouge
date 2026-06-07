@@ -132,18 +132,33 @@ function buildRaidEmbed(raid) {
       .setTimestamp()
   }
 
-  const attacksUsed = (raid.members || []).reduce((acc, m) => acc + (m.attacks ?? 0), 0)
-  const noAttack    = (raid.members || []).filter(m => (m.attacks ?? 0) === 0)
-  const noAttackValue = noAttack.length > 0
-    ? noAttack.map(m => m.name || m.tag).join('\n').slice(0, 1024)
-    : 'Tous les membres ont attaqué ! 🎉'
+  const fmt    = n => String(Math.round(n ?? 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  const medals = ['🥇', '🥈', '🥉']
+
+  const sorted = [...(raid.members || [])].sort((a, b) =>
+    (b.capitalResourcesLooted ?? 0) - (a.capitalResourcesLooted ?? 0)
+  )
+
+  const lines = sorted.map((m, i) => {
+    const medal = medals[i] || '▫️'
+    const loot  = fmt(m.capitalResourcesLooted ?? 0)
+    const atks  = m.attacks ?? 0
+    const limit = m.attackLimit ?? 5
+    return `${medal} ${m.name} — ${loot} or | ${atks}/${limit} att.`
+  })
+
+  const totalAttacks   = raid.totalAttacks   ?? sorted.reduce((acc, m) => acc + (m.attacks ?? 0), 0)
+  const totalLoot      = raid.capitalTotalLoot ?? sorted.reduce((acc, m) => acc + (m.capitalResourcesLooted ?? 0), 0)
+  const raidsCompleted = raid.raidsCompleted ?? 0
+
+  const statsValue = `⚔️ ${totalAttacks} attaques | 💰 ${fmt(totalLoot)} or | 🏰 ${raidsCompleted} raids complétés`
 
   return new EmbedBuilder()
     .setColor(0x7B2FBE)
     .setTitle('💎 Raid Capital — Donjon Rouge')
     .addFields(
-      { name: '⚔️ Attaques',             value: `${attacksUsed} utilisées`, inline: true },
-      { name: '😴 Membres sans attaque', value: noAttackValue,               inline: false }
+      { name: `💎 Participants (${sorted.length})`, value: lines.join('\n').slice(0, 1024) || '—', inline: false },
+      { name: '📊 Stats globales',                  value: statsValue,                             inline: false },
     )
     .setTimestamp()
 }

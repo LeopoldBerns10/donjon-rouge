@@ -1,9 +1,16 @@
-Dans bot/src/scheduler.js, ligne ~438, corriger la suppression de reminder_raid_msg :
-Remplacer :
-jssupabase.from('bot_config').delete().eq('key', 'reminder_raid_msg').catch(...)
-Par :
-jssupabase.from('bot_config').delete().eq('key', 'reminder_raid_msg').then(() => {}).catch(() => {})
-Ou plus propre :
-jstry {
-  await supabase.from('bot_config').delete().eq('key', 'reminder_raid_msg')
-} catch {}
+Dans bot/src/scheduler.js et bot/src/warMessages.js, deux modifications :
+1. #rappel-des-guerriers — message raid — remettre le message raid dans updateReminderMessages() avec buildReminderRaid() qui affiche uniquement les membres sans attaque :
+
+Stocker dans bot_config "reminder_raid_msg"
+Si tous ont attaqué : "✅ Tous les membres ont attaqué !"
+Sinon : liste des ❌ membres avec 0 attaque et ⚡ membres avec attaques incomplètes
+Avec @mention si lié dans discord_links
+Bouton "🔄 Actualiser"
+
+2. #info-raids (RAID_CHANNEL 1511988581135159376) — modifier buildRaidEmbed() pour afficher uniquement les membres qui ONT attaqué :
+
+Triés par capitalResourcesLooted décroissant
+Format : "🥇 Pogeiwa — 32 180 or | 6/5 att."
+Champ "💎 Participants (X)" avec la liste
+Champ stats globales : total attaques utilisées, total or looté, raids complétés
+Si pas de raid actif : "😴 Prochain raid vendredi — DR1 uniquement"

@@ -714,12 +714,13 @@ module.exports = {
         }
       } catch (err) {
         console.error(`[Button] ${interaction.customId}:`, err)
-        const payload = { content: 'Une erreur est survenue.', ephemeral: true }
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(payload)
-        } else {
-          await interaction.reply(payload)
-        }
+        try {
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: 'Une erreur est survenue.' })
+          } else {
+            await interaction.reply({ content: 'Une erreur est survenue.', ephemeral: true })
+          }
+        } catch {}
       }
       return
     }
@@ -806,12 +807,13 @@ module.exports = {
       await command.execute(interaction)
     } catch (err) {
       console.error(`Erreur commande /${interaction.commandName}:`, err)
-      const payload = { content: 'Une erreur est survenue.', ephemeral: true }
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(payload)
-      } else {
-        await interaction.reply(payload)
-      }
+      try {
+        if (interaction.deferred || interaction.replied) {
+          await interaction.editReply({ content: 'Une erreur est survenue.' })
+        } else {
+          await interaction.reply({ content: 'Une erreur est survenue.', ephemeral: true })
+        }
+      } catch {}
     }
   }
 }
