@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js')
 const supabase = require('./supabase.js')
 const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('./config/warChannels.js')
+const { getClanInfo, getClanMembers, getClanMembersDR2 } = require('./cocApi.js')
 
 const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -123,43 +124,84 @@ function buildNoWarEmbed(message = null) {
     .setTimestamp()
 }
 
-function buildRaidEmbed(raid) {
-  if (!raid) {
-    return new EmbedBuilder()
+async function buildRaidEmbed(raid) {
+  const fmt    = n => String(Math.round(n ?? 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+  const medals = ['🥇', '🥈', '🥉']
+
+  let badgeUrl = null
+  let allMembers = []
+  try {
+    const [clanInfo, resDR1, resDR2] = await Promise.all([
+      getClanInfo().catch(() => null),
+      getClanMembers().catch(() => null),
+      getClanMembersDR2().catch(() => null),
+    ])
+    badgeUrl   = clanInfo?.badgeUrls?.large ?? clanInfo?.badgeUrls?.medium ?? null
+    allMembers = [...(resDR1?.items ?? resDR1 ?? []), ...(resDR2?.items ?? resDR2 ?? [])]
+  } catch {}
+
+  const baseEmbed = () => {
+    const e = new EmbedBuilder()
       .setColor(0x7B2FBE)
       .setTitle('💎 Raid Capital — Donjon Rouge')
+    if (badgeUrl) e.setThumbnail(badgeUrl)
+    return e
+  }
+
+  if (!raid) {
+    return baseEmbed()
       .setDescription('😴 Prochain raid vendredi — DR1 uniquement')
       .setTimestamp()
   }
 
-  const fmt    = n => String(Math.round(n ?? 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-  const medals = ['🥇', '🥈', '🥉']
+  const raidMembers = raid.members || []
+  const raidTags    = new Set(raidMembers.map(m => m.tag))
 
-  const sorted = [...(raid.members || [])].sort((a, b) =>
+  const sorted = [...raidMembers].sort((a, b) =>
     (b.capitalResourcesLooted ?? 0) - (a.capitalResourcesLooted ?? 0)
   )
 
-  const lines = sorted.map((m, i) => {
-    const medal = medals[i] || '▫️'
+  const participantLines = sorted.map((m, i) => {
+    const medal = medals[i] || '▪️'
     const loot  = fmt(m.capitalResourcesLooted ?? 0)
     const atks  = m.attacks ?? 0
     const limit = m.attackLimit ?? 5
     return `${medal} ${m.name} — ${loot} or | ${atks}/${limit} att.`
   })
 
-  const totalAttacks   = raid.totalAttacks   ?? sorted.reduce((acc, m) => acc + (m.attacks ?? 0), 0)
+  const noAttackLines = allMembers
+    .filter(m => !raidTags.has(m.tag))
+    .map(m => `❌ ${m.name} — 0/5 att.`)
+
+  const totalAttacks   = raid.totalAttacks     ?? sorted.reduce((acc, m) => acc + (m.attacks ?? 0), 0)
   const totalLoot      = raid.capitalTotalLoot ?? sorted.reduce((acc, m) => acc + (m.capitalResourcesLooted ?? 0), 0)
   const raidsCompleted = raid.raidsCompleted ?? 0
+  const statsValue     = `⚔️ ${totalAttacks} attaques | 💰 ${fmt(totalLoot)} or | 🏰 ${raidsCompleted} raids complétés`
 
-  const statsValue = `⚔️ ${totalAttacks} attaques | 💰 ${fmt(totalLoot)} or | 🏰 ${raidsCompleted} raids complétés`
+  const fields = []
+  const pushChunked = (lines, baseName) => {
+    if (!lines.length) {
+      fields.push({ name: baseName, value: '—', inline: false })
+      return
+    }
+    for (let i = 0; i < lines.length; i += 20) {
+      const name = i === 0 ? baseName : `${baseName} (suite)`
+      fields.push({ name, value: lines.slice(i, i + 20).join('\n').slice(0, 1024), inline: false })
+    }
+  }
 
-  return new EmbedBuilder()
-    .setColor(0x7B2FBE)
-    .setTitle('💎 Raid Capital — Donjon Rouge')
-    .addFields(
-      { name: `💎 Participants (${sorted.length})`, value: lines.join('\n').slice(0, 1024) || '—', inline: false },
-      { name: '📊 Stats globales',                  value: statsValue,                             inline: false },
-    )
+  pushChunked(participantLines, '🏆 Classement participants')
+  pushChunked(noAttackLines, '❌ Sans attaque')
+  fields.push({ name: '📊 Stats globales', value: statsValue, inline: false })
+
+  const startTime = parseWarTime(raid.startTime) || (raid.startTime ? new Date(raid.startTime) : null)
+  const dateStr = startTime && !isNaN(startTime)
+    ? `${String(startTime.getDate()).padStart(2, '0')}/${String(startTime.getMonth() + 1).padStart(2, '0')}/${startTime.getFullYear()}`
+    : '?'
+
+  return baseEmbed()
+    .addFields(...fields)
+    .setFooter({ text: `Semaine du ${dateStr}` })
     .setTimestamp()
 }
 
@@ -396,7 +438,8 @@ async function updateWarChannels(client) {
       }
     } catch {}
 
-    await getOrCreateWarMessage(raidChannel, 'raid_msg', { embeds: [buildRaidEmbed(currentRaid)] })
+    const raidEmbed = await buildRaidEmbed(currentRaid)
+    await getOrCreateWarMessage(raidChannel, 'raid_msg', { embeds: [raidEmbed] })
   } catch (e) {
     console.error('[WarChannels] Erreur raid:', e)
   }
