@@ -9,7 +9,9 @@
     "setup-lie-role": "node src/scripts/setupLieRole.js",
     "migrate-members": "node src/scripts/migrateExistingMembers.js",
     "setup-voice": "node src/scripts/setupVoice.js",
-    "upload-emojis": "node src/scripts/uploadEmojis.js"
+    "upload-emojis": "node src/scripts/uploadEmojis.js",
+    "setup-hdv-roles": "node src/scripts/setupHdvRoles.js",
+    "migrate-hdv": "node src/scripts/migrateHdvRoles.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",

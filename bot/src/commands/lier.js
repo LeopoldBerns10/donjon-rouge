@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require('discord.js')
 const { getPlayer } = require('../cocApi.js')
 const supabase = require('../supabase.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
+const { assignHdvRole } = require('../utils/assignHdvRole.js')
 const { ROLES } = require('../config/onboarding.js')
 
 module.exports = {
@@ -55,6 +56,12 @@ module.exports = {
       if (isPrimary && interaction.member && player.leagueTier?.name) {
         assignLeagueRole(interaction.member, player.leagueTier.name).catch(err => {
           console.error('Erreur assignation rôle ligue:', err)
+        })
+      }
+
+      if (isPrimary && interaction.member) {
+        assignHdvRole(interaction.member, player.townHallLevel).catch(err => {
+          console.error('Erreur assignation rôle HDV:', err)
         })
       }
 

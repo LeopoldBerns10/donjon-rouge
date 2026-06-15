@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const supabase = require('../supabase.js')
 const { getPlayer } = require('../cocApi.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
+const { assignHdvRole } = require('../utils/assignHdvRole.js')
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -42,6 +43,7 @@ module.exports = {
 
         const player = await getPlayer(link.coc_tag)
         await assignLeagueRole(member, player.leagueTier?.name ?? null)
+        await assignHdvRole(member, player.townHallLevel)
         updated++
       } catch (err) {
         console.error(`Erreur /refreshleagues pour ${link.coc_name} (${link.coc_tag}):`, err.message)

@@ -8,6 +8,7 @@ const {
 const supabase = require('../supabase.js')
 const { getPlayer } = require('../cocApi.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
+const { assignHdvRole } = require('../utils/assignHdvRole.js')
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -94,6 +95,7 @@ module.exports = {
           console.log('[Principal] leagueTier complet:', JSON.stringify(player?.leagueTier))
           console.log('[Principal] leagueTier.name:', player?.leagueTier?.name)
           await assignLeagueRole(interaction.member, player?.leagueTier?.name)
+          await assignHdvRole(interaction.member, player?.townHallLevel)
           console.log('[Principal] Rôle assigné avec succès')
         } catch (err) {
           console.error('Erreur mise à jour rôle ligue /principal:', err)
