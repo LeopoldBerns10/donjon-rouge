@@ -436,7 +436,7 @@ async function handleRoleDonjonRouge(interaction) {
   await member.roles.remove(ROLES.VERIFIE).catch(() => {})
   await member.roles.add(ROLES.DONJON_ROUGE)
   await interaction.editReply({ content: '🏆 Bienvenue guerrier ! Tu as accès au serveur Donjon Rouge.' })
-  sendWelcomeMessage(member, 'donjon_rouge').catch(err => console.error('[welcome] donjon_rouge:', err))
+  sendWelcomeMessage(member).catch(err => console.error('[welcome] donjon_rouge:', err))
 }
 
 async function handleRoleVisiteur(interaction) {
@@ -445,7 +445,7 @@ async function handleRoleVisiteur(interaction) {
   await member.roles.remove(ROLES.VERIFIE).catch(() => {})
   await member.roles.add(ROLES.VISITEUR)
   await interaction.editReply({ content: '👋 Bienvenue visiteur !' })
-  sendWelcomeMessage(member, 'visiteur').catch(err => console.error('[welcome] visiteur:', err))
+  sendWelcomeMessage(member).catch(err => console.error('[welcome] visiteur:', err))
 }
 
 async function handleRoleRien(interaction) {

@@ -1,29 +1,22 @@
 const { EmbedBuilder } = require('discord.js')
 const {
   HALL_CHANNEL_ID,
-  FLOOD_PRIVE_ID,
   FLOOD_PUBLIC_ID,
-  REGLEMENT_ID,
   TICKETS_ID,
-  GUIDE_ID,
-  SITE_URL,
+  CONTACT_ROLE_ID,
 } = require('./config/welcome.js')
 
-async function sendWelcomeMessage(member, roleType) {
+async function sendWelcomeMessage(member) {
   const channel = await member.client.channels.fetch(HALL_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
   const createdAt = member.user.createdAt
-  const createdStr = createdAt.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
-
-  const floodChannel = roleType === 'donjon_rouge' ? `<#${FLOOD_PRIVE_ID}>` : `<#${FLOOD_PUBLIC_ID}>`
+  const createdStr = createdAt.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
   const fieldValue = [
-    `📜 Règlement à lire et valider => <#${REGLEMENT_ID}>`,
-    `👋 Présente toi => ${floodChannel}`,
+    `👋 Annonce toi => <#${FLOOD_PUBLIC_ID}>`,
+    `⚔️ Contact le <@&${CONTACT_ROLE_ID}> pour rejoindre le jeu`,
     `❓ Besoin d'autre chose => <#${TICKETS_ID}>`,
-    `📖 Guide Discord => <#${GUIDE_ID}>`,
-    `🌐 Notre site : ${SITE_URL}`,
   ].join('\n')
 
   const embed = new EmbedBuilder()
@@ -31,7 +24,11 @@ async function sendWelcomeMessage(member, roleType) {
     .setTitle('🎉 Ho ! Un nouveau membre !')
     .setDescription(`🎊 Bienvenue ${member} sur le Discord du Donjon Rouge ! 🎊`)
     .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
-    .addFields({ name: '⚠️ SUIVRE LES INDICATIONS ⚠️', value: fieldValue })
+    .addFields(
+      { name: '⚠️ SUIVRE LES INDICATIONS ⚠️', value: fieldValue },
+      { name: '​', value: '​' },
+      { name: '​', value: '📖 Lis bien le fonctionnement avant STP.' },
+    )
     .setFooter({ text: `Compte Discord créé le ${createdStr} • Merci & Bonne visite.` })
 
   await channel.send({ content: '@everyone', embeds: [embed] })

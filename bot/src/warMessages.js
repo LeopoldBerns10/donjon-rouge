@@ -120,7 +120,7 @@ function buildNoWarEmbed(message = null) {
   return new EmbedBuilder()
     .setColor(0x555555)
     .setTitle('😴 Aucune guerre en cours')
-    .setDescription(message || 'Prochain lancement sur inscription — commande /proposer-guerre à venir !')
+    .setDescription(message || 'Les guerriers sont au repos.\nPour demander une guerre, rendez-vous sur le site du clan ou contactez <@610765755553939456>.')
     .setTimestamp()
 }
 
@@ -324,6 +324,29 @@ async function getOrCreateWarMessage(channel, key, payload) {
   return msg
 }
 
+async function deleteWarMessage(channel, key) {
+  let msgId = msgIds[key]
+
+  if (!msgId) {
+    const { data } = await supabase
+      .from('bot_config')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle()
+    msgId = data?.value || null
+  }
+
+  if (!msgId) return
+
+  try {
+    const msg = await channel.messages.fetch(msgId)
+    await msg.delete()
+  } catch {}
+
+  msgIds[key] = null
+  await supabase.from('bot_config').delete().eq('key', key)
+}
+
 // ─── Récupération de la guerre pour un clan ───────────────────────────────────
 
 async function fetchWarForClan(clanKey) {
@@ -380,40 +403,31 @@ async function updateWarChannels(client) {
       if (!channel) continue
 
       const { war, context } = await fetchWarForClan(clanKey)
-      const ourTag = clanKey === 'dr1' ? DR1_TAG : DR2_TAG
 
-      if (context.cwlData) {
-        // ── Mode LDC : 3 messages ──
-        const recapEmbed = buildLdcRecapEmbed(context.cwlData, ourTag)
-
-        let activeEmbed, prepEmbed
-        if (war?.state === 'inWar') {
-          activeEmbed = buildWarActiveEmbed(war, context)
-          prepEmbed   = context.nextPrepWar ? buildWarPrepEmbed(context.nextPrepWar) : buildNoWarEmbed()
-        } else if (war?.state === 'preparation') {
-          activeEmbed = buildNoWarEmbed('⏳ Première guerre à venir')
-          prepEmbed   = buildWarPrepEmbed(war)
-        } else {
-          activeEmbed = buildNoWarEmbed()
-          prepEmbed   = buildNoWarEmbed()
-        }
-
-        await getOrCreateWarMessage(channel, msg1Key, { embeds: [recapEmbed] })
-        await getOrCreateWarMessage(channel, msg2Key, { embeds: [activeEmbed] })
-        await getOrCreateWarMessage(channel, msg3Key, { embeds: [prepEmbed] })
+      let embeds
+      if (war?.state === 'inWar' && context.nextPrepWar) {
+        // Guerre active + prochaine en préparation (LDC, 2 rounds) → 2 messages
+        embeds = [buildWarActiveEmbed(war, context), buildWarPrepEmbed(context.nextPrepWar)]
+      } else if (war?.state === 'inWar') {
+        // Guerre active uniquement → 1 message
+        embeds = [buildWarActiveEmbed(war, context)]
+      } else if (war?.state === 'preparation') {
+        // Préparation sans round suivant → 1 message
+        embeds = [buildWarPrepEmbed(war)]
       } else {
-        // ── Mode GDC : 2 messages ──
-        if (war?.state === 'inWar') {
-          await getOrCreateWarMessage(channel, msg1Key, { embeds: [buildWarActiveEmbed(war, context)] })
-          await getOrCreateWarMessage(channel, msg2Key, { embeds: [buildNoWarEmbed()] })
-        } else if (war?.state === 'preparation') {
-          await getOrCreateWarMessage(channel, msg1Key, { embeds: [buildNoWarEmbed('⏳ Première guerre demain')] })
-          await getOrCreateWarMessage(channel, msg2Key, { embeds: [buildWarPrepEmbed(war)] })
-        } else {
-          await getOrCreateWarMessage(channel, msg1Key, { embeds: [buildNoWarEmbed()] })
-          await getOrCreateWarMessage(channel, msg2Key, { embeds: [buildNoWarEmbed()] })
-        }
+        // Pas de guerre → 1 message
+        embeds = [buildNoWarEmbed()]
       }
+
+      await getOrCreateWarMessage(channel, msg1Key, { embeds: [embeds[0]] })
+
+      if (embeds.length === 2) {
+        await getOrCreateWarMessage(channel, msg2Key, { embeds: [embeds[1]] })
+      } else {
+        await deleteWarMessage(channel, msg2Key)
+      }
+
+      await deleteWarMessage(channel, msg3Key)
     } catch (e) {
       console.error(`[WarChannels] Erreur pour ${clanKey}:`, e)
     }

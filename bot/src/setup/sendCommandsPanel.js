@@ -48,6 +48,7 @@ async function sendCommandsPanel(client) {
           '`/refreshleagues` — Met à jour les rôles ligue',
           '`/refreshstatus` — Actualise le statut des combats',
           '`/refreshwar` — Actualise les salons de guerre',
+          '`/refreshraid` — Actualise le salon raid capital',
           '`/refreshrappel` — Actualise les rappels',
           '`/resetstatus` — Recrée le message de statut',
           '`/resetwar` — Recrée les messages de guerre',

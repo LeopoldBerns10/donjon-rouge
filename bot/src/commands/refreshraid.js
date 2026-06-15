@@ -1,18 +1,18 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const { isAdmin } = require('../lib/isAdmin.js')
-const { REMINDER_CHANNEL_ID } = require('../config/reminders.js')
-const { updateReminderMessages, resetStatus } = require('../scheduler.js')
+const { RAID_CHANNEL } = require('../config/warChannels.js')
+const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../warMessages.js')
 
 async function bulkDeleteAll(channel) {
   try { await channel.bulkDelete(100) } catch (e) {
-    console.warn(`[RefreshRappel] bulkDelete échoué sur ${channel.id}:`, e.message)
+    console.warn(`[RefreshRaid] bulkDelete échoué sur ${channel.id}:`, e.message)
   }
 }
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('refreshrappel')
-    .setDescription('Force un refresh des 3 messages de rappel (DR1, DR2, Raid Capital)')
+    .setName('refreshraid')
+    .setDescription('Force un refresh immédiat du salon raid capital')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
@@ -24,16 +24,18 @@ module.exports = {
     try {
       const { client } = interaction
 
-      const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
-      if (channel) await bulkDeleteAll(channel)
+      const raidChannel = await client.channels.fetch(RAID_CHANNEL).catch(() => null)
+      if (raidChannel) await bulkDeleteAll(raidChannel)
 
-      await resetStatus()
-      await updateReminderMessages(client)
+      await resetWarKeys(['raid_msg'])
 
-      await interaction.editReply('✅ Rappels réinitialisés')
+      activateWarChannels()
+      await updateWarChannels(client)
+
+      await interaction.editReply('✅ Salon raid réinitialisé')
     } catch (e) {
-      console.error('Erreur /refreshrappel:', e)
+      console.error('Erreur /refreshraid:', e)
       await interaction.editReply('❌ Erreur lors du refresh.')
     }
-  },
+  }
 }

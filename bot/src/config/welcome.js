@@ -6,5 +6,6 @@ module.exports = {
   REGLEMENT_ID:       '768557389154615307',
   TICKETS_ID:         '1446604754045239417',
   GUIDE_ID:           '1467827307803574412',
+  CONTACT_ROLE_ID:    '1515999879670009877',
   SITE_URL:           'https://donjon-rouge.onrender.com/',
 }

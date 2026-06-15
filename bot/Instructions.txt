@@ -1,16 +1,19 @@
-Dans bot/src/scheduler.js et bot/src/warMessages.js, deux modifications :
-1. #rappel-des-guerriers — message raid — remettre le message raid dans updateReminderMessages() avec buildReminderRaid() qui affiche uniquement les membres sans attaque :
+Dans bot/src/welcome.js, modifier sendWelcomeMessage() pour tous les types de rôles (donjon_rouge, visiteur) :
+Nouveau contenu de l'embed :
 
-Stocker dans bot_config "reminder_raid_msg"
-Si tous ont attaqué : "✅ Tous les membres ont attaqué !"
-Sinon : liste des ❌ membres avec 0 attaque et ⚡ membres avec attaques incomplètes
-Avec @mention si lié dans discord_links
-Bouton "🔄 Actualiser"
+Couleur #8B0000
+Titre : "🎉 Ho ! Un nouveau membre !"
+Description : "🎊 Bienvenue [mention membre] sur le Discord du Donjon Rouge ! 🎊"
+Thumbnail : avatar du membre
+Champ "⚠️ SUIVRE LES INDICATIONS ⚠️" :
 
-2. #info-raids (RAID_CHANNEL 1511988581135159376) — modifier buildRaidEmbed() pour afficher uniquement les membres qui ONT attaqué :
+👋 Annonce toi => <#1503680775462064168>
+⚔️ Contact le <@&1515990355663913040> pour rejoindre le jeu
+❓ Besoin d'autre chose => <#1446604754045239417>
 
-Triés par capitalResourcesLooted décroissant
-Format : "🥇 Pogeiwa — 32 180 or | 6/5 att."
-Champ "💎 Participants (X)" avec la liste
-Champ stats globales : total attaques utilisées, total or looté, raids complétés
-Si pas de raid actif : "😴 Prochain raid vendredi — DR1 uniquement"
+Champ vide séparateur
+Description bas : "📖 Lis bien le fonctionnement avant STP."
+Footer : "Compte Discord créé le [date création compte DD/MM/YYYY] • Merci & Bonne visite."
+Ping @everyone dans le message (pas dans l'embed)
+Thumbnail : avatar du membre via member.user.displayAvatarURL()
+Supprimer la distinction donjon_rouge vs visiteur — même message pour tout le monde
