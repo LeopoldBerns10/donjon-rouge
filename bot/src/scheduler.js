@@ -2,6 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('
 const supabase = require('./supabase.js')
 const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
 const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
+const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
 
 const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -60,6 +61,7 @@ async function fetchWarData() {
 
   let dr1IsLdc = false
   let dr1LdcBetweenRounds = false
+  let dr1Cwl = null
   const dr1Inactive = !wars.dr1 || wars.dr1.state === 'notInWar' || wars.dr1.state === 'warEnded'
   if (dr1Inactive) {
     try {
@@ -73,6 +75,7 @@ async function fetchWarData() {
         if (activeRound?.war) {
           wars.dr1 = normalizeWar(activeRound.war, DR1_TAG)
           dr1IsLdc = true
+          dr1Cwl = ldc
           if (activeRound.war.state === 'warEnded') dr1LdcBetweenRounds = true
         }
       }
@@ -81,6 +84,7 @@ async function fetchWarData() {
 
   let dr2IsLdc = false
   let dr2LdcBetweenRounds = false
+  let dr2Cwl = null
   const dr2Inactive = !wars.dr2 || wars.dr2.state === 'notInWar' || wars.dr2.state === 'warEnded'
   if (dr2Inactive) {
     try {
@@ -94,6 +98,7 @@ async function fetchWarData() {
         if (activeRound2?.war) {
           wars.dr2 = normalizeWar(activeRound2.war, DR2_TAG)
           dr2IsLdc = true
+          dr2Cwl = ldc2
           if (activeRound2.war.state === 'warEnded') dr2LdcBetweenRounds = true
         }
       }
@@ -114,7 +119,7 @@ async function fetchWarData() {
     }
   } catch {}
 
-  return { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds, currentRaid }
+  return { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds, dr1Cwl, dr2Cwl, currentRaid }
 }
 
 // ─── Embeds des messages persistants ─────────────────────────────────────────
@@ -459,6 +464,41 @@ async function checkWarReminders(channel, { wars, dr1IsLdc, dr2IsLdc, currentRai
   }
 }
 
+// ─── Exploits (récaps de fins de guerre/raid) ─────────────────────────────────
+
+async function checkExploits(client, warData) {
+  const { wars, dr1IsLdc, dr2IsLdc, dr1Cwl, dr2Cwl } = warData
+
+  const configs = [
+    { clanKey: 'dr1', clanLabel: '🏰 DR1', ourTag: DR1_TAG, isLdc: dr1IsLdc, cwl: dr1Cwl },
+    { clanKey: 'dr2', clanLabel: '🏰 DR2', ourTag: DR2_TAG, isLdc: dr2IsLdc, cwl: dr2Cwl },
+  ]
+
+  for (const { clanKey, clanLabel, ourTag, isLdc, cwl } of configs) {
+    const war = wars[clanKey]
+    if (!war || war.state !== 'warEnded') continue
+
+    if (isLdc && cwl?.season) {
+      await postExploit(client, buildLdcRecapMessage(cwl, ourTag), `exploit_ldc_${cwl.season}`)
+    } else if (war.endTime) {
+      await postExploit(client, buildGdcRecapMessage(war, clanLabel), `exploit_war_${war.endTime}`)
+    }
+  }
+
+  try {
+    const raidData = await apiGet('/clan/raids')
+    const latest = raidData?.items?.[0] || null
+    if (latest?.state === 'ended' && latest?.endTime) {
+      const [membersDR1, membersDR2] = await Promise.all([
+        apiGet('/clan/dr1/members').catch(() => null),
+        apiGet('/clan/dr2/members').catch(() => null),
+      ])
+      const clanMembers = [...(membersDR1?.items || []), ...(membersDR2?.items || [])]
+      await postExploit(client, buildRaidRecapMessage(latest, clanMembers), `exploit_raid_${latest.endTime}`)
+    }
+  } catch {}
+}
+
 // ─── Boucle principale ────────────────────────────────────────────────────────
 
 async function checkAndUpdate(client) {
@@ -467,8 +507,48 @@ async function checkAndUpdate(client) {
 
   const warData = await fetchWarData()
   await _doUpdateReminderMessages(channel, warData)
+  await checkExploits(client, warData).catch(e => console.error('[Scheduler] Exploits:', e))
   await checkWarReminders(channel, warData)
   await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))
+}
+
+// ─── Nettoyage des messages orphelins au démarrage ────────────────────────────
+
+async function cleanupReminderChannel(client) {
+  const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
+  if (!channel) return
+
+  const keys = ['reminder_dr1_msg', 'reminder_dr2_msg', 'reminder_raid_msg']
+  const validIds = new Set()
+
+  for (const key of keys) {
+    const { data } = await supabase.from('bot_config').select('value').eq('key', key).maybeSingle()
+    if (!data?.value) continue
+
+    try {
+      const msg = await channel.messages.fetch(data.value)
+      validIds.add(msg.id)
+      reminderMsgCache[key] = msg.id
+    } catch {
+      reminderMsgCache[key] = null
+      await supabase.from('bot_config').delete().eq('key', key)
+    }
+  }
+
+  try {
+    const messages = await channel.messages.fetch({ limit: 100 })
+    const orphans = messages.filter(m => !validIds.has(m.id))
+    if (orphans.size > 0) {
+      await channel.bulkDelete(orphans, true).catch(async () => {
+        for (const msg of orphans.values()) {
+          await msg.delete().catch(() => {})
+        }
+      })
+      console.log(`[Scheduler] Nettoyage : ${orphans.size} message(s) orphelin(s) supprimé(s)`)
+    }
+  } catch (e) {
+    console.error('[Scheduler] cleanupReminderChannel:', e)
+  }
 }
 
 // ─── Point d'entrée ───────────────────────────────────────────────────────────
@@ -478,7 +558,9 @@ function startScheduler(client) {
     try { await checkAndUpdate(client) }
     catch (e) { console.error('[Scheduler] Erreur:', e) }
   }
-  run()
+  cleanupReminderChannel(client)
+    .catch(e => console.error('[Scheduler] cleanupReminderChannel:', e))
+    .finally(run)
   setInterval(run, 60 * 60 * 1000)
   console.log('[Scheduler] Démarré — vérification toutes les heures')
 }

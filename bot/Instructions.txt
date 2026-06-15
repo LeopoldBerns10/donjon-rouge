@@ -1,19 +1,11 @@
-Dans bot/src/welcome.js, modifier sendWelcomeMessage() pour tous les types de rôles (donjon_rouge, visiteur) :
-Nouveau contenu de l'embed :
+Dans bot/src/scheduler.js, dans updateReminderMessages(), avant de créer les nouveaux messages, vérifier si les IDs existants dans le cache/Supabase pointent vers des messages Discord valides :
+Si un message existe déjà (ID trouvé) → l'éditer comme avant
 
-Couleur #8B0000
-Titre : "🎉 Ho ! Un nouveau membre !"
-Description : "🎊 Bienvenue [mention membre] sur le Discord du Donjon Rouge ! 🎊"
-Thumbnail : avatar du membre
-Champ "⚠️ SUIVRE LES INDICATIONS ⚠️" :
+Si un message n'existe pas (ID absent ou message Discord introuvable/supprimé) → créer un nouveau
+Le problème actuel : au redémarrage, les anciens messages restent et de nouveaux sont créés en plus.
+Fix : au démarrage du scheduler dans startScheduler(), faire un nettoyage du salon REMINDER_CHANNEL_ID :
 
-👋 Annonce toi => <#1503680775462064168>
-⚔️ Contact le <@&1515990355663913040> pour rejoindre le jeu
-❓ Besoin d'autre chose => <#1446604754045239417>
-
-Champ vide séparateur
-Description bas : "📖 Lis bien le fonctionnement avant STP."
-Footer : "Compte Discord créé le [date création compte DD/MM/YYYY] • Merci & Bonne visite."
-Ping @everyone dans le message (pas dans l'embed)
-Thumbnail : avatar du membre via member.user.displayAvatarURL()
-Supprimer la distinction donjon_rouge vs visiteur — même message pour tout le monde
+Fetch les IDs reminder_dr1_msg, reminder_dr2_msg, reminder_raid_msg depuis Supabase
+Pour chaque ID, vérifier si le message Discord existe encore
+Supprimer physiquement tous les messages du salon qui ne correspondent PAS à ces IDs (les orphelins)
+Comme ça au redémarrage, les vieux messages sans ID Supabase sont nettoyés automatiquement

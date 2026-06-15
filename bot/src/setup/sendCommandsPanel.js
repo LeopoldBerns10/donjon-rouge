@@ -50,6 +50,7 @@ async function sendCommandsPanel(client) {
           '`/refreshwar` — Actualise les salons de guerre',
           '`/refreshraid` — Actualise le salon raid capital',
           '`/refreshrappel` — Actualise les rappels',
+          '`/refreshexploits` — Republie les derniers récaps (LDC/GDC/Raid)',
           '`/resetstatus` — Recrée le message de statut',
           '`/resetwar` — Recrée les messages de guerre',
           '`/reset` — Recrée le message du salon actuel',
