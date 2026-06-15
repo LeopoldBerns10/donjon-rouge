@@ -4,7 +4,7 @@ const {
 } = require('discord.js')
 const supabase = require('../supabase.js')
 const { AUTHORIZED_USERS } = require('../config/messaging.js')
-const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons } = require('../cocApi.js')
+const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
 
 const BASE    = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -44,12 +44,19 @@ async function fetchWarMembersNoAttack() {
     }
   }
 
+  // Même priorité que checkWarReminders()/fetchWarData() : un round LDC "inWar"
+  // prime sur un round "preparation", et une GDC classique remplace la LDC
+  // si elle est elle-même inWar.
+  const findActiveRound = (ldc) =>
+    ldc?.rounds?.find(r => r.war?.state === 'inWar') ||
+    ldc?.rounds?.find(r => r.war?.state === 'preparation')
+
   // DR1
   try {
     let war = await getCurrentWar()
-    if (!war || war.state !== 'inWar') {
+    if (!war || war.state === 'notInWar' || war.state === 'warEnded') {
       const ldc = await getLdcCurrent()
-      const round = ldc?.rounds?.find(r => r.war != null)
+      const round = findActiveRound(ldc)
       if (round?.war) war = normalizeWar(round.war, DR1_TAG)
     }
     if (war?.state === 'inWar') addMembers(war)
@@ -59,9 +66,9 @@ async function fetchWarMembersNoAttack() {
   try {
     const res = await fetch(`${BASE}/api/coc/clan/dr2/war`)
     let war = res.ok ? await res.json() : null
-    if (!war || war.state !== 'inWar') {
+    if (!war || war.state === 'notInWar' || war.state === 'warEnded') {
       const ldc2 = await getLdcCurrentDR2()
-      const round2 = ldc2?.rounds?.find(r => r.war != null)
+      const round2 = findActiveRound(ldc2)
       if (round2?.war) war = normalizeWar(round2.war, DR2_TAG)
     }
     if (war?.state === 'inWar') addMembers(war)
@@ -79,9 +86,30 @@ async function fetchRaidMembersNoAttack() {
     const end   = latest.endTime ? new Date(latest.endTime) : null
     if (start.getTime() < Date.now() - 7 * 24 * 3600000) return []
     if (end && end.getTime() <= Date.now()) return []
-    return (latest.members || [])
-      .filter(m => (m.attacks ?? 0) === 0)
-      .map(m => ({ name: m.name, tag: m.tag }))
+
+    const [membersDR1, membersDR2] = await Promise.all([
+      getClanMembers().catch(() => null),
+      getClanMembersDR2().catch(() => null),
+    ])
+    const allMembers = [
+      ...(membersDR1?.items ?? membersDR1 ?? []),
+      ...(membersDR2?.items ?? membersDR2 ?? []),
+    ]
+
+    const raidMap = new Map((latest.members || []).map(m => [m.tag, m]))
+
+    const targets = []
+    const seen = new Set()
+    for (const m of allMembers) {
+      if (seen.has(m.tag)) continue
+      const raidMember = raidMap.get(m.tag)
+      const noAttack = !raidMember || (raidMember.attacks ?? 0) === 0
+      if (noAttack) {
+        seen.add(m.tag)
+        targets.push({ name: m.name, tag: m.tag })
+      }
+    }
+    return targets
   } catch {
     return []
   }
@@ -157,9 +185,11 @@ async function handleMsgRappelGuerreConfirm(interaction) {
   await interaction.deferUpdate()
   const pending = pendingRappels.get(interaction.user.id)
   if (!pending || pending.type !== 'guerre') {
-    return interaction.editReply({ content: '❌ Session expirée.', embeds: [], components: [] })
+    return interaction.followUp({ content: '❌ Session expirée, relance la commande.', ephemeral: true })
   }
   pendingRappels.delete(interaction.user.id)
+
+  await interaction.editReply({ components: [] })
 
   const dmEmbed = new EmbedBuilder()
     .setColor(0x8B0000)
@@ -170,9 +200,9 @@ async function handleMsgRappelGuerreConfirm(interaction) {
 
   const discordIds = pending.linked.map(t => pending.tagMap[t.tag])
   const { sent, failed } = await sendDMs(interaction.client, discordIds, dmEmbed)
-  await interaction.editReply({
+  await interaction.followUp({
     content: `✅ **${sent}** DM envoyés, **${failed}** échecs, **${pending.unlinked}** non liés ignorés.`,
-    embeds: [], components: [],
+    ephemeral: true,
   })
 }
 
@@ -204,9 +234,11 @@ async function handleMsgRappelRaidConfirm(interaction) {
   await interaction.deferUpdate()
   const pending = pendingRappels.get(interaction.user.id)
   if (!pending || pending.type !== 'raid') {
-    return interaction.editReply({ content: '❌ Session expirée.', embeds: [], components: [] })
+    return interaction.followUp({ content: '❌ Session expirée, relance la commande.', ephemeral: true })
   }
   pendingRappels.delete(interaction.user.id)
+
+  await interaction.editReply({ components: [] })
 
   const dmEmbed = new EmbedBuilder()
     .setColor(0x7B2FBE)
@@ -217,16 +249,17 @@ async function handleMsgRappelRaidConfirm(interaction) {
 
   const discordIds = pending.linked.map(t => pending.tagMap[t.tag])
   const { sent, failed } = await sendDMs(interaction.client, discordIds, dmEmbed)
-  await interaction.editReply({
+  await interaction.followUp({
     content: `✅ **${sent}** DM envoyés, **${failed}** échecs, **${pending.unlinked}** non liés ignorés.`,
-    embeds: [], components: [],
+    ephemeral: true,
   })
 }
 
 async function handleMsgRappelCancel(interaction) {
   await interaction.deferUpdate()
   pendingRappels.delete(interaction.user.id)
-  await interaction.editReply({ content: '❌ Envoi annulé.', embeds: [], components: [] })
+  await interaction.editReply({ embeds: [], components: [] })
+  await interaction.followUp({ content: '❌ Envoi annulé.', ephemeral: true })
 }
 
 // ─── Message personnalisé — Étape 1 : modal directe ─────────────────────────

@@ -1,11 +1,12 @@
-Dans bot/src/scheduler.js, dans updateReminderMessages(), avant de créer les nouveaux messages, vérifier si les IDs existants dans le cache/Supabase pointent vers des messages Discord valides :
-Si un message existe déjà (ID trouvé) → l'éditer comme avant
+Dans bot/src/lib/messagingHandlers.js, corriger handleMsgRappelGuerre() et handleMsgRappelRaid() :
+Le problème "session expirée" vient du fait que ces handlers stockent les données en mémoire (pendingRappels Map) avec un userId comme clé, mais si l'interaction expire ou que le bot redémarre, la session est perdue.
+Fix :
 
-Si un message n'existe pas (ID absent ou message Discord introuvable/supprimé) → créer un nouveau
-Le problème actuel : au redémarrage, les anciens messages restent et de nouveaux sont créés en plus.
-Fix : au démarrage du scheduler dans startScheduler(), faire un nettoyage du salon REMINDER_CHANNEL_ID :
+Ajouter deferReply({ ephemeral: true }) en tout premier dans chaque handler
+Dans handleMsgRappelGuerre() : fetch les guerriers sans attaque depuis fetchWarData() — utiliser la même logique que checkWarReminders() pour détecter LDC vs GDC
+Dans handleMsgRappelRaid() : fetch getRaidSeasons() + getClanMembers() + getClanMembersDR2() pour trouver les membres sans attaque raid
+Afficher le preview avec editReply() au lieu de reply()
+Les boutons confirmer/annuler utilisent followUp() éphémère
 
-Fetch les IDs reminder_dr1_msg, reminder_dr2_msg, reminder_raid_msg depuis Supabase
-Pour chaque ID, vérifier si le message Discord existe encore
-Supprimer physiquement tous les messages du salon qui ne correspondent PAS à ces IDs (les orphelins)
-Comme ça au redémarrage, les vieux messages sans ID Supabase sont nettoyés automatiquement
+Dans bot/src/setup/sendMessagingPanel.js, vérifier que les boutons "⚔️ Rappel Guerre" et "💎 Rappel Raid" ont bien les bons customIds correspondant aux handlers dans interactionCreate.js.
+Dans bot/src/commands/messaging/msg-rappel-raid.js, vérifier que la commande appelle bien handleMsgRappelRaid() et que le handler fonctionne correctement.
