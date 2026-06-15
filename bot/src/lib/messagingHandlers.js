@@ -3,7 +3,7 @@ const {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } = require('discord.js')
 const supabase = require('../supabase.js')
-const { AUTHORIZED_USERS, HALL_CHANNEL_ID, MESSAGING_CHANNEL_ID } = require('../config/messaging.js')
+const { AUTHORIZED_USERS, MESSAGING_CHANNEL_ID } = require('../config/messaging.js')
 const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
 
 const BASE    = process.env.BACKEND_URL
@@ -451,11 +451,21 @@ async function handleModalMsgGlobal(interaction) {
     .setFooter({ text: `Message de ${interaction.user.username} • Donjon Rouge` })
     .setTimestamp()
 
-  const channel = await interaction.client.channels.fetch(HALL_CHANNEL_ID).catch(() => null)
-  if (!channel) return interaction.editReply('❌ Salon introuvable.')
+  const { data } = await supabase.from('discord_links').select('discord_id, coc_name, is_primary')
 
-  await channel.send({ content: '@everyone', embeds: [embed] })
-  await interaction.editReply('✅ Message global envoyé !')
+  const byUser = new Map()
+  for (const row of data || []) {
+    if (!byUser.has(row.discord_id) || row.is_primary) byUser.set(row.discord_id, row)
+  }
+
+  const targets = [...byUser.values()].map(r => ({ discordId: r.discord_id, name: r.coc_name }))
+  const { sent, closedDm } = await sendDMs(interaction.client, targets, embed)
+
+  let summary = `✅ **${sent}** DM envoyés | ❌ **${closedDm.length}** DMs fermés`
+  if (closedDm.length) {
+    summary += ` : ${closedDm.join(', ')} — Contacter <@610765755553939456> si problème`
+  }
+  await interaction.editReply(summary.slice(0, 1900))
 }
 
 // ─── Accusé de réception / réponse aux DMs ───────────────────────────────────

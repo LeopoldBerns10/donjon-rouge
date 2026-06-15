@@ -1,28 +1,19 @@
-Dans bot/src/scripts/setupHdvRoles.js, créer un script one-shot qui crée 18 rôles HDV :
+Dans bot/src/lib/messagingHandlers.js, modifier handleMsgGlobal() et handleModalMsgGlobal() :
+Le message global doit envoyer un DM à TOUS les membres liés (discord_links), pas poster dans un salon.
+handleModalMsgGlobal(interaction) :
 
-"HDV 1" à "HDV 13" — couleur grise #607D8B (commun, low level)
-"HDV 14" — couleur verte #2E7D32
-"HDV 15" — couleur bleue #1565C0
-"HDV 16" — couleur violette #6A1B9A
-"HDV 17" — couleur orange #E65100
-"HDV 18" — couleur or #FFD700
+Fetch tous les discord_links (pas juste is_primary, tous les comptes uniques par discord_id)
+Pour chaque membre Discord, envoyer un DM avec embed :
 
-Sauvegarder les IDs dans bot/src/config/hdvRoles.json :
-json{ "1": "ID", ..., "18": "ID" }
-Ajouter dans package.json : "setup-hdv-roles": "node src/scripts/setupHdvRoles.js"
-Créer bot/src/utils/assignHdvRole.js :
-jsasync function assignHdvRole(member, townHallLevel) {
-  // Retire tous les anciens rôles HDV
-  // Attribue le rôle HDV correspondant au niveau
-}
-module.exports = { assignHdvRole }
-Dans bot/src/commands/lier.js — après assignLeagueRole(), appeler assignHdvRole()
-Dans bot/src/commands/principal.js — après changement de compte, appeler assignHdvRole() avec le HDV du nouveau compte principal
-Dans bot/src/commands/refreshleagues.js — appeler aussi assignHdvRole() pour chaque membre
-Créer bot/src/scripts/migrateHdvRoles.js — script one-shot qui :
+Couleur #8B0000
+Titre : sujet saisi
+Description : message saisi
+Footer : "Message de [admin pseudo] • Donjon Rouge"
+Bouton "✅ Message reçu" customId: "dm_ack:[userId]:1512087471373029508"
+Bouton "💬 Répondre" customId: "dm_reply:[userId]:1512087471373029508"
 
-Fetch tous les discord_links avec is_primary = true
-Pour chaque lien, fetch getPlayer(coc_tag)
-Appeler assignHdvRole(member, player.townHallLevel)
-Logger "✅ [pseudo] → HDV X"
-Ajouter dans package.json : "migrate-hdv": "node src/scripts/migrateHdvRoles.js"
+
+Si DMs fermés → logger dans la liste des échecs
+Accusé de réception dans Sauron : "✅ X DM envoyés | ❌ Y DMs fermés : [liste noms] — Contacter @610765755553939456 si problème"
+
+Supprimer l'envoi dans HALL_CHANNEL_ID — le message global va uniquement en DM.
