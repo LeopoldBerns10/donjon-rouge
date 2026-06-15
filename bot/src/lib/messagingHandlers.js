@@ -3,7 +3,7 @@ const {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } = require('discord.js')
 const supabase = require('../supabase.js')
-const { AUTHORIZED_USERS, HALL_CHANNEL_ID } = require('../config/messaging.js')
+const { AUTHORIZED_USERS, HALL_CHANNEL_ID, MESSAGING_CHANNEL_ID } = require('../config/messaging.js')
 const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
 
 const BASE    = process.env.BACKEND_URL
@@ -128,31 +128,48 @@ async function getDiscordIdsMap(tags) {
 
 // ─── Envoi DM ─────────────────────────────────────────────────────────────────
 
-async function sendDMs(client, discordIds, embed) {
-  let sent = 0, failed = 0
-  for (const id of discordIds) {
+function buildDmAckRow(discordId) {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId(`dm_ack:${discordId}:${MESSAGING_CHANNEL_ID}`).setLabel('✅ Message reçu').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId(`dm_reply:${discordId}:${MESSAGING_CHANNEL_ID}`).setLabel('💬 Répondre').setStyle(ButtonStyle.Primary),
+  )
+}
+
+// targets: [{ discordId, name }]
+async function sendDMs(client, targets, embed) {
+  let sent = 0
+  const closedDm = []
+  for (const t of targets) {
+    let user
     try {
-      const user = await client.users.fetch(id)
-      await user.send({ embeds: [embed] })
+      user = await client.users.fetch(t.discordId)
+    } catch {
+      closedDm.push(t.name || t.discordId)
+      continue
+    }
+    try {
+      await user.send({ embeds: [embed], components: [buildDmAckRow(t.discordId)] })
       sent++
     } catch {
-      failed++
+      closedDm.push(t.name || user.username)
     }
   }
-  return { sent, failed }
+  return { sent, closedDm }
 }
 
 // ─── Résumé d'envoi ───────────────────────────────────────────────────────────
 
-function buildSendSummary(sent, failed, unlinkedTargets) {
+function buildSendSummary(sent, unlinkedTargets, closedDm = []) {
   const lines = [`✅ **${sent}** DM envoyés avec succès`]
-  if (failed > 0) lines.push(`⚠️ **${failed}** échecs d'envoi`)
   lines.push(`❌ **${unlinkedTargets.length}** membres non liés ignorés (pas de compte Discord lié)`)
   if (unlinkedTargets.length) {
     const names = unlinkedTargets.map(t => t.name).join(', ')
-    lines.push(`*Non reçu :* ${names}`.slice(0, 1900))
+    lines.push(`*Non liés :* ${names}`.slice(0, 1000))
   }
-  return lines.join('\n')
+  if (closedDm.length) {
+    lines.push(`🔒 **${closedDm.length}** membres avec DMs fermés : ${closedDm.join(', ')} — Contacter <@610765755553939456> si problème`.slice(0, 1000))
+  }
+  return lines.join('\n').slice(0, 1900)
 }
 
 // ─── Preview embed ────────────────────────────────────────────────────────────
@@ -211,10 +228,10 @@ async function handleMsgRappelGuerreConfirm(interaction) {
     .setFooter({ text: 'Message envoyé par le staff Donjon Rouge' })
     .setTimestamp()
 
-  const discordIds = pending.linked.map(t => pending.tagMap[t.tag])
-  const { sent, failed } = await sendDMs(interaction.client, discordIds, dmEmbed)
+  const targets = pending.linked.map(t => ({ discordId: pending.tagMap[t.tag], name: t.name }))
+  const { sent, closedDm } = await sendDMs(interaction.client, targets, dmEmbed)
   await interaction.followUp({
-    content: buildSendSummary(sent, failed, pending.unlinkedTargets),
+    content: buildSendSummary(sent, pending.unlinkedTargets, closedDm),
     ephemeral: true,
   })
 }
@@ -260,10 +277,10 @@ async function handleMsgRappelRaidConfirm(interaction) {
     .setFooter({ text: 'Message envoyé par le staff Donjon Rouge' })
     .setTimestamp()
 
-  const discordIds = pending.linked.map(t => pending.tagMap[t.tag])
-  const { sent, failed } = await sendDMs(interaction.client, discordIds, dmEmbed)
+  const targets = pending.linked.map(t => ({ discordId: pending.tagMap[t.tag], name: t.name }))
+  const { sent, closedDm } = await sendDMs(interaction.client, targets, dmEmbed)
   await interaction.followUp({
-    content: buildSendSummary(sent, failed, pending.unlinkedTargets),
+    content: buildSendSummary(sent, pending.unlinkedTargets, closedDm),
     ephemeral: true,
   })
 }
@@ -376,9 +393,10 @@ async function handleMsgCustomConfirm(interaction) {
     .setFooter({ text: 'Message envoyé par le staff Donjon Rouge' })
     .setTimestamp()
 
-  const { sent, failed } = await sendDMs(interaction.client, pending.discordIds, dmEmbed)
+  const targets = pending.discordIds.map(id => ({ discordId: id, name: null }))
+  const { sent, closedDm } = await sendDMs(interaction.client, targets, dmEmbed)
   await interaction.editReply({
-    content: `✅ **${sent}** DM envoyés, **${failed}** échecs.`,
+    content: buildSendSummary(sent, [], closedDm),
     embeds: [], components: [],
   })
 }
@@ -440,6 +458,56 @@ async function handleModalMsgGlobal(interaction) {
   await interaction.editReply('✅ Message global envoyé !')
 }
 
+// ─── Accusé de réception / réponse aux DMs ───────────────────────────────────
+
+async function handleDmAck(interaction, argTag) {
+  const [userId, channelId] = argTag.split(':')
+  await interaction.reply({ content: '✅ Accusé de réception enregistré !', ephemeral: true })
+
+  const channel = await interaction.client.channels.fetch(channelId).catch(() => null)
+  if (!channel) return
+
+  const embed = new EmbedBuilder()
+    .setColor(0x2E7D32)
+    .setDescription(`✅ <@${userId}> a accusé réception du message • <t:${Math.floor(Date.now() / 1000)}:f>`)
+
+  await channel.send({ embeds: [embed] })
+}
+
+async function handleDmReply(interaction, argTag) {
+  const modal = new ModalBuilder().setCustomId(`modal_dm_reply:${argTag}`).setTitle('Répondre au staff')
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('dm_reply_text')
+        .setLabel('Votre réponse')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true)
+        .setMaxLength(1500)
+        .setPlaceholder('Votre message au staff...')
+    )
+  )
+  await interaction.showModal(modal)
+}
+
+async function handleModalDmReply(interaction, argTag) {
+  const [userId, channelId] = argTag.split(':')
+  const text = interaction.fields.getTextInputValue('dm_reply_text')
+
+  await interaction.deferReply({ ephemeral: true })
+
+  const channel = await interaction.client.channels.fetch(channelId).catch(() => null)
+  if (channel) {
+    const embed = new EmbedBuilder()
+      .setColor(0x1E88E5)
+      .setDescription(`💬 <@${userId}> a répondu : ${text}`)
+      .setTimestamp()
+    await channel.send({ embeds: [embed] })
+  }
+
+  await interaction.editReply('✅ Votre réponse a été transmise !')
+}
+
 module.exports = {
   isAuthorized,
   handleMsgRappelGuerre,
@@ -453,4 +521,7 @@ module.exports = {
   handleMsgCustomCancel,
   handleMsgGlobal,
   handleModalMsgGlobal,
+  handleDmAck,
+  handleDmReply,
+  handleModalDmReply,
 }

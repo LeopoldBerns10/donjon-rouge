@@ -59,6 +59,7 @@ const {
   handleMsgCustom, handleModalMsgCustom,
   handleMsgCustomConfirm, handleMsgCustomCancel,
   handleMsgGlobal, handleModalMsgGlobal,
+  handleDmAck, handleDmReply, handleModalDmReply,
 } = require('../lib/messagingHandlers.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
@@ -713,6 +714,10 @@ module.exports = {
           await handlePanelMembresDRNav(interaction, 'dr2', 'next', parseInt(argTag))
         } else if (prefix === 'warrior_change_principal' && argTag) {
           await handleWarriorChangePrincipal(interaction, argTag)
+        } else if (prefix === 'dm_ack' && argTag) {
+          await handleDmAck(interaction, argTag)
+        } else if (prefix === 'dm_reply' && argTag) {
+          await handleDmReply(interaction, argTag)
         }
       } catch (err) {
         console.error(`[Button] ${interaction.customId}:`, err)
@@ -789,6 +794,12 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_global') {
       await handleModalMsgGlobal(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_dm_reply:')) {
+      const argTag = interaction.customId.slice('modal_dm_reply:'.length)
+      await handleModalDmReply(interaction, argTag)
       return
     }
 

@@ -1,30 +1,23 @@
-Dans bot/src/lib/messagingHandlers.js et bot/src/setup/sendMessagingPanel.js, deux modifications :
-1. Accusé de réception — après l'envoi des DMs, modifier le message de confirmation pour inclure un résumé détaillé :
+Dans bot/src/lib/messagingHandlers.js, améliorer le système de DM avec accusé de réception :
+Embed DM enrichi — pour tous les types de messages (rappel guerre, rappel raid, custom), ajouter sous l'embed deux boutons :
 
-"✅ X DM envoyés avec succès"
-"❌ Y membres non liés ignorés (pas de compte Discord lié)"
-Liste des pseudos COC qui n'ont pas reçu le message (non liés)
+"✅ Message reçu" ButtonStyle.Success customId: "dm_ack:[userId]:[channelId]"
+"💬 Répondre" ButtonStyle.Primary customId: "dm_reply:[userId]:[channelId]"
 
-2. Nouveau bouton "📢 Message global" — dans sendMessagingPanel.js, ajouter un 4ème bouton :
+où channelId = MESSAGING_CHANNEL_ID (1512087471373029508)
+Dans interactionCreate.js, gérer ces boutons (ils arrivent en DM) :
+handleDmAck(interaction) :
 
-"📢 Message global" ButtonStyle.Danger customId: "msg_global"
+Répondre éphémère en DM : "✅ Accusé de réception enregistré !"
+Poster dans MESSAGING_CHANNEL_ID : embed sobre avec "✅ [pseudo] a accusé réception du message • [timestamp]"
 
-Dans messagingHandlers.js, créer handleMsgGlobal(interaction) :
+handleDmReply(interaction) :
 
-deferReply({ ephemeral: true }) en premier
-Ouvrir une Modal avec :
+Ouvrir une Modal avec champ "Votre réponse" (paragraph)
+À la soumission : poster dans MESSAGING_CHANNEL_ID : embed avec "💬 [pseudo] a répondu : [message]"
+Répondre éphémère en DM : "✅ Votre réponse a été transmise !"
 
-Champ "Sujet" (short) : placeholder "ex: Maintenance du bot"
-Champ "Message" (paragraph) : placeholder "Votre message ici..."
+Gestion DMs fermés — dans la boucle d'envoi des DMs, si l'envoi échoue (DMs fermés) :
 
-
-Dans handleModalMsgGlobal(interaction) :
-
-Construire un embed #8B0000 avec le sujet en titre et le message en description
-Footer : "Message de [pseudo admin] • Donjon Rouge"
-Envoyer l'embed dans le salon HALL_CHANNEL_ID (1432155980925239386) avec @everyone
-Répondre éphémère "✅ Message global envoyé !"
-
-
-
-Dans interactionCreate.js, router msg_global et modal_msg_global vers les nouveaux handlers.
+Ajouter le membre à la liste "DMs fermés"
+Dans l'accusé de réception admin : afficher séparément "🔒 X membres avec DMs fermés : [liste noms] — Contacter @610765755553939456 si problème"
