@@ -3,7 +3,7 @@ const {
   ModalBuilder, TextInputBuilder, TextInputStyle,
 } = require('discord.js')
 const supabase = require('../supabase.js')
-const { AUTHORIZED_USERS } = require('../config/messaging.js')
+const { AUTHORIZED_USERS, HALL_CHANNEL_ID } = require('../config/messaging.js')
 const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
 
 const BASE    = process.env.BACKEND_URL
@@ -142,6 +142,19 @@ async function sendDMs(client, discordIds, embed) {
   return { sent, failed }
 }
 
+// ─── Résumé d'envoi ───────────────────────────────────────────────────────────
+
+function buildSendSummary(sent, failed, unlinkedTargets) {
+  const lines = [`✅ **${sent}** DM envoyés avec succès`]
+  if (failed > 0) lines.push(`⚠️ **${failed}** échecs d'envoi`)
+  lines.push(`❌ **${unlinkedTargets.length}** membres non liés ignorés (pas de compte Discord lié)`)
+  if (unlinkedTargets.length) {
+    const names = unlinkedTargets.map(t => t.name).join(', ')
+    lines.push(`*Non reçu :* ${names}`.slice(0, 1900))
+  }
+  return lines.join('\n')
+}
+
 // ─── Preview embed ────────────────────────────────────────────────────────────
 
 function buildPreviewEmbed(title, targets, tagMap) {
@@ -170,9 +183,9 @@ async function handleMsgRappelGuerre(interaction) {
 
   const tagMap   = await getDiscordIdsMap(targets.map(t => t.tag))
   const linked   = targets.filter(t => tagMap[t.tag])
-  const unlinked = targets.length - linked.length
+  const unlinkedTargets = targets.filter(t => !tagMap[t.tag])
 
-  pendingRappels.set(interaction.user.id, { type: 'guerre', tagMap, linked, unlinked })
+  pendingRappels.set(interaction.user.id, { type: 'guerre', tagMap, linked, unlinkedTargets })
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('msg_rappel_guerre_confirm').setLabel('✅ Confirmer l\'envoi').setStyle(ButtonStyle.Success),
@@ -201,7 +214,7 @@ async function handleMsgRappelGuerreConfirm(interaction) {
   const discordIds = pending.linked.map(t => pending.tagMap[t.tag])
   const { sent, failed } = await sendDMs(interaction.client, discordIds, dmEmbed)
   await interaction.followUp({
-    content: `✅ **${sent}** DM envoyés, **${failed}** échecs, **${pending.unlinked}** non liés ignorés.`,
+    content: buildSendSummary(sent, failed, pending.unlinkedTargets),
     ephemeral: true,
   })
 }
@@ -219,9 +232,9 @@ async function handleMsgRappelRaid(interaction) {
 
   const tagMap   = await getDiscordIdsMap(targets.map(t => t.tag))
   const linked   = targets.filter(t => tagMap[t.tag])
-  const unlinked = targets.length - linked.length
+  const unlinkedTargets = targets.filter(t => !tagMap[t.tag])
 
-  pendingRappels.set(interaction.user.id, { type: 'raid', tagMap, linked, unlinked })
+  pendingRappels.set(interaction.user.id, { type: 'raid', tagMap, linked, unlinkedTargets })
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('msg_rappel_raid_confirm').setLabel('✅ Confirmer l\'envoi').setStyle(ButtonStyle.Success),
@@ -250,7 +263,7 @@ async function handleMsgRappelRaidConfirm(interaction) {
   const discordIds = pending.linked.map(t => pending.tagMap[t.tag])
   const { sent, failed } = await sendDMs(interaction.client, discordIds, dmEmbed)
   await interaction.followUp({
-    content: `✅ **${sent}** DM envoyés, **${failed}** échecs, **${pending.unlinked}** non liés ignorés.`,
+    content: buildSendSummary(sent, failed, pending.unlinkedTargets),
     ephemeral: true,
   })
 }
@@ -376,6 +389,57 @@ async function handleMsgCustomCancel(interaction) {
   await interaction.editReply({ content: '❌ Message annulé.', embeds: [], components: [] })
 }
 
+// ─── Message global ───────────────────────────────────────────────────────────
+
+async function handleMsgGlobal(interaction) {
+  if (!isAuthorized(interaction.user.id, interaction.member)) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+
+  const modal = new ModalBuilder().setCustomId('modal_msg_global').setTitle('Message global')
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('msg_global_subject')
+        .setLabel('Sujet')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMaxLength(100)
+        .setPlaceholder('ex: Maintenance du bot')
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('msg_global_body')
+        .setLabel('Message')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true)
+        .setMaxLength(1500)
+        .setPlaceholder('Votre message ici...')
+    )
+  )
+  await interaction.showModal(modal)
+}
+
+async function handleModalMsgGlobal(interaction) {
+  const subject = interaction.fields.getTextInputValue('msg_global_subject')
+  const body    = interaction.fields.getTextInputValue('msg_global_body')
+
+  await interaction.deferReply({ ephemeral: true })
+
+  const embed = new EmbedBuilder()
+    .setColor(0x8B0000)
+    .setTitle(subject)
+    .setDescription(body)
+    .setFooter({ text: `Message de ${interaction.user.username} • Donjon Rouge` })
+    .setTimestamp()
+
+  const channel = await interaction.client.channels.fetch(HALL_CHANNEL_ID).catch(() => null)
+  if (!channel) return interaction.editReply('❌ Salon introuvable.')
+
+  await channel.send({ content: '@everyone', embeds: [embed] })
+  await interaction.editReply('✅ Message global envoyé !')
+}
+
 module.exports = {
   isAuthorized,
   handleMsgRappelGuerre,
@@ -387,4 +451,6 @@ module.exports = {
   handleModalMsgCustom,
   handleMsgCustomConfirm,
   handleMsgCustomCancel,
+  handleMsgGlobal,
+  handleModalMsgGlobal,
 }

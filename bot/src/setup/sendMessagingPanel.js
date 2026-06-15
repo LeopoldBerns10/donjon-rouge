@@ -46,6 +46,7 @@ async function sendMessagingPanel(client) {
     new ButtonBuilder().setCustomId('msg_rappel_guerre').setLabel('⚔️ Rappel Guerre').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('msg_rappel_raid').setLabel('💎 Rappel Raid').setStyle(ButtonStyle.Primary),
     new ButtonBuilder().setCustomId('msg_custom').setLabel('✏️ Message personnalisé').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('msg_global').setLabel('📢 Message global').setStyle(ButtonStyle.Danger),
   )
 
   const msg = await channel.send({ embeds: [embed], components: [row] })

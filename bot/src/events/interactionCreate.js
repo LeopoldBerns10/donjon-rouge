@@ -58,6 +58,7 @@ const {
   handleMsgRappelCancel,
   handleMsgCustom, handleModalMsgCustom,
   handleMsgCustomConfirm, handleMsgCustomCancel,
+  handleMsgGlobal, handleModalMsgGlobal,
 } = require('../lib/messagingHandlers.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
@@ -663,6 +664,7 @@ const BUTTON_HANDLERS = {
   msg_rappel_cancel:         handleMsgRappelCancel,
   msg_custom_confirm:        handleMsgCustomConfirm,
   msg_custom_cancel:         handleMsgCustomCancel,
+  msg_global:                handleMsgGlobal,
 }
 
 module.exports = {
@@ -782,6 +784,11 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_custom') {
       await handleModalMsgCustom(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_global') {
+      await handleModalMsgGlobal(interaction)
       return
     }
 

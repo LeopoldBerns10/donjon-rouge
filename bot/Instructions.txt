@@ -1,12 +1,30 @@
-Dans bot/src/lib/messagingHandlers.js, corriger handleMsgRappelGuerre() et handleMsgRappelRaid() :
-Le problème "session expirée" vient du fait que ces handlers stockent les données en mémoire (pendingRappels Map) avec un userId comme clé, mais si l'interaction expire ou que le bot redémarre, la session est perdue.
-Fix :
+Dans bot/src/lib/messagingHandlers.js et bot/src/setup/sendMessagingPanel.js, deux modifications :
+1. Accusé de réception — après l'envoi des DMs, modifier le message de confirmation pour inclure un résumé détaillé :
 
-Ajouter deferReply({ ephemeral: true }) en tout premier dans chaque handler
-Dans handleMsgRappelGuerre() : fetch les guerriers sans attaque depuis fetchWarData() — utiliser la même logique que checkWarReminders() pour détecter LDC vs GDC
-Dans handleMsgRappelRaid() : fetch getRaidSeasons() + getClanMembers() + getClanMembersDR2() pour trouver les membres sans attaque raid
-Afficher le preview avec editReply() au lieu de reply()
-Les boutons confirmer/annuler utilisent followUp() éphémère
+"✅ X DM envoyés avec succès"
+"❌ Y membres non liés ignorés (pas de compte Discord lié)"
+Liste des pseudos COC qui n'ont pas reçu le message (non liés)
 
-Dans bot/src/setup/sendMessagingPanel.js, vérifier que les boutons "⚔️ Rappel Guerre" et "💎 Rappel Raid" ont bien les bons customIds correspondant aux handlers dans interactionCreate.js.
-Dans bot/src/commands/messaging/msg-rappel-raid.js, vérifier que la commande appelle bien handleMsgRappelRaid() et que le handler fonctionne correctement.
+2. Nouveau bouton "📢 Message global" — dans sendMessagingPanel.js, ajouter un 4ème bouton :
+
+"📢 Message global" ButtonStyle.Danger customId: "msg_global"
+
+Dans messagingHandlers.js, créer handleMsgGlobal(interaction) :
+
+deferReply({ ephemeral: true }) en premier
+Ouvrir une Modal avec :
+
+Champ "Sujet" (short) : placeholder "ex: Maintenance du bot"
+Champ "Message" (paragraph) : placeholder "Votre message ici..."
+
+
+Dans handleModalMsgGlobal(interaction) :
+
+Construire un embed #8B0000 avec le sujet en titre et le message en description
+Footer : "Message de [pseudo admin] • Donjon Rouge"
+Envoyer l'embed dans le salon HALL_CHANNEL_ID (1432155980925239386) avec @everyone
+Répondre éphémère "✅ Message global envoyé !"
+
+
+
+Dans interactionCreate.js, router msg_global et modal_msg_global vers les nouveaux handlers.
