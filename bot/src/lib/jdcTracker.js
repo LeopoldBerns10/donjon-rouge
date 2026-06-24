@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js')
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('../supabase.js')
 const { getPlayer, getClanMembers, getClanMembersDR2, extractClanGamePoints } = require('../cocApi.js')
 const {
@@ -178,16 +178,39 @@ function buildJdcEmbed(clan, members, startStr, endStr) {
     .setTimestamp()
 }
 
+// ─── Bouton Actualiser ────────────────────────────────────────────────────────
+
+const CHEF_ROLE_ID = '611123759864348672'
+
+function buildJdcRefreshRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('jdc_refresh')
+      .setLabel('🔄 Actualiser')
+      .setStyle(ButtonStyle.Secondary)
+  )
+}
+
+async function handleJdcRefresh(interaction) {
+  if (!interaction.member.roles.cache.has(CHEF_ROLE_ID)) {
+    return interaction.reply({ content: '❌ Accès réservé aux Chefs.', ephemeral: true })
+  }
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  await updateJdcEmbeds(interaction.client)
+  await interaction.editReply('✅ Embeds JDC actualisés.')
+}
+
 // ─── Gestion message embed live ───────────────────────────────────────────────
 
 const jdcMsgCache = {}
 
 async function ensureJdcMessage(channel, key, embed) {
+  const components = [buildJdcRefreshRow()]
   const cachedId = jdcMsgCache[key]
   if (cachedId) {
     try {
       const msg = await channel.messages.fetch(cachedId)
-      await msg.edit({ embeds: [embed] })
+      await msg.edit({ embeds: [embed], components })
       return msg
     } catch (e) {
       if (e.code === 10008 || e.httpStatus === 404) {
@@ -202,7 +225,7 @@ async function ensureJdcMessage(channel, key, embed) {
     try {
       const msg = await channel.messages.fetch(data.value)
       jdcMsgCache[key] = msg.id
-      await msg.edit({ embeds: [embed] })
+      await msg.edit({ embeds: [embed], components })
       return msg
     } catch (e) {
       if (e.code === 10008 || e.httpStatus === 404) {
@@ -211,7 +234,7 @@ async function ensureJdcMessage(channel, key, embed) {
     }
   }
 
-  const msg = await channel.send({ embeds: [embed] })
+  const msg = await channel.send({ embeds: [embed], components })
   await setConfig(key, msg.id)
   jdcMsgCache[key] = msg.id
   console.log(`[JDC] Message ${key} créé : ${msg.id}`)
@@ -470,4 +493,5 @@ module.exports = {
   checkJdcEnd,
   autoDetectJdc,
   fetchJdcMembersUnder5000,
+  handleJdcRefresh,
 }

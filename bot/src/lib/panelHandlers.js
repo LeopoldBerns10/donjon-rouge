@@ -18,6 +18,7 @@ const { TICKET_CHANNEL_ID } = require('../config/tickets.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { getPlayer, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
+const { updateJdcEmbeds } = require('./jdcTracker.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
 
 const PAGE_SIZE = 10
@@ -776,6 +777,15 @@ async function handleModalPanelAdminAdd(interaction) {
   await interaction.reply({ content: `✅ <@${newId}> ajouté comme admin.`, ephemeral: true })
 }
 
+async function handleAdminRefreshJdc(interaction) {
+  if (!(await isAdmin(interaction.user.id))) {
+    return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+  }
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  await updateJdcEmbeds(interaction.client)
+  await interaction.editReply('✅ Embeds JDC actualisés.')
+}
+
 module.exports = {
   buildMembresPayload,
   buildHomePayload,
@@ -813,4 +823,6 @@ module.exports = {
   handleModalPanelAdminAdd,
   handleModalPanelLier,
   handleModalPanelMsg,
+  // JDC
+  handleAdminRefreshJdc,
 }
