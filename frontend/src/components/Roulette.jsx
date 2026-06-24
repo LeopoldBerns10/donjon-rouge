@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
 
@@ -107,6 +108,7 @@ export function Roulette() {
   const [resetTitle, setResetTitle] = useState('')
   const [resetPrize, setResetPrize] = useState('')
   const [newTarget, setNewTarget] = useState(100)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [wheelRotation, setWheelRotation] = useState(0)
   const [wheelAnimating, setWheelAnimating] = useState(false)
   const rotationRef = useRef(0)
@@ -182,6 +184,57 @@ export function Roulette() {
       setNewTarget(100)
       fetchEvent()
     } catch {}
+  }
+
+  const showToast = (message) => {
+    const toast = document.createElement('div')
+    toast.innerHTML = `
+      <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+                  background:#1a1a1a;border:1px solid #333;border-radius:12px;
+                  padding:12px 20px;color:white;font-size:0.875rem;font-weight:600;
+                  z-index:99999;white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,0.5)">
+        ${message}
+      </div>
+    `
+    document.body.appendChild(toast)
+    setTimeout(() => toast.remove(), 4000)
+  }
+
+  const handleDelete = async () => {
+    try {
+      await api.post('/api/roulette/delete')
+    } catch {}
+    setShowDeleteConfirm(false)
+    fetchEvent()
+  }
+
+  const handleBonus = async () => {
+    setIsSpinning(true)
+
+    try {
+      const res = await api.post('/api/roulette/bonus')
+      if (!res.data.success) {
+        setIsSpinning(false)
+        return
+      }
+    } catch {
+      setIsSpinning(false)
+      return
+    }
+
+    const targetSegment = 0
+    const targetRotation = rotationRef.current + 1800 + (360 - targetSegment * SEG_ANGLE - SEG_ANGLE / 2)
+
+    setWheelAnimating(true)
+    setWheelRotation(targetRotation)
+    rotationRef.current = targetRotation
+
+    await new Promise(resolve => setTimeout(resolve, 6400))
+    setWheelAnimating(false)
+    setIsSpinning(false)
+    setHasClickedToday(false)
+    showToast('🔄 Tour bonus activé ! Tu peux retourner la roue.')
+    fetchEvent()
   }
 
   const triggerWinAnimation = () => {
@@ -290,6 +343,38 @@ export function Roulette() {
               </div>
             )}
 
+            {/* Bouton Tour Bonus x2 — CyberAlf */}
+            {isCyberAlf && event?.active && !event.isWon && (
+              <button
+                onClick={handleBonus}
+                disabled={isSpinning}
+                className="relative px-6 py-3 rounded-2xl text-sm font-black
+                           uppercase tracking-wide text-white
+                           bg-gradient-to-r from-[#f59e0b] to-[#d97706]
+                           hover:from-[#fbbf24] hover:to-[#f59e0b]
+                           shadow-lg shadow-[#f59e0b]/30
+                           disabled:opacity-50 transition-all duration-300
+                           hover:scale-105 border border-[#fbbf24]/30
+                           overflow-hidden group">
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent
+                                 via-white/10 to-transparent -translate-x-full
+                                 group-hover:translate-x-full transition-transform duration-700" />
+                <span className="relative">🔄 Tour Bonus x2</span>
+              </button>
+            )}
+
+            {/* Bouton Supprimer la roulette — CyberAlf */}
+            {isCyberAlf && event?.active && (
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="mt-2 px-4 py-2 rounded-xl text-xs font-bold uppercase
+                           border border-red-900/40 text-red-500/60
+                           hover:border-red-600 hover:text-red-400
+                           transition-all duration-200">
+                🗑️ Supprimer la roulette
+              </button>
+            )}
+
             {/* Bouton jouer */}
             {user && !hasClickedToday && (
               <button
@@ -356,6 +441,39 @@ export function Roulette() {
             </button>
           )}
         </div>
+      )}
+
+      {/* Modal confirmation suppression */}
+      {showDeleteConfirm && createPortal(
+        <div className="fixed inset-0 bg-black/85 z-[99999]
+                        flex items-center justify-center p-4"
+             onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-[#111111] border border-red-900/50 rounded-2xl
+                          p-6 w-full max-w-sm shadow-2xl"
+               onClick={e => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-white uppercase mb-2">
+              ⚠️ Supprimer la roulette ?
+            </h3>
+            <p className="text-sm text-gray-400 mb-4">
+              L'event sera supprimé et la roulette disparaîtra du site.
+              Tu pourras en relancer une nouvelle quand tu veux.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(false)}
+                      className="flex-1 py-2.5 rounded-xl border border-[#333]
+                                 text-gray-400 text-sm font-semibold uppercase">
+                Annuler
+              </button>
+              <button onClick={handleDelete}
+                      className="flex-1 py-2.5 rounded-xl bg-red-800
+                                 text-white text-sm font-semibold uppercase
+                                 hover:bg-red-700 transition-colors">
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal reset — CyberAlf */}

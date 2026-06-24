@@ -142,4 +142,50 @@ router.post('/activate', verifyToken, async (req, res) => {
   return res.json({ success: true })
 })
 
+// POST /api/roulette/delete (CyberAlf only)
+router.post('/delete', verifyToken, async (req, res) => {
+  if (req.user.coc_name !== 'CyberAlf' && req.user.site_role !== 'superadmin') {
+    return res.status(403).json({ error: 'Réservé à CyberAlf' })
+  }
+
+  const { error } = await supabase
+    .from('roulette_events')
+    .update({ is_active: false })
+    .eq('is_active', true)
+
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+})
+
+// POST /api/roulette/bonus (CyberAlf only)
+router.post('/bonus', verifyToken, async (req, res) => {
+  if (req.user.coc_name !== 'CyberAlf' && req.user.site_role !== 'superadmin') {
+    return res.status(403).json({ error: 'Réservé à CyberAlf' })
+  }
+
+  const { data: event } = await supabase
+    .from('roulette_events')
+    .select('*')
+    .eq('is_active', true)
+    .single()
+
+  if (!event || event.winner_id) {
+    return res.status(400).json({ error: "Pas d'event actif" })
+  }
+
+  const today = new Date().toISOString().split('T')[0]
+  await supabase
+    .from('roulette_clicks')
+    .delete()
+    .eq('event_id', event.id)
+    .eq('user_id', req.user.id)
+    .gte('clicked_at', today)
+
+  return res.json({
+    success: true,
+    segment: 'replay',
+    message: 'Tour bonus accordé !',
+  })
+})
+
 export default router
