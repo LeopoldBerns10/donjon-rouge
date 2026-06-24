@@ -113,7 +113,7 @@ router.post('/reset', verifyToken, async (req, res) => {
     return res.status(403).json({ error: 'Réservé à CyberAlf' })
   }
 
-  const { prize, title } = req.body
+  const { prize, title, target_clicks } = req.body
 
   await supabase.from('roulette_events').update({ is_active: false }).eq('is_active', true)
 
@@ -122,7 +122,7 @@ router.post('/reset', verifyToken, async (req, res) => {
     .insert({
       title: title || "Pass d'Or — Offert par CyberAlf",
       prize: prize || "Pass d'Or",
-      target_clicks: 100,
+      target_clicks: target_clicks || 100,
       current_clicks: 0,
       is_active: true,
     })

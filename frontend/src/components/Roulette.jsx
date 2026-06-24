@@ -6,19 +6,19 @@ const SEGMENTS = [
   // Index 0 — REJOUER (1/12)
   { type: 'replay', label: '🔄 REJOUER', color: '#1a3a1a', borderColor: '#22c55e', textColor: '#4ade80' },
   // Index 1-9 — PERDU (9/12)
-  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
-  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#222' },
+  { type: 'lose', label: '✕', color: '#0d0d0d', borderColor: '#1f1f1f', textColor: '#222' },
   // Index 10 — GAGNANT (1/12)
   { type: 'win',    label: '🏆',         color: '#78350f', borderColor: '#f59e0b', textColor: '#f59e0b' },
   // Index 11 — PERDU (1/12)
-  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#333' },
+  { type: 'lose', label: '✕', color: '#111111', borderColor: '#1f1f1f', textColor: '#222' },
 ]
 
 const N = SEGMENTS.length
@@ -106,6 +106,7 @@ export function Roulette() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetTitle, setResetTitle] = useState('')
   const [resetPrize, setResetPrize] = useState('')
+  const [newTarget, setNewTarget] = useState(100)
   const [wheelRotation, setWheelRotation] = useState(0)
   const [wheelAnimating, setWheelAnimating] = useState(false)
   const rotationRef = useRef(0)
@@ -173,10 +174,12 @@ export function Roulette() {
       await api.post('/api/roulette/reset', {
         title: resetTitle || undefined,
         prize: resetPrize || undefined,
+        target_clicks: newTarget || 100,
       })
       setShowResetModal(false)
       setResetTitle('')
       setResetPrize('')
+      setNewTarget(100)
       fetchEvent()
     } catch {}
   }
@@ -271,14 +274,19 @@ export function Roulette() {
 
             {/* Compteur admin */}
             {isCyberAlf && (
-              <div className="flex items-center gap-2 px-4 py-2 rounded-xl
-                              bg-[#0a0a0a] border border-[#dc2626]/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626]" />
-                <span className="text-xs text-gray-500">
-                  Compteur : <span className="text-[#dc2626] font-bold">
+              <div className="px-4 py-2 rounded-xl bg-[#0a0a0a] border border-[#dc2626]/20 w-full max-w-xs">
+                <p className="text-xs text-center text-gray-500">
+                  Compteur :
+                  <span className="text-[#dc2626] font-bold ml-1">
                     {event.currentClicks} / {event.targetClicks}
                   </span>
-                </span>
+                </p>
+                <div className="w-full bg-[#1a1a1a] rounded-full h-1 mt-1.5">
+                  <div
+                    className="bg-[#dc2626] h-1 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min((event.currentClicks / event.targetClicks) * 100, 100)}%` }}
+                  />
+                </div>
               </div>
             )}
 
@@ -373,8 +381,26 @@ export function Roulette() {
               onChange={e => setResetPrize(e.target.value)}
               placeholder="Lot (ex: Pass d'Or)"
               className="w-full px-4 py-3 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a]
-                         text-white text-sm mb-4 focus:outline-none focus:border-[#dc2626]/50"
+                         text-white text-sm mb-3 focus:outline-none focus:border-[#dc2626]/50"
             />
+            <div className="mb-3">
+              <label className="text-xs uppercase tracking-wide text-gray-500 mb-1 block">
+                Nombre de clics pour gagner
+              </label>
+              <input
+                type="number"
+                value={newTarget}
+                onChange={e => setNewTarget(Math.max(1, parseInt(e.target.value) || 1))}
+                min="1"
+                placeholder="Ex: 100"
+                className="w-full px-3 py-2.5 rounded-xl bg-[#0d0d0d]
+                           border border-[#2a2a2a] text-white text-sm
+                           focus:outline-none focus:border-[#dc2626]/50"
+              />
+              <p className="text-[10px] text-gray-600 mt-1">
+                Le joueur qui effectue ce clic remporte le lot
+              </p>
+            </div>
             <div className="flex gap-3">
               <button onClick={() => setShowResetModal(false)}
                 className="flex-1 py-2.5 rounded-xl border border-[#333] text-gray-400
