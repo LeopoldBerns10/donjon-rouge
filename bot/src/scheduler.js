@@ -3,6 +3,7 @@ const supabase = require('./supabase.js')
 const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
 const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
+const { isJdcActive, updateJdcEmbeds, checkJdcReminders, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
 
 const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -510,6 +511,16 @@ async function checkAndUpdate(client) {
   await checkExploits(client, warData).catch(e => console.error('[Scheduler] Exploits:', e))
   await checkWarReminders(channel, warData)
   await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))
+
+  // JDC — toutes les 30 min
+  const jdcActive = await isJdcActive().catch(() => false)
+  if (jdcActive) {
+    await updateJdcEmbeds(client).catch(e => console.error('[Scheduler] JDC embeds:', e))
+    await checkJdcReminders(client).catch(e => console.error('[Scheduler] JDC reminders:', e))
+    await checkJdcEnd(client).catch(e => console.error('[Scheduler] JDC end:', e))
+  } else {
+    await autoDetectJdc(client).catch(e => console.error('[Scheduler] JDC detect:', e))
+  }
 }
 
 // ─── Nettoyage des messages orphelins au démarrage ────────────────────────────
@@ -561,8 +572,8 @@ function startScheduler(client) {
   cleanupReminderChannel(client)
     .catch(e => console.error('[Scheduler] cleanupReminderChannel:', e))
     .finally(run)
-  setInterval(run, 60 * 60 * 1000)
-  console.log('[Scheduler] Démarré — vérification toutes les heures')
+  setInterval(run, 30 * 60 * 1000)
+  console.log('[Scheduler] Démarré — vérification toutes les 30 minutes')
 }
 
 async function forceRefresh(client) {

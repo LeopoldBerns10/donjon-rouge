@@ -5,6 +5,7 @@ const {
 const supabase = require('../supabase.js')
 const { AUTHORIZED_USERS, MESSAGING_CHANNEL_ID } = require('../config/messaging.js')
 const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
+const { fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
 
 const BASE    = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -14,6 +15,7 @@ const CHEF_ROLE_ID = '611123759864348672'
 // Sessions en attente de confirmation
 const pendingRappels = new Map()
 const pendingCustom  = new Map()
+const pendingJdc     = new Map()
 
 // ─── Autorisation ─────────────────────────────────────────────────────────────
 
@@ -288,8 +290,125 @@ async function handleMsgRappelRaidConfirm(interaction) {
 async function handleMsgRappelCancel(interaction) {
   await interaction.deferUpdate()
   pendingRappels.delete(interaction.user.id)
+  pendingJdc.delete(interaction.user.id)
   await interaction.editReply({ embeds: [], components: [] })
   await interaction.followUp({ content: '❌ Envoi annulé.', ephemeral: true })
+}
+
+// ─── Rappel JDC ──────────────────────────────────────────────────────────────
+
+async function handleMsgJdcReminder(interaction) {
+  if (!isAuthorized(interaction.user.id, interaction.member)) {
+    return interaction.reply({ content: '❌ Tu n\'as pas la permission.', ephemeral: true })
+  }
+  await interaction.deferReply({ ephemeral: true })
+
+  const { data: configData } = await supabase.from('bot_config').select('value').eq('key', 'jdc_active').maybeSingle()
+  if (configData?.value !== 'true') {
+    return interaction.editReply('ℹ️ Aucun Jeux de Clan en cours actuellement.')
+  }
+
+  const { data: endData } = await supabase.from('bot_config').select('value').eq('key', 'jdc_end').maybeSingle()
+  const daysLeft = endData?.value
+    ? Math.max(1, Math.ceil((new Date(endData.value).getTime() - Date.now()) / 86400000))
+    : '?'
+
+  await interaction.editReply('⏳ Récupération des points JDC en cours...')
+
+  const { dr1, dr2 } = await fetchJdcMembersUnder5000()
+  const allUnder = [
+    ...dr1.map(m => ({ ...m, clanKey: 'dr1' })),
+    ...dr2.map(m => ({ ...m, clanKey: 'dr2' })),
+  ]
+
+  if (!allUnder.length) {
+    return interaction.editReply('✅ Tous les membres ont atteint l\'objectif DR (5 000 pts) !')
+  }
+
+  const zero    = allUnder.filter(m => m.points === 0)
+  const partial = allUnder.filter(m => m.points > 0)
+  const tagMap  = await getDiscordIdsMap(allUnder.map(m => m.tag))
+
+  pendingJdc.set(interaction.user.id, { zero, partial, tagMap, daysLeft })
+
+  const preview = new EmbedBuilder()
+    .setColor(0x8B0000)
+    .setTitle('🎮 Rappel Jeux de Clan')
+    .setDescription([
+      `Membres à contacter : **${allUnder.length}** (DR1 : ${dr1.length} • DR2 : ${dr2.length})`,
+      `→ Membres à 0 pts : **${zero.length}**`,
+      `→ Membres entre 1 et 4 999 pts : **${partial.length}**`,
+    ].join('\n'))
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('msg_jdc_reminder_confirm').setLabel('✅ Confirmer l\'envoi').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('msg_rappel_cancel').setLabel('❌ Annuler').setStyle(ButtonStyle.Secondary),
+  )
+  await interaction.editReply({ embeds: [preview], components: [row] })
+}
+
+async function handleMsgJdcReminderConfirm(interaction) {
+  await interaction.deferUpdate()
+  const pending = pendingJdc.get(interaction.user.id)
+  if (!pending) {
+    return interaction.followUp({ content: '❌ Session expirée, relance la commande.', ephemeral: true })
+  }
+  pendingJdc.delete(interaction.user.id)
+  await interaction.editReply({ components: [] })
+
+  const { zero, partial, tagMap, daysLeft } = pending
+  let sent = 0
+  const closedDm   = []
+  const unlinked   = []
+
+  const zeroEmbed = new EmbedBuilder()
+    .setColor(0x8B0000)
+    .setTitle('🎮 Jeux de Clan — Donjon Rouge')
+    .setDescription(
+      `Hey ! Les Jeux de Clan sont en cours et tu n'as pas encore participé.\n` +
+      `Il reste **${daysLeft} jour(s)** — chaque point compte pour le clan ! 💪\n` +
+      `Objectif minimum DR : **5 000 pts** 🎯`
+    )
+    .setFooter({ text: 'Message envoyé par le staff Donjon Rouge' })
+    .setTimestamp()
+
+  for (const t of zero) {
+    const discordId = tagMap[t.tag]
+    if (!discordId) { unlinked.push({ name: t.name }); continue }
+    try {
+      const user = await interaction.client.users.fetch(discordId)
+      await user.send({ embeds: [zeroEmbed], components: [buildDmAckRow(discordId)] })
+      sent++
+    } catch {
+      closedDm.push(t.name)
+    }
+  }
+
+  for (const t of partial) {
+    const discordId = tagMap[t.tag]
+    if (!discordId) { unlinked.push({ name: t.name }); continue }
+    try {
+      const user         = await interaction.client.users.fetch(discordId)
+      const partialEmbed = new EmbedBuilder()
+        .setColor(0xFF8C00)
+        .setTitle('🎮 Jeux de Clan — Donjon Rouge')
+        .setDescription(
+          `Tu es en bonne voie avec **${t.points} pts**, mais l'objectif DR est de **5 000 pts** !\n` +
+          `Il reste **${daysLeft} jour(s)**, tu peux y arriver 🔥`
+        )
+        .setFooter({ text: 'Message envoyé par le staff Donjon Rouge' })
+        .setTimestamp()
+      await user.send({ embeds: [partialEmbed], components: [buildDmAckRow(discordId)] })
+      sent++
+    } catch {
+      closedDm.push(t.name)
+    }
+  }
+
+  await interaction.followUp({
+    content: buildSendSummary(sent, unlinked, closedDm),
+    ephemeral: true,
+  })
 }
 
 // ─── Message personnalisé — Étape 1 : modal directe ─────────────────────────
@@ -525,6 +644,8 @@ module.exports = {
   handleMsgRappelRaid,
   handleMsgRappelRaidConfirm,
   handleMsgRappelCancel,
+  handleMsgJdcReminder,
+  handleMsgJdcReminderConfirm,
   handleMsgCustom,
   handleModalMsgCustom,
   handleMsgCustomConfirm,

@@ -18,4 +18,21 @@ const getLdcCurrent    = ()    => get('/ldc/current')
 const getLdcCurrentDR2 = ()    => get('/ldc/dr2/current')
 const getLdcWar        = (warTag) => get(`/ldc/war/${encodeURIComponent(warTag)}`)
 
-module.exports = { getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer, getLdcCurrent, getLdcCurrentDR2, getLdcWar }
+function extractClanGamePoints(data) {
+  if (data?.clanGamePoints != null) return data.clanGamePoints
+  if (data?.clanGames        != null) return data.clanGames
+  return data?.achievements?.find(a => a.name === 'Games Champion')?.value ?? 0
+}
+
+async function getPlayerClanGamePoints(playerTag) {
+  const data = await getPlayer(playerTag)
+  if (playerTag === '#YQCULYQ90') {
+    console.log('[DEBUG] payload complet :', JSON.stringify(data, null, 2))
+    console.log('[DEBUG] clanGamePoints:', data?.clanGamePoints,
+                '| clanGames:', data?.clanGames,
+                '| Games Champion achievement:', data?.achievements?.find(a => a.name === 'Games Champion'))
+  }
+  return extractClanGamePoints(data)
+}
+
+module.exports = { getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer, getPlayerClanGamePoints, extractClanGamePoints, getLdcCurrent, getLdcCurrentDR2, getLdcWar }

@@ -42,14 +42,17 @@ async function sendMessagingPanel(client) {
     )
     .setTimestamp()
 
-  const row = new ActionRowBuilder().addComponents(
+  const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('msg_rappel_guerre').setLabel('⚔️ Rappel Guerre').setStyle(ButtonStyle.Danger),
     new ButtonBuilder().setCustomId('msg_rappel_raid').setLabel('💎 Rappel Raid').setStyle(ButtonStyle.Primary),
+    new ButtonBuilder().setCustomId('messaging_jdc_reminder').setLabel('🎮 Rappel JDC').setStyle(ButtonStyle.Success),
+  )
+  const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('msg_custom').setLabel('✏️ Message personnalisé').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('msg_global').setLabel('📢 Message global').setStyle(ButtonStyle.Danger),
   )
 
-  const msg = await channel.send({ embeds: [embed], components: [row] })
+  const msg = await channel.send({ embeds: [embed], components: [row1, row2] })
   await supabase.from('bot_config').upsert({ key: 'messaging_panel_id', value: msg.id, updated_at: new Date().toISOString() })
   return msg
 }
