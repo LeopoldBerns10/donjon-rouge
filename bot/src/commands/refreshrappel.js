@@ -52,27 +52,38 @@ module.exports = {
 
           const rappelChannel = await client.channels.fetch(JDC_RAPPEL_CHANNEL).catch(() => null)
           if (rappelChannel) {
-            const buildMentions = async members => {
-              const tags = members.map(m => m.tag)
-              const { data } = await supabase.from('discord_links').select('discord_id, coc_tag').in('coc_tag', tags)
-              const map = Object.fromEntries((data || []).map(r => [r.coc_tag, r.discord_id]))
-              return members.map(m => map[m.tag] ? `<@${map[m.tag]}>` : m.name).join(' ')
-            }
+            // Lookup Discord IDs en une seule requête pour tous les membres
+            const allTags = allUnder.map(m => m.tag)
+            const { data: links } = await supabase.from('discord_links').select('discord_id, coc_tag').in('coc_tag', allTags)
+            const discordMap = Object.fromEntries((links || []).map(r => [r.coc_tag, r.discord_id]))
 
+            const mention = m => discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
+            const fmtPts  = n => n.toLocaleString('fr-FR')
+            const chunk   = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size))
+            const autoDelete = msg => setTimeout(() => msg.delete().catch(() => {}), TWO_HOURS)
+
+            // ── Groupe 0 pt ──────────────────────────────────────────────────
             if (zero.length > 0) {
-              const mentions = await buildMentions(zero)
-              const msg = await rappelChannel.send(
-                `🎮 ${mentions} — Jeux de Clan en cours ! Vous n'avez pas encore participé. Objectif DR : 5 000 pts minimum 🎯`
-              )
-              setTimeout(() => msg.delete().catch(() => {}), TWO_HOURS)
+              const lines  = zero.map(m => mention(m))
+              const chunks = chunk(lines, 10)
+              for (let i = 0; i < chunks.length; i++) {
+                const header = i === 0
+                  ? `🎮 Jeux de Clan en cours — **${zero.length} membre${zero.length > 1 ? 's' : ''} n'ont pas encore participé**\nObjectif DR : 5 000 pts minimum 🎯\n`
+                  : `🎮 *(suite ${i + 1}/${chunks.length})*\n`
+                autoDelete(await rappelChannel.send(header + chunks[i].join('\n')))
+              }
             }
 
+            // ── Groupe en cours (1–4 999 pts) ────────────────────────────────
             if (partial.length > 0) {
-              const mentions = await buildMentions(partial)
-              const msg = await rappelChannel.send(
-                `🎮 ${mentions} — Tu es en bonne voie mais l'objectif DR est 5 000 pts ! 🔥`
-              )
-              setTimeout(() => msg.delete().catch(() => {}), TWO_HOURS)
+              const lines  = partial.map(m => `${mention(m)} — ${fmtPts(m.points)} pts`)
+              const chunks = chunk(lines, 10)
+              for (let i = 0; i < chunks.length; i++) {
+                const header = i === 0
+                  ? `🔥 En bonne voie, mais l'objectif DR est 5 000 pts !\n`
+                  : `🔥 *(suite ${i + 1}/${chunks.length})*\n`
+                autoDelete(await rappelChannel.send(header + chunks[i].join('\n')))
+              }
             }
           }
         } catch (e) {
