@@ -426,44 +426,49 @@ async function checkJdcReminders(client) {
   const today = new Date(now + 2 * 3600000).toISOString().slice(0, 10)
   if (sentJdcReminders.has(today)) return
 
-  const channel  = await client.channels.fetch(JDC_REMINDER_CHANNEL).catch(() => null)
+  const channel = await client.channels.fetch(JDC_REMINDER_CHANNEL).catch(() => null)
   if (!channel) return
 
   const daysLeft = Math.max(1, Math.ceil((end - now) / 86400000))
 
-  for (const clan of CLANS) {
-    try {
-      const members = await fetchClanMembersWithPoints(clan.key, season)
-      const zero    = members.filter(m => m.points === 0)
-      const partial = members.filter(m => m.points > 0 && m.points < INDIVIDUAL_DR_THRESHOLD)
+  try {
+    const allUnder = await fetchJdcMembersUnder5000()
+    const zero     = allUnder.filter(m => m.points === 0)
+    const partial  = allUnder.filter(m => m.points > 0)
 
-      if (zero.length > 0) {
-        const tags = zero.map(m => m.tag)
-        const { data } = await supabase.from('discord_links').select('discord_id, coc_tag').in('coc_tag', tags)
-        const discordMap = Object.fromEntries((data || []).map(r => [r.coc_tag, r.discord_id]))
-        const mentions   = zero.map(m => discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name).join(' ')
-        const msg = await channel.send(
-          `⚔️ ${mentions} — Jeux de Clan en cours !\nVous n'avez pas encore participé. Il reste **${daysLeft} jour(s)** !\nObjectif DR : **5 000 pts** minimum 🎯`
-        )
-        setTimeout(() => msg.delete().catch(() => {}), 2 * 60 * 60 * 1000)
-      }
+    const allTags = allUnder.map(m => m.tag)
+    const { data: links } = await supabase.from('discord_links').select('discord_id, coc_tag').in('coc_tag', allTags)
+    const discordMap = Object.fromEntries((links || []).map(r => [r.coc_tag, r.discord_id]))
 
-      if (partial.length > 0) {
-        const tags = partial.map(m => m.tag)
-        const { data } = await supabase.from('discord_links').select('discord_id, coc_tag').in('coc_tag', tags)
-        const discordMap = Object.fromEntries((data || []).map(r => [r.coc_tag, r.discord_id]))
-        const lines = partial.map(m => {
-          const mention = discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
-          return `${mention} (${m.points} pts)`
-        }).join(', ')
-        const msg = await channel.send(
-          `⚠️ ${lines}\nVous êtes en cours mais pas encore à l'objectif DR (**5 000 pts**). Il reste **${daysLeft} jour(s)** ! 🔥`
-        )
-        setTimeout(() => msg.delete().catch(() => {}), 2 * 60 * 60 * 1000)
+    const mention    = m => discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
+    const fmtPts     = n => n.toLocaleString('fr-FR')
+    const chunk      = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size))
+    const TWO_HOURS  = 2 * 60 * 60 * 1000
+    const autoDelete = msg => setTimeout(() => msg.delete().catch(() => {}), TWO_HOURS)
+
+    if (zero.length > 0) {
+      const lines  = zero.map(m => mention(m))
+      const chunks = chunk(lines, 10)
+      for (let i = 0; i < chunks.length; i++) {
+        const header = i === 0
+          ? `⚔️ Jeux de Clan en cours — **${zero.length} membre${zero.length > 1 ? 's' : ''} n'ont pas encore participé**\nIl reste **${daysLeft} jour${daysLeft > 1 ? 's' : ''}** ! Objectif DR : 5 000 pts minimum 🎯\n`
+          : `⚔️ *(suite ${i + 1}/${chunks.length})*\n`
+        autoDelete(await channel.send(header + chunks[i].join('\n')))
       }
-    } catch (e) {
-      console.error(`[JDC] checkJdcReminders ${clan.key}:`, e)
     }
+
+    if (partial.length > 0) {
+      const lines  = partial.map(m => `${mention(m)} — ${fmtPts(m.points)} pts`)
+      const chunks = chunk(lines, 10)
+      for (let i = 0; i < chunks.length; i++) {
+        const header = i === 0
+          ? `⚠️ En bonne voie, mais l'objectif DR est 5 000 pts ! Il reste **${daysLeft} jour${daysLeft > 1 ? 's' : ''}** 🔥\n`
+          : `⚠️ *(suite ${i + 1}/${chunks.length})*\n`
+        autoDelete(await channel.send(header + chunks[i].join('\n')))
+      }
+    }
+  } catch (e) {
+    console.error('[JDC] checkJdcReminders:', e)
   }
 
   sentJdcReminders.add(today)
