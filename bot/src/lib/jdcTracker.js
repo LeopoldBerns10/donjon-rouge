@@ -184,9 +184,12 @@ function buildUnifiedJdcEmbed(members, startStr, endStr) {
   const nextLabel    = next    ? `🔄 ${next.label} (${next.points.toLocaleString()})` : '🏆 MAX atteint'
   const bar          = progressBar(totalPoints, progressMax)
 
-  const rankLines = members.map((m, i) => {
+  const active  = members.filter(m => m.points > 0)
+  const zeroes  = members.length - active.length
+
+  const allRankLines = active.map((m, i) => {
     const rank = String(i + 1).padStart(2, ' ')
-    const name = m.name.slice(0, 20).padEnd(20, ' ')
+    const name = m.name.replace(/[\r\n\t`]/g, '').slice(0, 20).padEnd(20, ' ')
     const pts  = String(m.points).padStart(5, ' ')
     return `${rank}. ${name} ${pts}   ${memberStatus(m.points)}`
   })
@@ -195,28 +198,81 @@ function buildUnifiedJdcEmbed(members, startStr, endStr) {
   const above4000 = members.filter(m => m.points >= INDIVIDUAL_BONUS_THRESHOLD).length
   const now       = Math.floor(Date.now() / 1000)
 
-  const description = [
-    `📅 Du ${fmtDate(startStr)} au ${fmtDate(endStr)} • Mise à jour <t:${now}:R>`,
-    '',
-    SEP,
-    '**PROGRESSION GLOBALE (DR1 + DR2)**',
-    `Points : **${totalPoints.toLocaleString()} / ${progressMax.toLocaleString()} pts**`,
-    `Palier actuel : ${currentLabel} → ${nextLabel}`,
-    bar,
-    SEP,
-    '```',
-    'CLASSEMENT MEMBRES         PTS   STATUT',
-    rankLines.join('\n').slice(0, 1400),
-    '```',
-    SEP,
-    `Total : **${totalPoints.toLocaleString()} pts** • Membres : ${members.length}`,
-    `Membres ≥ 5 000 pts (règlement DR) : **${above5000}/${members.length}**`,
-    `Membres ≥ 4 000 pts (bonus) : **${above4000}/${members.length}**`,
-  ].join('\n')
+  // Construit la description complète avec N lignes visibles et M actifs cachés.
+  // Appelé en boucle pour ajuster jusqu'à tenir dans 4096 caractères.
+  const buildDescription = (shownLines, hiddenActive) => {
+    const summaryLines = []
+    if (hiddenActive > 0) {
+      summaryLines.push(`+ ${hiddenActive} membre${hiddenActive > 1 ? 's' : ''} supplémentaire${hiddenActive > 1 ? 's' : ''}`)
+    }
+    if (zeroes > 0) {
+      summaryLines.push(`• ${zeroes} membre${zeroes > 1 ? 's n\'ont' : ' n\'a'} pas encore participé`)
+    }
+    return [
+      `📅 Du ${fmtDate(startStr)} au ${fmtDate(endStr)} • Mise à jour <t:${now}:R>`,
+      '',
+      SEP,
+      '**PROGRESSION GLOBALE (DR1 + DR2)**',
+      `Points : **${totalPoints.toLocaleString()} / ${progressMax.toLocaleString()} pts**`,
+      `Palier actuel : ${currentLabel} → ${nextLabel}`,
+      bar,
+      SEP,
+      '```',
+      'CLASSEMENT MEMBRES         PTS   STATUT',
+      ...shownLines,
+      ...summaryLines,
+      '```',
+      SEP,
+      `Total : **${totalPoints.toLocaleString()} pts** • Membres : ${members.length}`,
+      `Membres ≥ 5 000 pts (règlement DR) : **${above5000}/${members.length}**`,
+      `Membres ≥ 4 000 pts (bonus) : **${above4000}/${members.length}**`,
+    ].join('\n')
+  }
+
+  // Retirer une ligne à la fois jusqu'à tenir dans 4096 caractères
+  let shown = allRankLines.length
+  let desc  = buildDescription(allRankLines, 0)
+  while (desc.length > 4096 && shown > 0) {
+    shown--
+    desc = buildDescription(allRankLines.slice(0, shown), active.length - shown)
+  }
 
   return new EmbedBuilder()
     .setColor(0x8B0000)
     .setTitle('⚔️ JEUX DE CLAN — DONJON ROUGE')
+    .setDescription(desc)
+    .setTimestamp()
+}
+
+// ─── Embed absents ───────────────────────────────────────────────────────────
+
+function buildAbsentEmbed(members, startStr, endStr) {
+  const absent = members.filter(m => m.points === 0)
+
+  const fmtDate = iso => {
+    if (!iso) return '?'
+    const d = new Date(iso)
+    return `${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+  }
+
+  let body
+  if (absent.length === 0) {
+    body = '✅ Tous les membres ont participé !'
+  } else {
+    body = absent.map(m => `• ${m.name.replace(/[\r\n\t`]/g, '')}`).join('\n')
+  }
+
+  const description = [
+    `📅 Du ${fmtDate(startStr)} au ${fmtDate(endStr)}`,
+    '',
+    body,
+    '',
+    `**${absent.length} membre${absent.length !== 1 ? 's' : ''} sans participation**`,
+  ].join('\n')
+
+  return new EmbedBuilder()
+    .setColor(0x2C2F33)
+    .setTitle('⏳ MEMBRES JDC PAS COMMENCÉ — DONJON ROUGE')
     .setDescription(description.slice(0, 4096))
     .setTimestamp()
 }
@@ -240,8 +296,9 @@ async function handleJdcRefresh(interaction) {
   }
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
-  jdcMsgCache['jdc_embed_all_id'] = null
-  await supabase.from('bot_config').delete().eq('key', 'jdc_embed_all_id')
+  jdcMsgCache['jdc_embed_all_id']    = null
+  jdcMsgCache['jdc_embed_absent_id'] = null
+  await supabase.from('bot_config').delete().in('key', ['jdc_embed_all_id', 'jdc_embed_absent_id'])
 
   await flushCocCache()
   await updateJdcEmbeds(interaction.client)
@@ -252,8 +309,8 @@ async function handleJdcRefresh(interaction) {
 
 const jdcMsgCache = {}
 
-async function ensureJdcMessage(channel, key, embed) {
-  const components = [buildJdcRefreshRow()]
+async function ensureJdcMessage(channel, key, embed, withButton = true) {
+  const components = withButton ? [buildJdcRefreshRow()] : []
   const cachedId = jdcMsgCache[key]
   if (cachedId) {
     try {
@@ -315,9 +372,11 @@ async function updateJdcEmbeds(client) {
   await flushPlayersCache()
 
   try {
-    const members = await fetchAllMembersWithPoints(season)
-    const embed   = buildUnifiedJdcEmbed(members, startStr, endStr)
-    await ensureJdcMessage(channel, 'jdc_embed_all_id', embed)
+    const members     = await fetchAllMembersWithPoints(season)
+    const embed       = buildUnifiedJdcEmbed(members, startStr, endStr)
+    const absentEmbed = buildAbsentEmbed(members, startStr, endStr)
+    await ensureJdcMessage(channel, 'jdc_embed_all_id',    embed)
+    await ensureJdcMessage(channel, 'jdc_embed_absent_id', absentEmbed, false)
   } catch (e) {
     console.error('[JDC] updateJdcEmbeds:', e)
   }
@@ -466,8 +525,9 @@ async function checkJdcEnd(client) {
   await setConfig(`jdc_archived_${season}`, 'true')
   await setConfig('jdc_active', 'false')
 
-  jdcMsgCache['jdc_embed_all_id'] = null
-  await supabase.from('bot_config').delete().eq('key', 'jdc_embed_all_id')
+  jdcMsgCache['jdc_embed_all_id']    = null
+  jdcMsgCache['jdc_embed_absent_id'] = null
+  await supabase.from('bot_config').delete().in('key', ['jdc_embed_all_id', 'jdc_embed_absent_id'])
 
   console.log(`[JDC] Événement terminé — archivé pour la saison ${season}`)
 }

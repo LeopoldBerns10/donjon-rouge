@@ -1,16 +1,13 @@
 require('dotenv').config()
 const supabase = require('../supabase.js')
-const { getPlayer, extractClanGamePoints } = require('../cocApi.js')
+const { getPlayer, extractClanGamePoints, getClanMembersDR2 } = require('../cocApi.js')
 
 const SEASON = '2026-06'
 const sleep  = ms => new Promise(r => setTimeout(r, ms))
 
-// Points gagnés pendant le JDC 2026-06, identifiés par tag exact (API CoC).
-// baseline = extractClanGamePoints(joueur) - known
-// Pour les membres dans DR1 ET DR2 (même tag), on prend le MAX des deux entrées.
-// Note : Ayreon (#R8QCP2VUU) — 0 pts connus JDC, baseline = valeur actuelle Games Champion.
-const KNOWN_RAW = [
-  // ── DR1 ──
+// ── DR1 — tags vérifiés via debugBaselines.js ──────────────────────────────
+// Pour les membres cross-clan (DR1+DR2), la valeur known est déjà le MAX(DR1, DR2).
+const KNOWN_DR1 = [
   { tag: '#YQCULYQ90', known: 10050 }, // CyberAlf
   { tag: '#GPJG9LJCR', known: 5000  }, // Peklenc
   { tag: '#YL2GVUVLC', known: 3350  }, // KD2L
@@ -27,7 +24,7 @@ const KNOWN_RAW = [
   { tag: '#2VR220C8',  known: 10000 }, // Didousse
   { tag: '#YCU2VC9VR', known: 0     }, // LEGENDASTRONO
   { tag: '#G9V9C9088', known: 0     }, // San Andreas
-  { tag: '#P22QJVVJY', known: 0     }, // youles (DR1)
+  { tag: '#P22QJVVJY', known: 5000  }, // youles     — max(DR1=0, DR2=5000)
   { tag: '#J2222JCU',  known: 5300  }, // OryxBattel
   { tag: '#QGQRPG9LR', known: 0     }, // un mec qui te b
   { tag: '#P9RLU8QGG', known: 10050 }, // le gg
@@ -41,63 +38,80 @@ const KNOWN_RAW = [
   { tag: '#9YVP0YV',   known: 5800  }, // Cénation
   { tag: '#VUVJVGPY',  known: 300   }, // Starbowtix
   { tag: '#GQPG08YRV', known: 0     }, // Joker
-  { tag: '#GV02R22CG', known: 10050 }, // Theman6 (DR1)
+  { tag: '#GV02R22CG', known: 10050 }, // Theman6    — DR1=DR2=10050
   { tag: '#GUYP0CPQC', known: 10250 }, // zaabdel
-  { tag: '#2QJG0CLVC', known: 5000  }, // ●Savior● (DR1)
+  { tag: '#2QJG0CLVC', known: 5000  }, // ●Savior●   — DR1=DR2=5000
   { tag: '#2UU9CJRL',  known: 0     }, // egane54
   { tag: '#GJV8QG9JL', known: 0     }, // tourtasse
   { tag: '#G9G2L992Y', known: 0     }, // RAPHAËL
   { tag: '#LVLYUC2QG', known: 2150  }, // YOULES2RUSH
   { tag: '#YUQ9UUYV9', known: 5100  }, // 404_mike
-  { tag: '#2J2Q8R2R9', known: 0     }, // Inglo_D (DR1)
+  { tag: '#2J2Q8R2R9', known: 6500  }, // Inglo_D    — max(DR1=0, DR2=6500)
   { tag: '#GJP29P8JG', known: 0     }, // KD2L 3rd
-  { tag: '#QJJQGC2QC', known: 300   }, // VORTEX (DR1)
-  { tag: '#QPPUVJQGL', known: 5450  }, // RotatoR™ (DR1)
-  // ── DR2 — membres pas déjà dans DR1, ou avec un known plus élevé ──
-  { tag: '#YCU8QROXL', known: 800   }, // ꧁ORYX꧂
-  { tag: '#2CP089GL0', known: 10000 }, // Dina_Malefika
-  { tag: '#GV02R22CG', known: 10050 }, // Theman6 (DR2 — même tag, même known)
-  { tag: '#QPPUVJQGL', known: 5450  }, // RotatoR™ (DR2 — même tag)
-  { tag: '#P22QJVVJY', known: 5000  }, // youles (DR2 — known plus élevé : 0→5000)
-  { tag: '#2J2Q8R2R9', known: 6500  }, // Inglo_D (DR2 — known plus élevé : 0→6500)
-  { tag: '#QJJQGC2QC', known: 5450  }, // VORTEX (DR2 — known plus élevé : 300→5450)
-  { tag: '#2QJG0CLVC', known: 5000  }, // ●Savior● (DR2 — même known)
-  { tag: '#R8QCP2VUU', known: 0     }, // Ayreon — 0 pts JDC connus, baseline = actuel
-  { tag: '#GG9YPJ999', known: 10100 }, // Jiraqix
-  { tag: '#9YJVV2GLP', known: 3200  }, // carla
-  { tag: '#YU9LVPQ2R', known: 5050  }, // DrayZ-2
-  { tag: '#GJUP29YLP', known: 400   }, // KD2L 2nd
-  { tag: '#2RCPJVULP', known: 2100  }, // Judo Range
+  { tag: '#QJJQGC2QC', known: 5450  }, // VORTEX     — max(DR1=300, DR2=5450)
+  { tag: '#QPPUVJQGL', known: 5450  }, // RotatoR™   — DR1=DR2=5450
 ]
 
-// Déduplique par tag en prenant le MAX des points connus
-function buildKnownMap(raw) {
-  const map = {}
-  for (const { tag, known } of raw) {
-    map[tag] = Math.max(map[tag] ?? 0, known)
-  }
-  return map
+// ── DR2-only — known par nom exact (tags récupérés dynamiquement via getClanMembersDR2) ──
+// Ne pas lister ici les membres déjà dans KNOWN_DR1 (ils seront ignorés par déduplication).
+const DR2_KNOWN_BY_NAME = {
+  '꧁ORYX꧂':       800,
+  'Dina_Malefika': 10000,
+  'Ayreon':        0,
+  'Jiraqix':       10100,
+  'carla':         3200,
+  'DrayZ-2':       5050,
+  'KD2L 2nd':      400,
+  'Judo Range':    2100,
 }
 
 ;(async () => {
-  const knownMap = buildKnownMap(KNOWN_RAW)
+  // ── Construire la map DR1 ──
+  const knownMap = {}
+  for (const { tag, known } of KNOWN_DR1) {
+    knownMap[tag] = Math.max(knownMap[tag] ?? 0, known)
+  }
+
+  // ── Récupérer les membres DR2 via l'API ──
+  console.log('[resetBaselinesFix] Récupération des membres DR2...')
+  let dr2Members = []
+  try {
+    const raw = await getClanMembersDR2()
+    dr2Members = raw?.items ?? (Array.isArray(raw) ? raw : [])
+    console.log(`  ✓ ${dr2Members.length} membres DR2 récupérés`)
+  } catch (e) {
+    console.error('  ✗ Impossible de récupérer DR2 :', e.message)
+    process.exit(1)
+  }
+
+  // ── Ajouter les membres DR2 non déjà présents dans DR1 ──
+  for (const m of dr2Members) {
+    if (knownMap[m.tag] !== undefined) continue // déjà traité via DR1
+    const known = DR2_KNOWN_BY_NAME[m.name] ?? 0
+    if (!(m.name in DR2_KNOWN_BY_NAME)) {
+      console.warn(`  ⚠  DR2 membre absent de DR2_KNOWN_BY_NAME : "${m.name}" (${m.tag}) → known=0`)
+    }
+    knownMap[m.tag] = known
+  }
+
   const tags = Object.keys(knownMap)
+  console.log(`\n[resetBaselinesFix] Saison ${SEASON} — ${tags.length} joueurs uniques (${KNOWN_DR1.length} DR1 + ${tags.length - KNOWN_DR1.length} DR2-only)`)
 
-  console.log(`[resetBaselinesFix] Saison ${SEASON} — ${tags.length} joueurs uniques`)
+  // ── Suppression globale pour cette saison ──
   console.log('[resetBaselinesFix] Suppression des baselines existantes...')
-
   const { error: delErr } = await supabase
     .from('jdc_baselines')
     .delete()
     .eq('season', SEASON)
     .in('player_tag', tags)
   if (delErr) {
-    console.error('[resetBaselinesFix] DELETE échoué :', delErr.message)
+    console.error('[resetBaselinesFix] DELETE global échoué :', delErr.message)
     process.exit(1)
   }
-  console.log('  ✓ Baselines supprimées')
+  console.log('  ✓ Baselines supprimées\n')
 
-  let ok = 0, errors = 0
+  let ok = 0
+  const failedTags = []
 
   for (const tag of tags) {
     const known = knownMap[tag]
@@ -106,25 +120,39 @@ function buildKnownMap(raw) {
       const current  = extractClanGamePoints(player)
       const baseline = Math.max(0, current - known)
 
-      await supabase.from('jdc_baselines').upsert(
-        { player_tag: tag, season: SEASON, baseline_value: baseline },
-        { onConflict: 'player_tag,season' }
-      )
+      // Suppression individuelle (sécurité si re-run partiel)
+      const { error: delOneErr } = await supabase
+        .from('jdc_baselines')
+        .delete()
+        .eq('season', SEASON)
+        .eq('player_tag', tag)
+      if (delOneErr) throw new Error(`DELETE individuel : ${delOneErr.message} (code ${delOneErr.code})`)
+
+      // INSERT pur (pas d'upsert — on vient de DELETE, pas de conflit possible)
+      const { error: insErr } = await supabase
+        .from('jdc_baselines')
+        .insert({ player_tag: tag, clan_tag: 'all', season: SEASON, baseline_value: baseline })
+      if (insErr) throw new Error(`INSERT : ${insErr.message} (code ${insErr.code}, hint: ${insErr.hint ?? '-'})`)
 
       const name = player.name ?? tag
       console.log(
-        `  ✓  ${name.slice(0, 22).padEnd(23)} current=${String(current).padStart(7)}` +
-        `  known=${String(known).padStart(6)}  → baseline=${baseline}`
+        `  ✓  ${name.slice(0, 22).padEnd(23)} tag=${tag.padEnd(12)}` +
+        `  current=${String(current).padStart(7)}  known=${String(known).padStart(6)}  → baseline=${baseline}`
       )
       ok++
     } catch (e) {
-      console.error(`  ✗  ${tag}:`, e.message)
-      errors++
+      console.error(`  ✗  ERREUR tag=${tag}  known=${known}`)
+      console.error(`       ${e.message}`)
+      failedTags.push(tag)
     }
 
     await sleep(200)
   }
 
-  console.log(`\n[resetBaselinesFix] Terminé — ${ok} mis à jour, ${errors} erreurs`)
-  process.exit(0)
+  console.log(`\n[resetBaselinesFix] Terminé — ${ok} insérés, ${failedTags.length} erreurs`)
+  if (failedTags.length > 0) {
+    console.error('\n[resetBaselinesFix] Tags en erreur :')
+    for (const t of failedTags) console.error(`  - ${t}  (known=${knownMap[t]})`)
+  }
+  process.exit(failedTags.length > 0 ? 1 : 0)
 })()

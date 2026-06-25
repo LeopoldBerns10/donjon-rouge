@@ -1,53 +1,67 @@
 require('dotenv').config()
 const { Client, GatewayIntentBits } = require('discord.js')
 const { updateJdcEmbeds } = require('../lib/jdcTracker.js')
-const { getClanMembers, getPlayer, extractClanGamePoints } = require('../cocApi.js')
 const supabase = require('../supabase.js')
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
 
+// JDC Clash of Clans : du 22 au 28 du mois courant à 08:00 UTC
+function currentJdcDates() {
+  const now = new Date()
+  const y   = now.getUTCFullYear()
+  const m   = now.getUTCMonth()
+  return {
+    start: new Date(Date.UTC(y, m, 22, 8, 0, 0)).toISOString(),
+    end:   new Date(Date.UTC(y, m, 28, 8, 0, 0)).toISOString(),
+  }
+}
+
 client.once('ready', async () => {
   console.log(`[startJdc] Connecté en tant que ${client.user.tag}`)
 
-  try {
-    await supabase.from('bot_config')
-      .delete()
-      .in('key', ['jdc_embed_dr1_id', 'jdc_embed_dr2_id'])
-    console.log('[startJdc] Anciens messages embed supprimés de bot_config.')
-  } catch (err) {
-    console.error('[startJdc] Erreur suppression bot_config :', err.message)
+  // ── 1. Lire l'état actuel de bot_config ─────────────────────────────────
+  const { data: rows, error: fetchErr } = await supabase
+    .from('bot_config')
+    .select('key, value')
+    .in('key', ['jdc_active', 'jdc_start', 'jdc_end'])
+
+  if (fetchErr) {
+    console.error('[startJdc] Lecture bot_config échouée :', fetchErr.message)
+    await client.destroy()
+    process.exit(1)
   }
 
-  // --- DEBUG baselines DR1 ---
-  try {
-    const raw     = await getClanMembers()
-    const members = (raw?.items ?? (Array.isArray(raw) ? raw : [])).slice(0, 3)
-    const tags    = members.map(m => m.tag)
+  const cfg = Object.fromEntries((rows ?? []).map(r => [r.key, r.value]))
 
-    const { data: baselines } = await supabase
-      .from('jdc_baselines')
-      .select('player_tag, baseline_value')
-      .eq('season', '2026-06')
-      .eq('clan_tag', '#29292QPRC')
-      .in('player_tag', tags)
+  // ── 2. Upsert uniquement les clés absentes ───────────────────────────────
+  const { start, end } = currentJdcDates()
+  const toUpsert = []
 
-    const baselineMap = Object.fromEntries((baselines || []).map(b => [b.player_tag, b.baseline_value]))
+  if (!cfg['jdc_active']) toUpsert.push({ key: 'jdc_active', value: 'true' })
+  if (!cfg['jdc_start'])  toUpsert.push({ key: 'jdc_start',  value: start })
+  if (!cfg['jdc_end'])    toUpsert.push({ key: 'jdc_end',    value: end })
 
-    for (const m of members) {
-      const player  = await getPlayer(m.tag)
-      const current = extractClanGamePoints(player)
-      const base    = baselineMap[m.tag] ?? 'ABSENT'
-      const delta   = base === 'ABSENT' ? '?' : current - base
-      console.log(`[DEBUG] ${m.tag} | current=${current} | baseline=${base} | delta=${delta}`)
+  if (toUpsert.length > 0) {
+    const { error: upsertErr } = await supabase
+      .from('bot_config')
+      .upsert(toUpsert, { onConflict: 'key' })
+    if (upsertErr) {
+      console.error('[startJdc] Écriture bot_config échouée :', upsertErr.message)
+      await client.destroy()
+      process.exit(1)
     }
-  } catch (err) {
-    console.error('[DEBUG] baselines DR1 :', err.message)
+    for (const r of toUpsert) console.log(`  ✓ bot_config.${r.key} = ${r.value}`)
+  } else {
+    console.log('[startJdc] bot_config déjà configuré — aucune modification.')
+    console.log(`  jdc_active = ${cfg['jdc_active']}`)
+    console.log(`  jdc_start  = ${cfg['jdc_start']}`)
+    console.log(`  jdc_end    = ${cfg['jdc_end']}`)
   }
-  // --- FIN DEBUG ---
 
+  // ── 3. Créer / mettre à jour l'embed unifié ──────────────────────────────
   try {
     await updateJdcEmbeds(client)
-    console.log('[startJdc] Embeds recréés avec succès.')
+    console.log('[startJdc] Embed JDC créé avec succès.')
   } catch (err) {
     console.error('[startJdc] Erreur updateJdcEmbeds :', err)
   }
