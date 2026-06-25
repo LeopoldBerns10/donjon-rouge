@@ -1,6 +1,7 @@
 require('dotenv').config()
 const { Client, GatewayIntentBits } = require('discord.js')
 const { updateJdcEmbeds } = require('../lib/jdcTracker.js')
+const { JDC_TRACKING_CHANNEL } = require('../config/jdcConfig.js')
 const supabase = require('../supabase.js')
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] })
@@ -58,10 +59,32 @@ client.once('ready', async () => {
     console.log(`  jdc_end    = ${cfg['jdc_end']}`)
   }
 
-  // ── 3. Créer / mettre à jour l'embed unifié ──────────────────────────────
+  // ── 3. Supprimer les anciens messages Discord ────────────────────────────
+  const EMBED_KEYS = ['jdc_embed_all_id', 'jdc_embed_absent_id']
+  const { data: embedRows } = await supabase
+    .from('bot_config').select('key, value').in('key', EMBED_KEYS)
+  const embedIds = Object.fromEntries((embedRows ?? []).map(r => [r.key, r.value]))
+
+  const channel = await client.channels.fetch(JDC_TRACKING_CHANNEL).catch(() => null)
+  for (const key of EMBED_KEYS) {
+    const id = embedIds[key]
+    if (id && channel) {
+      try {
+        const msg = await channel.messages.fetch(id)
+        await msg.delete()
+        console.log(`  ✓ Message ${key} supprimé (${id})`)
+      } catch { console.log(`  — Message ${key} déjà absent ou introuvable`) }
+    }
+  }
+  if (embedRows?.length) {
+    await supabase.from('bot_config').delete().in('key', EMBED_KEYS)
+    console.log('  ✓ Entrées bot_config embed supprimées')
+  }
+
+  // ── 4. Créer les embeds ──────────────────────────────────────────────────
   try {
     await updateJdcEmbeds(client)
-    console.log('[startJdc] Embed JDC créé avec succès.')
+    console.log('[startJdc] Embeds JDC créés avec succès.')
   } catch (err) {
     console.error('[startJdc] Erreur updateJdcEmbeds :', err)
   }

@@ -296,8 +296,19 @@ async function handleJdcRefresh(interaction) {
   }
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
-  jdcMsgCache['jdc_embed_all_id']    = null
-  jdcMsgCache['jdc_embed_absent_id'] = null
+  const channel = await interaction.client.channels.fetch(JDC_TRACKING_CHANNEL).catch(() => null)
+
+  // Supprimer les anciens messages Discord avant de recréer
+  for (const key of ['jdc_embed_all_id', 'jdc_embed_absent_id']) {
+    const id = jdcMsgCache[key] ?? (await getConfig(key))
+    if (id && channel) {
+      try {
+        const msg = await channel.messages.fetch(id)
+        await msg.delete()
+      } catch { /* message déjà supprimé ou introuvable */ }
+    }
+    jdcMsgCache[key] = null
+  }
   await supabase.from('bot_config').delete().in('key', ['jdc_embed_all_id', 'jdc_embed_absent_id'])
 
   await flushCocCache()
