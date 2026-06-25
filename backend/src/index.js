@@ -19,6 +19,7 @@ import ldcBoardRoutes from './routes/ldcBoard.js'
 import adminRoutes from './routes/admin.js'
 import rouletteRoutes from './routes/roulette.js'
 import vitrineRoutes from './routes/vitrine.js'
+import cacheRoutes from './routes/cache.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -50,6 +51,7 @@ app.use('/api/ldc-board', ldcBoardRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/roulette', rouletteRoutes)
 app.use('/api/vitrine', vitrineRoutes)
+app.use('/api/cache', cacheRoutes)
 
 app.get('/api/debug/sync', async (req, res) => {
   const result = await syncMembers()

@@ -1,6 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('../supabase.js')
-const { getPlayer, getClanMembers, getClanMembersDR2, extractClanGamePoints } = require('../cocApi.js')
+const { getPlayer, getClanMembers, getClanMembersDR2, extractClanGamePoints, flushCocCache } = require('../cocApi.js')
 const {
   TIERS,
   INDIVIDUAL_BONUS_THRESHOLD,
@@ -203,6 +203,7 @@ async function handleJdcRefresh(interaction) {
     await supabase.from('bot_config').delete().eq('key', key)
   }
 
+  await flushCocCache()
   await updateJdcEmbeds(interaction.client)
   await interaction.editReply('✅ Embeds JDC actualisés.')
 }
@@ -248,6 +249,20 @@ async function ensureJdcMessage(channel, key, embed) {
   return msg
 }
 
+// ─── Flush cache joueurs backend ──────────────────────────────────────────────
+
+async function flushPlayersCache() {
+  try {
+    const res = await fetch(`${process.env.BACKEND_URL}/api/cache/flush/players`, {
+      method: 'POST',
+      headers: { 'x-bot-secret': process.env.BOT_SECRET ?? '' },
+    })
+    if (!res.ok) console.warn('[JDC] flushPlayersCache HTTP', res.status, await res.text())
+  } catch (e) {
+    console.warn('[JDC] flushPlayersCache:', e.message)
+  }
+}
+
 // ─── Mise à jour embeds live ──────────────────────────────────────────────────
 
 async function updateJdcEmbeds(client) {
@@ -256,6 +271,8 @@ async function updateJdcEmbeds(client) {
 
   const [startStr, endStr] = await Promise.all([getConfig('jdc_start'), getConfig('jdc_end')])
   const season = startStr ? startStr.slice(0, 7) : new Date().toISOString().slice(0, 7)
+
+  await flushPlayersCache()
 
   for (const clan of CLANS) {
     try {

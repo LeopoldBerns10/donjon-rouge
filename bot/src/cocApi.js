@@ -6,6 +6,18 @@ async function get(path) {
   return res.json()
 }
 
+async function flushCocCache() {
+  try {
+    const res = await fetch(`${BASE}/api/coc/cache/flush`, {
+      method: 'POST',
+      headers: { 'x-bot-secret': process.env.BOT_SECRET ?? '' },
+    })
+    if (!res.ok) console.warn('[JDC] flushCocCache HTTP', res.status, await res.text())
+  } catch (e) {
+    console.warn('[JDC] flushCocCache:', e.message)
+  }
+}
+
 const getClanInfo    = ()    => get('/clan')
 const getClanMembers    = ()    => get('/clan/members')
 const getClanMembersDR2 = ()    => get('/clan/dr2/members')
@@ -35,4 +47,4 @@ async function getPlayerClanGamePoints(playerTag) {
   return extractClanGamePoints(data)
 }
 
-module.exports = { getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer, getPlayerClanGamePoints, extractClanGamePoints, getLdcCurrent, getLdcCurrentDR2, getLdcWar }
+module.exports = { getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer, getPlayerClanGamePoints, extractClanGamePoints, getLdcCurrent, getLdcCurrentDR2, getLdcWar, flushCocCache }

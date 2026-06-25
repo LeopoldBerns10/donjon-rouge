@@ -4,6 +4,16 @@ const COC_CACHE_TTL = 60 * 60 * 1000 // 1 heure
 
 const memoryCache = new Map()
 
+export async function flushJdcCaches() {
+  for (const key of memoryCache.keys()) {
+    if (key.startsWith('player:') || key.startsWith('members:')) {
+      memoryCache.delete(key)
+    }
+  }
+  await supabase.from('coc_stats_cache').delete().like('coc_tag', 'player:%')
+  await supabase.from('coc_stats_cache').delete().like('coc_tag', 'members:%')
+}
+
 export async function getCached(key, fetchFn) {
   // 1. Cache mémoire (évite même les requêtes Supabase)
   const mem = memoryCache.get(key)
