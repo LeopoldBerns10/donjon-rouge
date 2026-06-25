@@ -778,7 +778,7 @@ async function handleModalPanelAdminAdd(interaction) {
 }
 
 async function handleAdminRefreshJdc(interaction) {
-  if (!(await isAdmin(interaction.user.id))) {
+  if (!(await isAdmin(interaction.member))) {
     return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
   }
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })

@@ -196,6 +196,13 @@ async function handleJdcRefresh(interaction) {
     return interaction.reply({ content: '❌ Accès réservé aux Chefs.', ephemeral: true })
   }
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+
+  for (const clan of CLANS) {
+    const key = `jdc_embed_${clan.key}_id`
+    jdcMsgCache[key] = null
+    await supabase.from('bot_config').delete().eq('key', key)
+  }
+
   await updateJdcEmbeds(interaction.client)
   await interaction.editReply('✅ Embeds JDC actualisés.')
 }

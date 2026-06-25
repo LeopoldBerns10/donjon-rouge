@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const { isAdmin } = require('../lib/isAdmin.js')
 const { REMINDER_CHANNEL_ID } = require('../config/reminders.js')
 const { updateReminderMessages, resetStatus } = require('../scheduler.js')
+const { updateJdcEmbeds } = require('../lib/jdcTracker.js')
 
 async function bulkDeleteAll(channel) {
   try { await channel.bulkDelete(100) } catch (e) {
@@ -29,6 +30,7 @@ module.exports = {
 
       await resetStatus()
       await updateReminderMessages(client)
+      await updateJdcEmbeds(client)
 
       await interaction.editReply('✅ Rappels réinitialisés')
     } catch (e) {
