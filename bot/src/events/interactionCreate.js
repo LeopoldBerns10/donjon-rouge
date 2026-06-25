@@ -46,9 +46,8 @@ const {
   handlePanelMsgVerification, handlePanelMsgReglement, handlePanelMsgReglementPublic,
   handlePanelMsgMonCompte, handlePanelMsgTickets,
   handleModalPanelReglement, handleModalPanelAdminAdd, handleModalPanelLier, handleModalPanelMsg,
-  handleAdminRefreshJdc,
 } = require('../lib/panelHandlers.js')
-const { handleJdcRefresh } = require('../lib/jdcTracker.js')
+const { handleJdcRefresh, handleJdcReminderRefresh } = require('../lib/jdcTracker.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { forceRefresh } = require('../scheduler.js')
@@ -672,7 +671,7 @@ const BUTTON_HANDLERS = {
   msg_custom_cancel:         handleMsgCustomCancel,
   msg_global:                handleMsgGlobal,
   jdc_refresh:               handleJdcRefresh,
-  admin_refresh_jdc:         handleAdminRefreshJdc,
+  jdc_reminder_refresh:      handleJdcReminderRefresh,
 }
 
 module.exports = {

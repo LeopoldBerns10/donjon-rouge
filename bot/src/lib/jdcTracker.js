@@ -290,6 +290,15 @@ function buildJdcRefreshRow() {
   )
 }
 
+function buildJdcReminderRefreshRow() {
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId('jdc_reminder_refresh')
+      .setLabel('🎮 Actualiser rappels JDC')
+      .setStyle(ButtonStyle.Primary)
+  )
+}
+
 async function handleJdcRefresh(interaction) {
   if (!interaction.member.roles.cache.has(CHEF_ROLE_ID)) {
     return interaction.reply({ content: '❌ Accès réservé aux Chefs.', ephemeral: true })
@@ -320,8 +329,8 @@ async function handleJdcRefresh(interaction) {
 
 const jdcMsgCache = {}
 
-async function ensureJdcMessage(channel, key, embed, withButton = true) {
-  const components = withButton ? [buildJdcRefreshRow()] : []
+async function ensureJdcMessage(channel, key, embed, buttonRows = null) {
+  const components = buttonRows ?? [buildJdcRefreshRow()]
   const cachedId = jdcMsgCache[key]
   if (cachedId) {
     try {
@@ -387,7 +396,7 @@ async function updateJdcEmbeds(client) {
     const embed       = buildUnifiedJdcEmbed(members, startStr, endStr)
     const absentEmbed = buildAbsentEmbed(members, startStr, endStr)
     await ensureJdcMessage(channel, 'jdc_embed_all_id',    embed)
-    await ensureJdcMessage(channel, 'jdc_embed_absent_id', absentEmbed, false)
+    await ensureJdcMessage(channel, 'jdc_embed_absent_id', absentEmbed, [])
   } catch (e) {
     console.error('[JDC] updateJdcEmbeds:', e)
   }
@@ -611,6 +620,65 @@ async function startJdcTracking(client) {
   console.log('[JDC] Embeds DR1 et DR2 postés/mis à jour.')
 }
 
+// ─── Bouton Actualiser rappels JDC ───────────────────────────────────────────
+
+async function handleJdcReminderRefresh(interaction) {
+  if (!interaction.member.roles.cache.has(CHEF_ROLE_ID)) {
+    return interaction.reply({ content: '❌ Accès réservé aux Chefs.', ephemeral: true })
+  }
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+
+  const channel = await interaction.client.channels.fetch(JDC_REMINDER_CHANNEL).catch(() => null)
+  if (!channel) return interaction.editReply('❌ Salon introuvable.')
+
+  try {
+    const allUnder = await fetchJdcMembersUnder5000()
+    const zero     = allUnder.filter(m => m.points === 0)
+    const partial  = allUnder.filter(m => m.points > 0)
+
+    if (allUnder.length === 0) {
+      return interaction.editReply('✅ Tous les membres ont atteint 5 000 pts !')
+    }
+
+    const allTags = allUnder.map(m => m.tag)
+    const { data: links } = await supabase.from('discord_links').select('discord_id, coc_tag').in('coc_tag', allTags)
+    const discordMap = Object.fromEntries((links || []).map(r => [r.coc_tag, r.discord_id]))
+
+    const mention  = m => discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
+    const fmtPts   = n => n.toLocaleString('fr-FR')
+    const chunk    = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size))
+    const TWO_HOURS = 2 * 60 * 60 * 1000
+    const autoDelete = msg => setTimeout(() => msg.delete().catch(() => {}), TWO_HOURS)
+
+    if (zero.length > 0) {
+      const lines  = zero.map(m => mention(m))
+      const chunks = chunk(lines, 10)
+      for (let i = 0; i < chunks.length; i++) {
+        const header = i === 0
+          ? `🎮 Jeux de Clan en cours — **${zero.length} membre${zero.length > 1 ? 's' : ''} n'ont pas encore participé**\nObjectif DR : 5 000 pts minimum 🎯\n`
+          : `🎮 *(suite ${i + 1}/${chunks.length})*\n`
+        autoDelete(await channel.send(header + chunks[i].join('\n')))
+      }
+    }
+
+    if (partial.length > 0) {
+      const lines  = partial.map(m => `${mention(m)} — ${fmtPts(m.points)} pts`)
+      const chunks = chunk(lines, 10)
+      for (let i = 0; i < chunks.length; i++) {
+        const header = i === 0
+          ? `🔥 En bonne voie, mais l'objectif DR est 5 000 pts !\n`
+          : `🔥 *(suite ${i + 1}/${chunks.length})*\n`
+        autoDelete(await channel.send(header + chunks[i].join('\n')))
+      }
+    }
+
+    await interaction.editReply(`✅ Rappels envoyés (${zero.length} absents, ${partial.length} en cours).`)
+  } catch (e) {
+    console.error('[JDC] handleJdcReminderRefresh:', e)
+    await interaction.editReply('❌ Erreur lors de l\'envoi des rappels.')
+  }
+}
+
 module.exports = {
   isJdcActive,
   startJdcTracking,
@@ -620,4 +688,5 @@ module.exports = {
   autoDetectJdc,
   fetchJdcMembersUnder5000,
   handleJdcRefresh,
+  handleJdcReminderRefresh,
 }

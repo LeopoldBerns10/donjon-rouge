@@ -777,14 +777,6 @@ async function handleModalPanelAdminAdd(interaction) {
   await interaction.reply({ content: `✅ <@${newId}> ajouté comme admin.`, ephemeral: true })
 }
 
-async function handleAdminRefreshJdc(interaction) {
-  if (!(await isAdmin(interaction.member))) {
-    return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
-  }
-  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
-  await updateJdcEmbeds(interaction.client)
-  await interaction.editReply('✅ Embeds JDC actualisés.')
-}
 
 module.exports = {
   buildMembresPayload,
@@ -823,6 +815,4 @@ module.exports = {
   handleModalPanelAdminAdd,
   handleModalPanelLier,
   handleModalPanelMsg,
-  // JDC
-  handleAdminRefreshJdc,
 }

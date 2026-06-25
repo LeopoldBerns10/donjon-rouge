@@ -50,7 +50,6 @@ async function sendMessagingPanel(client) {
   const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('msg_custom').setLabel('✏️ Message personnalisé').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('msg_global').setLabel('📢 Message global').setStyle(ButtonStyle.Danger),
-    new ButtonBuilder().setCustomId('admin_refresh_jdc').setLabel('🎮 Refresh JDC').setStyle(ButtonStyle.Success),
   )
 
   const msg = await channel.send({ embeds: [embed], components: [row1, row2] })
