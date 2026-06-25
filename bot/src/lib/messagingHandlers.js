@@ -315,11 +315,7 @@ async function handleMsgJdcReminder(interaction) {
 
   await interaction.editReply('⏳ Récupération des points JDC en cours...')
 
-  const { dr1, dr2 } = await fetchJdcMembersUnder5000()
-  const allUnder = [
-    ...dr1.map(m => ({ ...m, clanKey: 'dr1' })),
-    ...dr2.map(m => ({ ...m, clanKey: 'dr2' })),
-  ]
+  const allUnder = await fetchJdcMembersUnder5000()
 
   if (!allUnder.length) {
     return interaction.editReply('✅ Tous les membres ont atteint l\'objectif DR (5 000 pts) !')
@@ -335,7 +331,7 @@ async function handleMsgJdcReminder(interaction) {
     .setColor(0x8B0000)
     .setTitle('🎮 Rappel Jeux de Clan')
     .setDescription([
-      `Membres à contacter : **${allUnder.length}** (DR1 : ${dr1.length} • DR2 : ${dr2.length})`,
+      `Membres à contacter : **${allUnder.length}** (DR1 + DR2)`,
       `→ Membres à 0 pts : **${zero.length}**`,
       `→ Membres entre 1 et 4 999 pts : **${partial.length}**`,
     ].join('\n'))

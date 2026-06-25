@@ -47,13 +47,57 @@ async function fetchClanMembersWithPoints(clanKey, season) {
     .from('jdc_baselines')
     .select('player_tag, baseline_value')
     .eq('season', season)
-    .eq('clan_tag', clan.tag)
     .in('player_tag', members.map(m => m.tag))
 
   const baselineMap = Object.fromEntries((baselines || []).map(b => [b.player_tag, b.baseline_value]))
 
   const results = []
   for (const m of members) {
+    try {
+      const player  = await getPlayer(m.tag)
+      const current = extractClanGamePoints(player)
+      const base    = baselineMap[m.tag] ?? current
+      results.push({ tag: m.tag, name: m.name, points: Math.max(0, current - base) })
+    } catch {
+      results.push({ tag: m.tag, name: m.name, points: 0 })
+    }
+    await sleep(150)
+  }
+
+  return results.sort((a, b) => b.points - a.points)
+}
+
+// ─── Fetch unifié DR1 + DR2 (déduplication par tag, pas par nom) ──────────────
+
+async function fetchAllMembersWithPoints(season) {
+  let raw1, raw2
+  try { raw1 = await getClanMembers()    } catch { raw1 = [] }
+  try { raw2 = await getClanMembersDR2() } catch { raw2 = [] }
+
+  const members1 = raw1?.items ?? (Array.isArray(raw1) ? raw1 : [])
+  const members2 = raw2?.items ?? (Array.isArray(raw2) ? raw2 : [])
+
+  const tagsSeen   = new Set()
+  const allMembers = []
+  for (const m of [...members1, ...members2]) {
+    if (!tagsSeen.has(m.tag)) {
+      tagsSeen.add(m.tag)
+      allMembers.push(m)
+    }
+  }
+
+  const { data: baselines } = await supabase
+    .from('jdc_baselines')
+    .select('player_tag, baseline_value')
+    .eq('season', season)
+    .in('player_tag', allMembers.map(m => m.tag))
+
+  const baselineMap = Object.fromEntries(
+    (baselines || []).map(b => [b.player_tag, b.baseline_value])
+  )
+
+  const results = []
+  for (const m of allMembers) {
     try {
       const player  = await getPlayer(m.tag)
       const current = extractClanGamePoints(player)
@@ -85,7 +129,7 @@ async function saveBaselines(season, clanKey) {
       const baseline = extractClanGamePoints(player)
       await supabase.from('jdc_baselines').upsert(
         { player_tag: m.tag, clan_tag: clan.tag, season, baseline_value: baseline },
-        { onConflict: 'player_tag,clan_tag,season' }
+        { onConflict: 'player_tag,season' }
       )
     } catch (e) {
       console.error(`[JDC] saveBaselines ${m.tag}:`, e.message)
@@ -122,9 +166,9 @@ function memberStatus(points) {
   return '❌'
 }
 
-// ─── Embed live ───────────────────────────────────────────────────────────────
+// ─── Embed unifié DR1 + DR2 ───────────────────────────────────────────────────
 
-function buildJdcEmbed(clan, members, startStr, endStr) {
+function buildUnifiedJdcEmbed(members, startStr, endStr) {
   const totalPoints = members.reduce((s, m) => s + m.points, 0)
   const { current, next } = getTierInfo(totalPoints)
 
@@ -149,14 +193,13 @@ function buildJdcEmbed(clan, members, startStr, endStr) {
 
   const above5000 = members.filter(m => m.points >= INDIVIDUAL_DR_THRESHOLD).length
   const above4000 = members.filter(m => m.points >= INDIVIDUAL_BONUS_THRESHOLD).length
-  const avgPts    = members.length > 0 ? Math.round(totalPoints / members.length) : 0
   const now       = Math.floor(Date.now() / 1000)
 
   const description = [
     `📅 Du ${fmtDate(startStr)} au ${fmtDate(endStr)} • Mise à jour <t:${now}:R>`,
     '',
     SEP,
-    '**PROGRESSION DU CLAN**',
+    '**PROGRESSION GLOBALE (DR1 + DR2)**',
     `Points : **${totalPoints.toLocaleString()} / ${progressMax.toLocaleString()} pts**`,
     `Palier actuel : ${currentLabel} → ${nextLabel}`,
     bar,
@@ -166,14 +209,14 @@ function buildJdcEmbed(clan, members, startStr, endStr) {
     rankLines.join('\n').slice(0, 1400),
     '```',
     SEP,
-    `Total : **${totalPoints.toLocaleString()} pts** • Moyenne : ${avgPts.toLocaleString()} pts`,
+    `Total : **${totalPoints.toLocaleString()} pts** • Membres : ${members.length}`,
     `Membres ≥ 5 000 pts (règlement DR) : **${above5000}/${members.length}**`,
     `Membres ≥ 4 000 pts (bonus) : **${above4000}/${members.length}**`,
   ].join('\n')
 
   return new EmbedBuilder()
     .setColor(0x8B0000)
-    .setTitle(`🎮 JEUX DE CLAN — ${clan.name.toUpperCase()} (${clan.tag})`)
+    .setTitle('⚔️ JEUX DE CLAN — DONJON ROUGE')
     .setDescription(description.slice(0, 4096))
     .setTimestamp()
 }
@@ -197,11 +240,8 @@ async function handleJdcRefresh(interaction) {
   }
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
-  for (const clan of CLANS) {
-    const key = `jdc_embed_${clan.key}_id`
-    jdcMsgCache[key] = null
-    await supabase.from('bot_config').delete().eq('key', key)
-  }
+  jdcMsgCache['jdc_embed_all_id'] = null
+  await supabase.from('bot_config').delete().eq('key', 'jdc_embed_all_id')
 
   await flushCocCache()
   await updateJdcEmbeds(interaction.client)
@@ -274,14 +314,12 @@ async function updateJdcEmbeds(client) {
 
   await flushPlayersCache()
 
-  for (const clan of CLANS) {
-    try {
-      const members = await fetchClanMembersWithPoints(clan.key, season)
-      const embed   = buildJdcEmbed(clan, members, startStr, endStr)
-      await ensureJdcMessage(channel, `jdc_embed_${clan.key}_id`, embed)
-    } catch (e) {
-      console.error(`[JDC] updateJdcEmbeds ${clan.key}:`, e)
-    }
+  try {
+    const members = await fetchAllMembersWithPoints(season)
+    const embed   = buildUnifiedJdcEmbed(members, startStr, endStr)
+    await ensureJdcMessage(channel, 'jdc_embed_all_id', embed)
+  } catch (e) {
+    console.error('[JDC] updateJdcEmbeds:', e)
   }
 }
 
@@ -428,11 +466,8 @@ async function checkJdcEnd(client) {
   await setConfig(`jdc_archived_${season}`, 'true')
   await setConfig('jdc_active', 'false')
 
-  for (const clan of CLANS) {
-    const key = `jdc_embed_${clan.key}_id`
-    jdcMsgCache[key] = null
-    await supabase.from('bot_config').delete().eq('key', key)
-  }
+  jdcMsgCache['jdc_embed_all_id'] = null
+  await supabase.from('bot_config').delete().eq('key', 'jdc_embed_all_id')
 
   console.log(`[JDC] Événement terminé — archivé pour la saison ${season}`)
 }
@@ -476,12 +511,8 @@ async function autoDetectJdc(client) {
 async function fetchJdcMembersUnder5000() {
   const startStr = await getConfig('jdc_start')
   const season   = startStr ? startStr.slice(0, 7) : new Date().toISOString().slice(0, 7)
-  const result   = { dr1: [], dr2: [] }
-  for (const clan of CLANS) {
-    const members = await fetchClanMembersWithPoints(clan.key, season)
-    result[clan.key] = members.filter(m => m.points < INDIVIDUAL_DR_THRESHOLD)
-  }
-  return result
+  const members  = await fetchAllMembersWithPoints(season)
+  return members.filter(m => m.points < INDIVIDUAL_DR_THRESHOLD)
 }
 
 // ─── Démarrage forcé ──────────────────────────────────────────────────────────
