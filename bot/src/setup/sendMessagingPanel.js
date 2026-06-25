@@ -48,11 +48,21 @@ async function sendMessagingPanel(client) {
     new ButtonBuilder().setCustomId('messaging_jdc_reminder').setLabel('🎮 Rappel JDC').setStyle(ButtonStyle.Success),
   )
   const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('admin_refresh_war').setLabel('🔄 Refresh Guerre').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('admin_refresh_raid').setLabel('🔄 Refresh Raid').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('admin_refresh_jdc').setLabel('🔄 Refresh JDC').setStyle(ButtonStyle.Secondary),
+  )
+  const row3 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('admin_refresh_league').setLabel('🔄 Refresh Ligues').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('admin_refresh_status').setLabel('🔄 Refresh Statut').setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId('admin_refresh_rappel').setLabel('🔄 Refresh Rappels').setStyle(ButtonStyle.Secondary),
+  )
+  const row4 = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('msg_custom').setLabel('✏️ Message personnalisé').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('msg_global').setLabel('📢 Message global').setStyle(ButtonStyle.Danger),
   )
 
-  const msg = await channel.send({ embeds: [embed], components: [row1, row2] })
+  const msg = await channel.send({ embeds: [embed], components: [row1, row2, row3, row4] })
   await supabase.from('bot_config').upsert({ key: 'messaging_panel_id', value: msg.id, updated_at: new Date().toISOString() })
   return msg
 }

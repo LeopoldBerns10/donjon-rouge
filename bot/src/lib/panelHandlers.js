@@ -13,13 +13,22 @@ const supabase = require('../supabase.js')
 const { isAdmin } = require('./isAdmin.js')
 const { BOT_ADMINS, ADMIN_CHANNEL_ID } = require('../config/admin.js')
 const { CHANNELS, ROLES } = require('../config/onboarding.js')
-const { ACCOUNT_CHANNEL_ID } = require('../config/reminders.js')
+const { ACCOUNT_CHANNEL_ID, REMINDER_CHANNEL_ID } = require('../config/reminders.js')
 const { TICKET_CHANNEL_ID } = require('../config/tickets.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { getPlayer, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
 const { updateJdcEmbeds } = require('./jdcTracker.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
+const { assignHdvRole } = require('../utils/assignHdvRole.js')
+const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('../config/warChannels.js')
+const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../warMessages.js')
+const { forceRefresh, updateReminderMessages, resetStatus } = require('../scheduler.js')
+const { JDC_TRACKING_CHANNEL } = require('../config/jdcConfig.js')
+
+const sleep        = ms => new Promise(r => setTimeout(r, ms))
+const bulkDeleteCh = async ch => { try { await ch.bulkDelete(100) } catch {} }
+const JDC_EMBED_KEYS = ['jdc_embed_all_id', 'jdc_embed_absent_id']
 
 const PAGE_SIZE = 10
 
@@ -778,6 +787,104 @@ async function handleModalPanelAdminAdd(interaction) {
 }
 
 
+// ─── Handlers boutons admin refresh ──────────────────────────────────────────
+
+async function handleAdminRefreshWar(interaction) {
+  if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  try {
+    const { client } = interaction
+    const [ch1, ch2] = await Promise.all([
+      client.channels.fetch(DR1_WAR_CHANNEL).catch(() => null),
+      client.channels.fetch(DR2_WAR_CHANNEL).catch(() => null),
+    ])
+    if (ch1) await bulkDeleteCh(ch1)
+    if (ch2) await bulkDeleteCh(ch2)
+    await resetWarKeys(['dr1_war_msg1', 'dr1_war_msg2', 'dr2_war_msg1', 'dr2_war_msg2'])
+    activateWarChannels()
+    await updateWarChannels(client)
+    await interaction.editReply('✅ Salons de guerre réinitialisés.')
+  } catch (e) { console.error('[adminRefreshWar]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
+}
+
+async function handleAdminRefreshRaid(interaction) {
+  if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  try {
+    const { client } = interaction
+    const raidCh = await client.channels.fetch(RAID_CHANNEL).catch(() => null)
+    if (raidCh) await bulkDeleteCh(raidCh)
+    await resetWarKeys(['raid_msg'])
+    activateWarChannels()
+    await updateWarChannels(client)
+    await interaction.editReply('✅ Salon raid réinitialisé.')
+  } catch (e) { console.error('[adminRefreshRaid]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
+}
+
+async function handleAdminRefreshJdc(interaction) {
+  if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  try {
+    const { data: rows } = await supabase.from('bot_config').select('key, value').in('key', JDC_EMBED_KEYS)
+    const embedIds = Object.fromEntries((rows ?? []).map(r => [r.key, r.value]))
+    const ch = await interaction.client.channels.fetch(JDC_TRACKING_CHANNEL).catch(() => null)
+    if (ch) {
+      for (const key of JDC_EMBED_KEYS) {
+        const id = embedIds[key]
+        if (id) { try { await (await ch.messages.fetch(id)).delete() } catch {} }
+      }
+    }
+    await supabase.from('bot_config').delete().in('key', JDC_EMBED_KEYS)
+    await updateJdcEmbeds(interaction.client)
+    await interaction.editReply('✅ Embeds JDC recréés.')
+  } catch (e) { console.error('[adminRefreshJdc]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
+}
+
+async function handleAdminRefreshLeague(interaction) {
+  if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  try {
+    const { data: links } = await supabase.from('discord_links').select('discord_id, coc_tag, coc_name').eq('is_primary', true)
+    if (!links?.length) return interaction.editReply('Aucun compte principal lié trouvé.')
+    let updated = 0, errors = 0
+    for (const link of links) {
+      try {
+        const member = await interaction.guild.members.fetch(link.discord_id).catch(() => null)
+        if (!member) { errors++; continue }
+        const player = await getPlayer(link.coc_tag)
+        await assignLeagueRole(member, player.leagueTier?.name ?? null)
+        await assignHdvRole(member, player.townHallLevel)
+        updated++
+      } catch (err) { console.error(`[adminRefreshLeague] ${link.coc_name}:`, err.message); errors++ }
+      await sleep(500)
+    }
+    await interaction.editReply(`✅ ${updated} mis à jour, ${errors} erreur(s).`)
+  } catch (e) { console.error('[adminRefreshLeague]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
+}
+
+async function handleAdminRefreshStatus(interaction) {
+  if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  try {
+    await forceRefresh(interaction.client)
+    await interaction.editReply('✅ Statut mis à jour.')
+  } catch (e) { console.error('[adminRefreshStatus]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
+}
+
+async function handleAdminRefreshRappel(interaction) {
+  if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  try {
+    const { client } = interaction
+    const ch = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
+    if (ch) await bulkDeleteCh(ch)
+    await resetStatus()
+    await updateReminderMessages(client)
+    await updateJdcEmbeds(client)
+    await interaction.editReply('✅ Rappels réinitialisés.')
+  } catch (e) { console.error('[adminRefreshRappel]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
+}
+
 module.exports = {
   buildMembresPayload,
   buildHomePayload,
@@ -815,4 +922,11 @@ module.exports = {
   handleModalPanelAdminAdd,
   handleModalPanelLier,
   handleModalPanelMsg,
+  // Admin refresh
+  handleAdminRefreshWar,
+  handleAdminRefreshRaid,
+  handleAdminRefreshJdc,
+  handleAdminRefreshLeague,
+  handleAdminRefreshStatus,
+  handleAdminRefreshRappel,
 }

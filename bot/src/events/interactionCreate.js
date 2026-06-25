@@ -46,6 +46,8 @@ const {
   handlePanelMsgVerification, handlePanelMsgReglement, handlePanelMsgReglementPublic,
   handlePanelMsgMonCompte, handlePanelMsgTickets,
   handleModalPanelReglement, handleModalPanelAdminAdd, handleModalPanelLier, handleModalPanelMsg,
+  handleAdminRefreshWar, handleAdminRefreshRaid, handleAdminRefreshJdc,
+  handleAdminRefreshLeague, handleAdminRefreshStatus, handleAdminRefreshRappel,
 } = require('../lib/panelHandlers.js')
 const { handleJdcRefresh, handleJdcReminderRefresh } = require('../lib/jdcTracker.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
@@ -672,6 +674,12 @@ const BUTTON_HANDLERS = {
   msg_global:                handleMsgGlobal,
   jdc_refresh:               handleJdcRefresh,
   jdc_reminder_refresh:      handleJdcReminderRefresh,
+  admin_refresh_war:         handleAdminRefreshWar,
+  admin_refresh_raid:        handleAdminRefreshRaid,
+  admin_refresh_jdc:         handleAdminRefreshJdc,
+  admin_refresh_league:      handleAdminRefreshLeague,
+  admin_refresh_status:      handleAdminRefreshStatus,
+  admin_refresh_rappel:      handleAdminRefreshRappel,
 }
 
 module.exports = {
