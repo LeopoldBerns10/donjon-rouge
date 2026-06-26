@@ -429,7 +429,7 @@ async function checkAndUpdate(client) {
   }
 }
 
-// ─── Nettoyage des messages orphelins au démarrage ────────────────────────────
+// ─── Chargement des IDs connus au démarrage ───────────────────────────────────
 
 async function cleanupReminderChannel(client) {
   const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
@@ -440,7 +440,6 @@ async function cleanupReminderChannel(client) {
     'rappel_embed_jdc_id',
     'rappel_ping_dr1_id', 'rappel_ping_dr2_id',
   ]
-  const validIds = new Set()
 
   for (const key of keys) {
     const { data } = await supabase.from('bot_config').select('value').eq('key', key).maybeSingle()
@@ -448,27 +447,11 @@ async function cleanupReminderChannel(client) {
 
     try {
       const msg = await channel.messages.fetch(data.value)
-      validIds.add(msg.id)
       reminderMsgCache[key] = msg.id
     } catch {
       reminderMsgCache[key] = null
       await supabase.from('bot_config').delete().eq('key', key)
     }
-  }
-
-  try {
-    const messages = await channel.messages.fetch({ limit: 100 })
-    const orphans = messages.filter(m => !validIds.has(m.id))
-    if (orphans.size > 0) {
-      await channel.bulkDelete(orphans, true).catch(async () => {
-        for (const msg of orphans.values()) {
-          await msg.delete().catch(() => {})
-        }
-      })
-      console.log(`[Scheduler] Nettoyage : ${orphans.size} message(s) orphelin(s) supprimé(s)`)
-    }
-  } catch (e) {
-    console.error('[Scheduler] cleanupReminderChannel:', e)
   }
 }
 
