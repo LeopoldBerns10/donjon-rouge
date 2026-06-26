@@ -26,6 +26,16 @@ async function handleBirthdayRegister(interaction) {
         .setMinLength(4)
         .setMaxLength(5)
         .setRequired(true)
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('birthday_year')
+        .setLabel('Année de naissance (optionnel)')
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder('ex: 1990')
+        .setMinLength(4)
+        .setMaxLength(4)
+        .setRequired(false)
     )
   )
 
@@ -92,18 +102,30 @@ async function handleModalBirthdayRegister(interaction) {
   const dd = String(day).padStart(2, '0')
   const mm = String(month).padStart(2, '0')
 
+  const yearRaw  = interaction.fields.getTextInputValue('birthday_year').trim()
+  let birth_year = null
+  if (yearRaw) {
+    const y = parseInt(yearRaw, 10)
+    if (isNaN(y) || y < 1900 || y > new Date().getFullYear()) {
+      return interaction.editReply('❌ Année invalide.')
+    }
+    birth_year = y
+  }
+
   await supabase.from('birthdays').upsert(
     {
       discord_id:   interaction.user.id,
       discord_name: interaction.member.displayName,
       birth_day:    day,
       birth_month:  month,
+      birth_year,
     },
     { onConflict: 'discord_id' }
   )
 
+  const yearSuffix = birth_year ? ` (né·e en ${birth_year})` : ''
   await interaction.editReply(
-    `✅ Inscription validée ! Le clan te souhaitera ton anniversaire le ${dd}/${mm} 🎂`
+    `✅ Inscription validée ! Le clan te souhaitera ton anniversaire le ${dd}/${mm}${yearSuffix} 🎂`
   )
 }
 
@@ -123,7 +145,7 @@ async function checkBirthdays(client) {
 
   const { data: rows } = await supabase
     .from('birthdays')
-    .select('discord_id, discord_name')
+    .select('discord_id, discord_name, birth_year')
     .eq('birth_day', day)
     .eq('birth_month', month)
 
@@ -135,12 +157,13 @@ async function checkBirthdays(client) {
   const channel = await client.channels.fetch(BIRTHDAY_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
-  for (const { discord_id, discord_name } of rows) {
+  for (const { discord_id, discord_name, birth_year } of rows) {
     try {
       const member = channel.guild.members.cache.get(discord_id)
       if (!member) continue
+      const ageSuffix = birth_year ? ` Tu as ${yyyy - birth_year} ans aujourd'hui` : ''
       await channel.send(
-        `🎂 <@${discord_id}> Joyeux anniversaire !\n\nLe Donjon Rouge te souhaite une excellente journée ! 🐉🎉`
+        `🎂 <@${discord_id}> Joyeux anniversaire !${ageSuffix}\n\nLe Donjon Rouge te souhaite une excellente journée ! 🐉🎉`
       )
       console.log(`[Birthdays] Souhait envoyé pour ${discord_name} (${discord_id})`)
     } catch (e) {
