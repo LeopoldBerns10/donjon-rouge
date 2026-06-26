@@ -80,6 +80,10 @@ const {
   handleMsgGlobal, handleModalMsgGlobal,
   handleDmAck, handleDmReply, handleModalDmReply,
 } = require('../lib/messagingHandlers.js')
+const {
+  handleRouteSetGift, handleRouteView, handleRouteReset,
+  handleModalRouteSetGift,
+} = require('../lib/routeInfinie.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
 
@@ -735,6 +739,9 @@ const BUTTON_HANDLERS = {
   admin_refresh_league:      handleAdminRefreshLeague,
   admin_refresh_status:      handleAdminRefreshStatus,
   admin_refresh_rappel:      handleAdminRefreshRappel,
+  route_set_gift:            handleRouteSetGift,
+  route_view:                handleRouteView,
+  route_reset:               handleRouteReset,
 }
 
 module.exports = {
@@ -902,6 +909,11 @@ module.exports = {
     if (interaction.isModalSubmit() && interaction.customId.startsWith('modal_dm_reply:')) {
       const argTag = interaction.customId.slice('modal_dm_reply:'.length)
       await handleModalDmReply(interaction, argTag)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_route_set_gift') {
+      await handleModalRouteSetGift(interaction)
       return
     }
 
