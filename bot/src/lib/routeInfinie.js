@@ -81,7 +81,14 @@ async function announceGift(message, state) {
 }
 
 async function handleRouteMessage(message) {
-  if (message.author.id === CYBERALF_ID) return
+  if (message.author.id === CYBERALF_ID) {
+    const trimmed = message.content.trim()
+    const num     = parseInt(trimmed, 10)
+    if (!isNaN(num) && num.toString() === trimmed && num >= 1) {
+      await updateRouteState(num, CYBERALF_ID)
+    }
+    return
+  }
 
   const trimmed = message.content.trim()
   const num     = parseInt(trimmed, 10)
