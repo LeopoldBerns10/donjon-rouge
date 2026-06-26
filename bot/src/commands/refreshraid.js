@@ -1,11 +1,13 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const { isAdmin } = require('../lib/isAdmin.js')
-const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../warMessages.js')
+const { REMINDER_CHANNEL_ID } = require('../config/reminders.js')
+const { updateReminderMessages } = require('../scheduler.js')
+const supabase = require('../supabase.js')
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('refreshraid')
-    .setDescription('Force un refresh immédiat du salon raid capital')
+    .setDescription('Recrée l\'embed Raid Capital dans le salon rappels')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
@@ -17,12 +19,21 @@ module.exports = {
     try {
       const { client } = interaction
 
-      await resetWarKeys(['raid_msg'])
+      const { data } = await supabase.from('bot_config').select('value').eq('key', 'reminder_raid_msg').maybeSingle()
+      if (data?.value) {
+        const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
+        if (channel) {
+          try {
+            const msg = await channel.messages.fetch(data.value)
+            await msg.delete()
+            console.log(`[refreshraid] Message reminder_raid_msg supprimé (${data.value})`)
+          } catch {}
+        }
+        await supabase.from('bot_config').delete().eq('key', 'reminder_raid_msg')
+      }
 
-      activateWarChannels()
-      await updateWarChannels(client)
-
-      await interaction.editReply('✅ Salon raid réinitialisé')
+      await updateReminderMessages(client)
+      await interaction.editReply('✅ Embed Raid recréé.')
     } catch (e) {
       console.error('Erreur /refreshraid:', e)
       await interaction.editReply('❌ Erreur lors du refresh.')
