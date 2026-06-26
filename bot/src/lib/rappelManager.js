@@ -82,7 +82,7 @@ async function fetchAllClanMembers() {
   }
 }
 
-// ─── Embed builders (aucune mention) ─────────────────────────────────────────
+// ─── Embed builder ────────────────────────────────────────────────────────────
 
 async function buildJdcRappelEmbed() {
   const active = await isJdcActive()
@@ -96,54 +96,32 @@ async function buildJdcRappelEmbed() {
       .setTimestamp()
   }
 
-  const allUnder = await fetchJdcMembersUnder5000()
-  const zero     = allUnder.filter(m => m.points === 0)
-  const partial  = allUnder.filter(m => m.points > 0)
-  const fmtPts   = n => n.toLocaleString('fr-FR')
+  const allUnder   = await fetchJdcMembersUnder5000()
+  const zero       = allUnder.filter(m => m.points === 0)
+  const partial    = allUnder.filter(m => m.points > 0)
+  const fmtPts     = n => n.toLocaleString('fr-FR')
 
-  if (allUnder.length === 0) {
-    return new EmbedBuilder()
-      .setColor(0x2E7D32)
-      .setTitle('🎮 Jeux de Clan — Actif')
-      .addFields({
-        name:  '📊 Objectif DR',
-        value: '✅ Tous les membres ont atteint 5 000 pts !',
-      })
-      .setFooter({ text: 'Donjon Rouge • Jeux de Clan' })
-      .setTimestamp()
+  const allTags    = allUnder.map(m => m.tag)
+  const discordMap = allTags.length > 0 ? await getDiscordIds(allTags) : {}
+
+  const fmt = (m, icon, suffix) => {
+    const id = discordMap[m.tag]
+    return id ? `${icon} <@${id}> — ${m.name} — ${suffix}` : `${icon} ${m.name} — ${suffix}`
   }
 
-  const fields = [
-    {
-      name:  '📊 Retardataires',
-      value: `**${allUnder.length} membre${allUnder.length > 1 ? 's' : ''}** sous 5 000 pts` +
-             (zero.length > 0 ? ` | **${zero.length}** à 0 pt` : ''),
-    },
+  const lines = [
+    ...zero.map(m    => fmt(m, '❌', '0 pts')),
+    ...partial.map(m => fmt(m, '⚠️', `${fmtPts(m.points)} pts`)),
   ]
 
-  if (zero.length > 0) {
-    fields.push({
-      name:  '❌ Membres à 0 pt',
-      value: zero.map(m => `• ${m.name}`).join('\n').slice(0, 1024),
-    })
-  }
-
-  if (partial.length > 0) {
-    fields.push({
-      name:  '⚠️ En cours (< 5 000 pts)',
-      value: partial.map(m => `• ${m.name} — ${fmtPts(m.points)} pts`).join('\n').slice(0, 1024),
-    })
-  }
-
-  fields.push({
-    name:  '⏱️ Rappels',
-    value: '⏰ Mentions automatiques à 10h et 20h (heure Paris)',
-  })
+  const description = lines.length === 0
+    ? '✅ Tous les membres ont atteint 5 000 pts !'
+    : `🎯 Objectif DR : 5 000 pts minimum\n\n${lines.join('\n')}`
 
   return new EmbedBuilder()
-    .setColor(0xFF6600)
+    .setColor(lines.length === 0 ? 0x2E7D32 : 0xFF6600)
     .setTitle('🎮 Jeux de Clan — Actif')
-    .addFields(...fields)
+    .setDescription(description.slice(0, 4096))
     .setFooter({ text: 'Donjon Rouge • Jeux de Clan' })
     .setTimestamp()
 }
@@ -213,11 +191,10 @@ async function sendRappelPings(client) {
   const channel = await client.channels.fetch(RAPPEL_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
-  const [{ war: warDR1, isLdc: dr1Ldc }, { war: warDR2, isLdc: dr2Ldc }, raid, jdcActive] = await Promise.all([
+  const [{ war: warDR1, isLdc: dr1Ldc }, { war: warDR2, isLdc: dr2Ldc }, raid] = await Promise.all([
     fetchWar('dr1'),
     fetchWar('dr2'),
     fetchRaid(),
-    isJdcActive(),
   ])
 
   // ── Guerre DR1 ────────────────────────────────────────────────────────────
@@ -271,35 +248,6 @@ async function sendRappelPings(client) {
     }
   }
 
-  // ── JDC ───────────────────────────────────────────────────────────────────
-  if (jdcActive) {
-    const allUnder = await fetchJdcMembersUnder5000()
-    const zero     = allUnder.filter(m => m.points === 0)
-    const partial  = allUnder.filter(m => m.points > 0)
-    if (allUnder.length === 0) return
-
-    const discordMap = await getDiscordIds(allUnder.map(m => m.tag))
-    const fmtPts     = n => n.toLocaleString('fr-FR')
-    const lines      = []
-
-    if (zero.length > 0) {
-      const mentions = zero.map(m => discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name)
-      lines.push(`🎮 ${mentions.join(' ')}`)
-      lines.push(`Jeux de Clan en cours ! Vous n'avez pas encore participé.`)
-    }
-    if (partial.length > 0) {
-      const mentions = partial.map(m => {
-        const ref = discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
-        return `${ref} (${fmtPts(m.points)} pts)`
-      })
-      if (lines.length > 0) lines.push('')
-      lines.push(`🔥 ${mentions.join(' ')}`)
-      lines.push(`Tu es en bonne voie mais l'objectif DR est 5 000 pts !`)
-    }
-    lines.push(`Objectif DR : 5 000 pts minimum 🎯`)
-
-    await replacePingMessage(channel, 'rappel_ping_jdc_id', lines.join('\n')).catch(e => console.error('[RappelManager] Ping JDC:', e))
-  }
 }
 
 module.exports = { updateRappelEmbeds, sendRappelPings }
