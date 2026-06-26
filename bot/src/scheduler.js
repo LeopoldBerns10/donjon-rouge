@@ -7,6 +7,9 @@ const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./
 const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
 const { checkExpiredPolls } = require('./lib/pollManager.js')
+const { getPlayer } = require('./cocApi.js')
+const { assignLeagueRole } = require('./utils/assignLeagueRole.js')
+const { assignHdvRole } = require('./utils/assignHdvRole.js')
 
 const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -404,6 +407,53 @@ async function checkExploits(client, warData) {
   } catch {}
 }
 
+// ─── Refresh ligues automatique (lundi 12h Paris) ────────────────────────────
+
+async function checkLeagueRefresh(client) {
+  const parisNow = new Date(Date.now() + 2 * 3600000)
+  if (parisNow.getUTCDay() !== 1) return // 1 = lundi
+
+  const yyyy    = parisNow.getUTCFullYear()
+  const mm      = String(parisNow.getUTCMonth() + 1).padStart(2, '0')
+  const dd      = String(parisNow.getUTCDate()).padStart(2, '0')
+  const sentKey = `league_refresh_${yyyy}-${mm}-${dd}`
+
+  const { data: already } = await supabase.from('bot_config').select('value').eq('key', sentKey).maybeSingle()
+  if (already) return
+
+  const { data: links } = await supabase
+    .from('discord_links')
+    .select('discord_id, coc_tag, coc_name')
+    .eq('is_primary', true)
+
+  if (!links?.length) return
+
+  const guild = client.guilds.cache.first()
+  if (!guild) return
+
+  let updated = 0
+  let errors  = 0
+
+  for (const link of links) {
+    try {
+      const member = await guild.members.fetch(link.discord_id).catch(() => null)
+      if (!member) { errors++; continue }
+
+      const player = await getPlayer(link.coc_tag)
+      await assignLeagueRole(member, player.leagueTier?.name ?? null)
+      await assignHdvRole(member, player.townHallLevel)
+      updated++
+    } catch (e) {
+      console.error(`[Scheduler] League refresh ${link.coc_name} (${link.coc_tag}):`, e.message)
+      errors++
+    }
+    await new Promise(r => setTimeout(r, 500))
+  }
+
+  await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
+  console.log(`[Scheduler] League refresh lundi — ${updated} mis à jour, ${errors} erreur(s)`)
+}
+
 // ─── Boucle principale ────────────────────────────────────────────────────────
 
 async function checkAndUpdate(client) {
@@ -425,6 +475,9 @@ async function checkAndUpdate(client) {
   }
   if (parisHour === 10) {
     await checkBirthdays(client).catch(e => console.error('[Scheduler] Birthdays:', e))
+  }
+  if (parisHour === 12) {
+    await checkLeagueRefresh(client).catch(e => console.error('[Scheduler] LeagueRefresh:', e))
   }
 
   // JDC — toutes les 30 min
