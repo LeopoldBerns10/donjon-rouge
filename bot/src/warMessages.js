@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js')
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('./supabase.js')
 const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('./config/warChannels.js')
 const { getClanInfo, getClanMembers, getClanMembersDR2 } = require('./cocApi.js')
@@ -16,6 +16,13 @@ const msgIds = {
   dr2_war_msg3: null,
   raid_msg:     null,
 }
+
+const RAID_REFRESH_ROW = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId('refresh_reminder_raid')
+    .setLabel('🔄 Actualiser')
+    .setStyle(ButtonStyle.Secondary)
+)
 
 let isUpdating = false
 let warChannelsInitialized = false
@@ -453,7 +460,7 @@ async function updateWarChannels(client) {
     } catch {}
 
     const raidEmbed = await buildRaidEmbed(currentRaid)
-    await getOrCreateWarMessage(raidChannel, 'raid_msg', { embeds: [raidEmbed] })
+    await getOrCreateWarMessage(raidChannel, 'raid_msg', { embeds: [raidEmbed], components: [RAID_REFRESH_ROW] })
   } catch (e) {
     console.error('[WarChannels] Erreur raid:', e)
   }

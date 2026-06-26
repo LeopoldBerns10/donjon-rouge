@@ -32,7 +32,7 @@ const {
 } = require('../utils/performances.js')
 const { ROLES, CHANNELS } = require('../config/onboarding.js')
 const { TICKET_CHANNEL_ID, ROLES: TICKET_ROLES, VERIFIE } = require('../config/tickets.js')
-const { ACCOUNT_CHANNEL_ID, REMINDER_CHANNEL_ID } = require('../config/reminders.js')
+const { ACCOUNT_CHANNEL_ID } = require('../config/reminders.js')
 const { sendWelcomeMessage } = require('../welcome.js')
 const {
   handlePanelHome,
@@ -52,7 +52,9 @@ const {
 const { handleJdcRefresh, handleJdcReminderRefresh } = require('../lib/jdcTracker.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
-const { forceRefresh, updateReminderMessages } = require('../scheduler.js')
+const { forceRefresh } = require('../scheduler.js')
+const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../warMessages.js')
+const { RAID_CHANNEL } = require('../config/warChannels.js')
 const { updateRappelEmbeds } = require('../lib/rappelManager.js')
 const { updateEventsMessage } = require('../setup/sendEventsPanel.js')
 const { buildVoiceManageEmbed, buildVoiceManageComponents, isVoicePrivate, LIE_ROLE_ID } = require('../lib/voiceManage.js')
@@ -98,19 +100,20 @@ async function handleRefreshRappelJdc(interaction) {
 async function handleRefreshReminderRaid(interaction) {
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
-  const { data } = await supabase.from('bot_config').select('value').eq('key', 'reminder_raid_msg').maybeSingle()
+  const { data } = await supabase.from('bot_config').select('value').eq('key', 'raid_msg').maybeSingle()
   if (data?.value) {
-    const channel = await interaction.client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
+    const channel = await interaction.client.channels.fetch(RAID_CHANNEL).catch(() => null)
     if (channel) {
       try {
         const msg = await channel.messages.fetch(data.value)
         await msg.delete()
       } catch {}
     }
-    await supabase.from('bot_config').delete().eq('key', 'reminder_raid_msg')
   }
 
-  await updateReminderMessages(interaction.client)
+  await resetWarKeys(['raid_msg'])
+  activateWarChannels()
+  await updateWarChannels(interaction.client)
   await interaction.editReply('✅ Embed Raid recréé.')
 }
 
