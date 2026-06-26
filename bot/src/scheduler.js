@@ -405,11 +405,7 @@ async function checkExploits(client, warData) {
 // ─── Boucle principale ────────────────────────────────────────────────────────
 
 async function checkAndUpdate(client) {
-  const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
-  if (!channel) return
-
   const warData = await fetchWarData()
-  await _doUpdateReminderMessages(channel, warData)
   await checkExploits(client, warData).catch(e => console.error('[Scheduler] Exploits:', e))
   await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))
 
