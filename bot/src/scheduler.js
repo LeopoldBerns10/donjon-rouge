@@ -418,6 +418,7 @@ async function checkAndUpdate(client) {
 
   // Rappels v2 — pings à 10h et 20h (heure Paris = UTC+2)
   const parisHour = new Date(Date.now() + 2 * 3600000).getUTCHours()
+  console.log('[Scheduler] Heure Paris:', parisHour)
   if (parisHour === 10 || parisHour === 20) {
     await sendRappelPings(client).catch(e => console.error('[Scheduler] RappelPings:', e))
   }
