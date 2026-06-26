@@ -435,7 +435,11 @@ async function cleanupReminderChannel(client) {
   const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
-  const keys = ['reminder_dr1_msg', 'reminder_dr2_msg', 'reminder_raid_msg']
+  const keys = [
+    'reminder_dr1_msg', 'reminder_dr2_msg', 'reminder_raid_msg',
+    'rappel_embed_raid_id', 'rappel_embed_jdc_id',
+    'rappel_ping_dr1_id', 'rappel_ping_dr2_id', 'rappel_ping_raid_id', 'rappel_ping_jdc_id',
+  ]
   const validIds = new Set()
 
   for (const key of keys) {
