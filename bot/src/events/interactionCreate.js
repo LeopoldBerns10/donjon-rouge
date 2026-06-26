@@ -56,6 +56,14 @@ const { forceRefresh } = require('../scheduler.js')
 const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../warMessages.js')
 const { RAID_CHANNEL } = require('../config/warChannels.js')
 const { updateRappelEmbeds } = require('../lib/rappelManager.js')
+const {
+  handleBirthdayRegister, handleBirthdayUnregister, handleBirthdayList,
+  handleModalBirthdayRegister,
+} = require('../lib/birthdayManager.js')
+const {
+  handlePollCreate, handlePollEnd, handlePollVote,
+  handleModalPollCreate,
+} = require('../lib/pollManager.js')
 const { updateEventsMessage } = require('../setup/sendEventsPanel.js')
 const { buildVoiceManageEmbed, buildVoiceManageComponents, isVoicePrivate, LIE_ROLE_ID } = require('../lib/voiceManage.js')
 const {
@@ -705,6 +713,11 @@ const BUTTON_HANDLERS = {
   msg_custom_confirm:        handleMsgCustomConfirm,
   msg_custom_cancel:         handleMsgCustomCancel,
   msg_global:                handleMsgGlobal,
+  birthday_register:         handleBirthdayRegister,
+  birthday_unregister:       handleBirthdayUnregister,
+  birthday_list:             handleBirthdayList,
+  poll_create:               handlePollCreate,
+  poll_end:                  handlePollEnd,
   refresh_rappel_jdc:        handleRefreshRappelJdc,
   jdc_refresh:               handleJdcRefresh,
   jdc_reminder_refresh:      handleJdcReminderRefresh,
@@ -766,6 +779,11 @@ module.exports = {
           await handleDmAck(interaction, argTag)
         } else if (prefix === 'dm_reply' && argTag) {
           await handleDmReply(interaction, argTag)
+        } else if (prefix === 'poll_vote' && argTag) {
+          const colonIdx2  = argTag.indexOf(':')
+          const pollId     = colonIdx2 >= 0 ? argTag.slice(0, colonIdx2) : argTag
+          const optionIdx  = colonIdx2 >= 0 ? argTag.slice(colonIdx2 + 1) : '0'
+          await handlePollVote(interaction, pollId, optionIdx)
         }
       } catch (err) {
         console.error(`[Button] ${interaction.customId}:`, err)
@@ -842,6 +860,16 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_global') {
       await handleModalMsgGlobal(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_birthday_register') {
+      await handleModalBirthdayRegister(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_poll_create') {
+      await handleModalPollCreate(interaction)
       return
     }
 

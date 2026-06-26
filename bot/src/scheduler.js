@@ -5,6 +5,8 @@ const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
 const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
 const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
+const { checkBirthdays } = require('./lib/birthdayManager.js')
+const { checkExpiredPolls } = require('./lib/pollManager.js')
 
 const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -409,6 +411,9 @@ async function checkAndUpdate(client) {
   await checkExploits(client, warData).catch(e => console.error('[Scheduler] Exploits:', e))
   await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))
 
+  // Sondages — vérification des sondages expirés à chaque tick
+  await checkExpiredPolls(client).catch(e => console.error('[Scheduler] Polls:', e))
+
   // Rappels v2 — embeds liste mis à jour à chaque tick
   await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds:', e))
 
@@ -417,6 +422,9 @@ async function checkAndUpdate(client) {
   console.log('[Scheduler] Heure Paris:', parisHour)
   if (parisHour === 10 || parisHour === 20) {
     await sendRappelPings(client).catch(e => console.error('[Scheduler] RappelPings:', e))
+  }
+  if (parisHour === 10) {
+    await checkBirthdays(client).catch(e => console.error('[Scheduler] Birthdays:', e))
   }
 
   // JDC — toutes les 30 min
