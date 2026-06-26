@@ -407,6 +407,41 @@ async function checkExploits(client, warData) {
   } catch {}
 }
 
+const GDC_MSG_CHANNEL_ID   = '1512570321683746926'
+const GDC_DEFAULT_DIMANCHE = "Salut <@&1297318759396278425> Il est l'heure d'envoyer les inscriptions pour la GDC du mardi Chef !"
+const GDC_DEFAULT_MARDI    = "Salut <@&1297318759396278425> Il est l'heure de lancer la GDC Chef !"
+
+// ─── Messages automatiques GDC (dimanche + mardi à 21h Paris) ─────────────────
+
+async function checkGdcMessages(client) {
+  const parisNow  = new Date(Date.now() + 2 * 3600000)
+  const parisDay  = parisNow.getUTCDay() // 0=dimanche, 2=mardi
+  const isDimanche = parisDay === 0
+  const isMardi    = parisDay === 2
+  if (!isDimanche && !isMardi) return
+
+  const yyyy    = parisNow.getUTCFullYear()
+  const mm      = String(parisNow.getUTCMonth() + 1).padStart(2, '0')
+  const dd      = String(parisNow.getUTCDate()).padStart(2, '0')
+  const dayName = isDimanche ? 'dimanche' : 'mardi'
+  const sentKey = `gdc_sent_${dayName}_${yyyy}-${mm}-${dd}`
+
+  const { data: already } = await supabase.from('bot_config').select('value').eq('key', sentKey).maybeSingle()
+  if (already) return
+
+  const configKey  = isDimanche ? 'gdc_msg_dimanche' : 'gdc_msg_mardi'
+  const defaultMsg = isDimanche ? GDC_DEFAULT_DIMANCHE : GDC_DEFAULT_MARDI
+  const { data: msgData } = await supabase.from('bot_config').select('value').eq('key', configKey).maybeSingle()
+  const text = msgData?.value ?? defaultMsg
+
+  const channel = await client.channels.fetch(GDC_MSG_CHANNEL_ID).catch(() => null)
+  if (!channel) return
+
+  await channel.send(text)
+  await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
+  console.log(`[Scheduler] Message GDC ${dayName} envoyé`)
+}
+
 // ─── Refresh ligues automatique (lundi 12h Paris) ────────────────────────────
 
 async function checkLeagueRefresh(client) {
@@ -478,6 +513,9 @@ async function checkAndUpdate(client) {
   }
   if (parisHour === 12) {
     await checkLeagueRefresh(client).catch(e => console.error('[Scheduler] LeagueRefresh:', e))
+  }
+  if (parisHour === 21) {
+    await checkGdcMessages(client).catch(e => console.error('[Scheduler] GDC messages:', e))
   }
 
   // JDC — toutes les 30 min

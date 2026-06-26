@@ -158,7 +158,9 @@ async function buildMessagesPayload() {
       { name: '📜 Règlement',         value: `<#${CHANNELS.REGLEMENT}>`,    inline: true },
       { name: '📜 Règlement Public',  value: `<#768557389154615307>`,       inline: true },
       { name: '🏠 Mon Compte',        value: `<#${ACCOUNT_CHANNEL_ID}>`,    inline: true },
-      { name: '🎫 Tickets',           value: `<#${TICKET_CHANNEL_ID}>`,     inline: true },
+      { name: '🎫 Tickets',           value: `<#${TICKET_CHANNEL_ID}>`,  inline: true },
+      { name: '✉️ Dimanche GDC',     value: `<#${GDC_CHANNEL_ID}>`,    inline: true },
+      { name: '✉️ Mardi GDC',        value: `<#${GDC_CHANNEL_ID}>`,    inline: true },
     )
 
   return {
@@ -171,6 +173,10 @@ async function buildMessagesPayload() {
         new ButtonBuilder().setCustomId('panel_msg_reglement_public').setLabel('📜 Règlt Public').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('panel_msg_moncompte').setLabel('🏠 Mon Compte').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('panel_msg_tickets').setLabel('🎫 Tickets').setStyle(ButtonStyle.Secondary),
+      ),
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId('panel_msg_gdc_dimanche').setLabel('✉️ Msg Dimanche GDC').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('panel_msg_gdc_mardi').setLabel('✉️ Msg Mardi GDC').setStyle(ButtonStyle.Secondary),
       ),
     ],
   }
@@ -610,6 +616,11 @@ async function handlePanelDelierSelect(interaction) {
 
 // ─── Messages modifiables — helpers et handlers ───────────────────────────────
 
+const GDC_CHANNEL_ID       = '1512570321683746926'
+const GDC_DEFAULT_DIMANCHE = "Salut <@&1297318759396278425> Il est l'heure d'envoyer les inscriptions pour la GDC du mardi Chef !"
+const GDC_DEFAULT_MARDI    = "Salut <@&1297318759396278425> Il est l'heure de lancer la GDC Chef !"
+
+
 async function fetchMsgText(client, channelId, configKey) {
   const { data } = await supabase.from('bot_config').select('value').eq('key', configKey).maybeSingle()
   if (!data?.value) return ''
@@ -671,6 +682,25 @@ async function handlePanelMsgTickets(interaction) {
   if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
   const text = await fetchMsgText(interaction.client, TICKET_CHANNEL_ID, 'ticket_message_id')
   await interaction.showModal(buildMsgModal('modal_panel_msg_tickets', '🎫 Message Tickets', text))
+}
+
+async function handlePanelMsgGdcDimanche(interaction) {
+  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  const { data } = await supabase.from('bot_config').select('value').eq('key', 'gdc_msg_dimanche').maybeSingle()
+  await interaction.showModal(buildMsgModal('modal_panel_msg_gdc_dimanche', '✉️ Message Dimanche GDC', data?.value ?? GDC_DEFAULT_DIMANCHE))
+}
+
+async function handlePanelMsgGdcMardi(interaction) {
+  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  const { data } = await supabase.from('bot_config').select('value').eq('key', 'gdc_msg_mardi').maybeSingle()
+  await interaction.showModal(buildMsgModal('modal_panel_msg_gdc_mardi', '✉️ Message Mardi GDC', data?.value ?? GDC_DEFAULT_MARDI))
+}
+
+async function handleModalPanelMsgGdc(interaction) {
+  const key     = interaction.customId === 'modal_panel_msg_gdc_dimanche' ? 'gdc_msg_dimanche' : 'gdc_msg_mardi'
+  const newText = interaction.fields.getTextInputValue('msg_content')
+  await supabase.from('bot_config').upsert({ key, value: newText, updated_at: new Date().toISOString() })
+  await interaction.reply({ content: '✅ Message GDC mis à jour.', ephemeral: true })
 }
 
 async function handleModalPanelMsg(interaction, channelId, configKey) {
@@ -917,6 +947,8 @@ module.exports = {
   handlePanelMsgReglementPublic,
   handlePanelMsgMonCompte,
   handlePanelMsgTickets,
+  handlePanelMsgGdcDimanche,
+  handlePanelMsgGdcMardi,
   handlePanelAdminRemove,
   handlePanelLierMembre,
   handlePanelMembresDR1,
@@ -929,6 +961,7 @@ module.exports = {
   handleModalPanelAdminAdd,
   handleModalPanelLier,
   handleModalPanelMsg,
+  handleModalPanelMsgGdc,
   // Admin refresh
   handleAdminRefreshWar,
   handleAdminRefreshRaid,

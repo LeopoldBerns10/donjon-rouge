@@ -45,7 +45,9 @@ const {
   handlePanelDelierMembre, handlePanelDelierSelect,
   handlePanelMsgVerification, handlePanelMsgReglement, handlePanelMsgReglementPublic,
   handlePanelMsgMonCompte, handlePanelMsgTickets,
+  handlePanelMsgGdcDimanche, handlePanelMsgGdcMardi,
   handleModalPanelReglement, handleModalPanelAdminAdd, handleModalPanelLier, handleModalPanelMsg,
+  handleModalPanelMsgGdc,
   handleAdminRefreshWar, handleAdminRefreshRaid, handleAdminRefreshJdc,
   handleAdminRefreshLeague, handleAdminRefreshStatus, handleAdminRefreshRappel,
 } = require('../lib/panelHandlers.js')
@@ -697,6 +699,8 @@ const BUTTON_HANDLERS = {
   panel_msg_reglement_public: handlePanelMsgReglementPublic,
   panel_msg_moncompte:        handlePanelMsgMonCompte,
   panel_msg_tickets:          handlePanelMsgTickets,
+  panel_msg_gdc_dimanche:     handlePanelMsgGdcDimanche,
+  panel_msg_gdc_mardi:        handlePanelMsgGdcMardi,
   panel_delier_membre:     handlePanelDelierMembre,
   voice_toggle_private: handleVoiceTogglePrivate,
   voice_set_limit:      handleVoiceSetLimit,
@@ -860,6 +864,14 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_global') {
       await handleModalMsgGlobal(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && (
+      interaction.customId === 'modal_panel_msg_gdc_dimanche' ||
+      interaction.customId === 'modal_panel_msg_gdc_mardi'
+    )) {
+      await handleModalPanelMsgGdc(interaction)
       return
     }
 
