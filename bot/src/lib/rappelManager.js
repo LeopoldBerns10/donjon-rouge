@@ -136,9 +136,11 @@ async function ensureRappelEmbed(channel, key, embed) {
     try {
       const msg = await channel.messages.fetch(cached)
       await msg.edit({ embeds: [embed], components: [] })
+      console.log(`[RappelManager] ensureRappelEmbed key=${key} action=edited_from_cache`)
       return msg
     } catch (e) {
       if (e.code === 10008 || e.httpStatus === 404) {
+        console.log(`[RappelManager] ensureRappelEmbed key=${key} action=cache_miss_404`)
         embedCache[key] = null
         await supabase.from('bot_config').delete().eq('key', key)
       } else return null
@@ -151,9 +153,11 @@ async function ensureRappelEmbed(channel, key, embed) {
       const msg = await channel.messages.fetch(data.value)
       embedCache[key] = msg.id
       await msg.edit({ embeds: [embed], components: [] })
+      console.log(`[RappelManager] ensureRappelEmbed key=${key} action=edited_from_db`)
       return msg
     } catch (e) {
       if (e.code === 10008 || e.httpStatus === 404) {
+        console.log(`[RappelManager] ensureRappelEmbed key=${key} action=db_miss_404`)
         await supabase.from('bot_config').delete().eq('key', key)
       } else return null
     }
@@ -162,7 +166,7 @@ async function ensureRappelEmbed(channel, key, embed) {
   const msg = await channel.send({ embeds: [embed], components: [] })
   await supabase.from('bot_config').upsert({ key, value: msg.id, updated_at: new Date().toISOString() })
   embedCache[key] = msg.id
-  console.log(`[RappelManager] Embed ${key} créé : ${msg.id}`)
+  console.log(`[RappelManager] ensureRappelEmbed key=${key} action=created msg=${msg.id}`)
   return msg
 }
 
