@@ -30,10 +30,17 @@ module.exports = {
       const channel = await member.client.channels.fetch(SORTIE_CHANNEL_ID).catch(() => null)
       if (!channel) return
 
+      const [{ data: titleData }, { data: descData }] = await Promise.all([
+        supabase.from('bot_config').select('value').eq('key', 'departure_title').maybeSingle(),
+        supabase.from('bot_config').select('value').eq('key', 'departure_desc').maybeSingle(),
+      ])
+      const embedTitle = titleData?.value ?? '👋 Un guerrier quitte le Donjon...'
+      const embedDesc  = (descData?.value ?? '{user} a quitté nos rangs.').replace('{user}', `<@${member.id}>`)
+
       const embed = new EmbedBuilder()
         .setColor(0x8B0000)
-        .setTitle('👋 Un guerrier quitte le Donjon...')
-        .setDescription(`<@${member.id}> a quitté nos rangs.`)
+        .setTitle(embedTitle)
+        .setDescription(embedDesc)
         .setThumbnail(member.user.displayAvatarURL({ dynamic: true, size: 256 }))
 
       const timeSpent = formatTimeSpent(member.joinedAt)

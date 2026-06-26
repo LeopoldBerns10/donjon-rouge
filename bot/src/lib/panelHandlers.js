@@ -161,6 +161,8 @@ async function buildMessagesPayload() {
       { name: '🎫 Tickets',           value: `<#${TICKET_CHANNEL_ID}>`,  inline: true },
       { name: '✉️ Dimanche GDC',     value: `<#${GDC_CHANNEL_ID}>`,    inline: true },
       { name: '✉️ Mardi GDC',        value: `<#${GDC_CHANNEL_ID}>`,    inline: true },
+      { name: '📨 Msg Arrivée',      value: 'DM envoyé au nouveau membre', inline: true },
+      { name: '👋 Msg Départ',       value: 'Embed posté à la sortie',     inline: true },
     )
 
   return {
@@ -177,6 +179,8 @@ async function buildMessagesPayload() {
       new ActionRowBuilder().addComponents(
         new ButtonBuilder().setCustomId('panel_msg_gdc_dimanche').setLabel('✉️ Msg Dimanche GDC').setStyle(ButtonStyle.Secondary),
         new ButtonBuilder().setCustomId('panel_msg_gdc_mardi').setLabel('✉️ Msg Mardi GDC').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('panel_msg_arrivee').setLabel('📨 Msg Arrivée').setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder().setCustomId('panel_msg_depart').setLabel('👋 Msg Départ').setStyle(ButtonStyle.Secondary),
       ),
     ],
   }
@@ -616,9 +620,12 @@ async function handlePanelDelierSelect(interaction) {
 
 // ─── Messages modifiables — helpers et handlers ───────────────────────────────
 
-const GDC_CHANNEL_ID       = '1512570321683746926'
-const GDC_DEFAULT_DIMANCHE = "Salut <@&1297318759396278425> Il est l'heure d'envoyer les inscriptions pour la GDC du mardi Chef !"
-const GDC_DEFAULT_MARDI    = "Salut <@&1297318759396278425> Il est l'heure de lancer la GDC Chef !"
+const GDC_CHANNEL_ID           = '1512570321683746926'
+const GDC_DEFAULT_DIMANCHE     = "Salut <@&1297318759396278425> Il est l'heure d'envoyer les inscriptions pour la GDC du mardi Chef !"
+const GDC_DEFAULT_MARDI        = "Salut <@&1297318759396278425> Il est l'heure de lancer la GDC Chef !"
+const WELCOME_DM_DEFAULT       = 'Bienvenue sur le serveur Donjon Rouge ! Rends-toi dans le salon vérification pour accéder au serveur.'
+const DEPARTURE_TITLE_DEFAULT  = '👋 Un guerrier quitte le Donjon...'
+const DEPARTURE_DESC_DEFAULT   = '{user} a quitté nos rangs.'
 
 
 async function fetchMsgText(client, channelId, configKey) {
@@ -701,6 +708,58 @@ async function handleModalPanelMsgGdc(interaction) {
   const newText = interaction.fields.getTextInputValue('msg_content')
   await supabase.from('bot_config').upsert({ key, value: newText, updated_at: new Date().toISOString() })
   await interaction.reply({ content: '✅ Message GDC mis à jour.', ephemeral: true })
+}
+
+async function handlePanelMsgArrivee(interaction) {
+  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  const { data } = await supabase.from('bot_config').select('value').eq('key', 'welcome_dm_msg').maybeSingle()
+  await interaction.showModal(buildMsgModal('modal_panel_msg_arrivee', '📨 Message Arrivée (DM)', data?.value ?? WELCOME_DM_DEFAULT))
+}
+
+async function handlePanelMsgDepart(interaction) {
+  if (!await isAdmin(interaction.member)) return interaction.reply({ content: '❌ Accès refusé.', ephemeral: true })
+  const [{ data: titleData }, { data: descData }] = await Promise.all([
+    supabase.from('bot_config').select('value').eq('key', 'departure_title').maybeSingle(),
+    supabase.from('bot_config').select('value').eq('key', 'departure_desc').maybeSingle(),
+  ])
+  const modal = new ModalBuilder().setCustomId('modal_panel_msg_depart').setTitle('👋 Message Départ')
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('departure_title')
+        .setLabel('Titre de l\'embed')
+        .setStyle(TextInputStyle.Short)
+        .setValue(titleData?.value ?? DEPARTURE_TITLE_DEFAULT)
+        .setMaxLength(256)
+        .setRequired(true),
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('departure_desc')
+        .setLabel('Description ({user} = mention du membre)')
+        .setStyle(TextInputStyle.Paragraph)
+        .setValue(descData?.value ?? DEPARTURE_DESC_DEFAULT)
+        .setMaxLength(2000)
+        .setRequired(true),
+    ),
+  )
+  await interaction.showModal(modal)
+}
+
+async function handleModalPanelMsgArrivee(interaction) {
+  const newText = interaction.fields.getTextInputValue('msg_content')
+  await supabase.from('bot_config').upsert({ key: 'welcome_dm_msg', value: newText, updated_at: new Date().toISOString() })
+  await interaction.reply({ content: '✅ Message d\'arrivée mis à jour.', ephemeral: true })
+}
+
+async function handleModalPanelMsgDepart(interaction) {
+  const newTitle = interaction.fields.getTextInputValue('departure_title')
+  const newDesc  = interaction.fields.getTextInputValue('departure_desc')
+  await Promise.all([
+    supabase.from('bot_config').upsert({ key: 'departure_title', value: newTitle, updated_at: new Date().toISOString() }),
+    supabase.from('bot_config').upsert({ key: 'departure_desc',  value: newDesc,  updated_at: new Date().toISOString() }),
+  ])
+  await interaction.reply({ content: '✅ Message de départ mis à jour.', ephemeral: true })
 }
 
 async function handleModalPanelMsg(interaction, channelId, configKey) {
@@ -949,6 +1008,8 @@ module.exports = {
   handlePanelMsgTickets,
   handlePanelMsgGdcDimanche,
   handlePanelMsgGdcMardi,
+  handlePanelMsgArrivee,
+  handlePanelMsgDepart,
   handlePanelAdminRemove,
   handlePanelLierMembre,
   handlePanelMembresDR1,
@@ -962,6 +1023,8 @@ module.exports = {
   handleModalPanelLier,
   handleModalPanelMsg,
   handleModalPanelMsgGdc,
+  handleModalPanelMsgArrivee,
+  handleModalPanelMsgDepart,
   // Admin refresh
   handleAdminRefreshWar,
   handleAdminRefreshRaid,
