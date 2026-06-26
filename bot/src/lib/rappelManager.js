@@ -2,10 +2,10 @@ const { EmbedBuilder } = require('discord.js')
 const supabase = require('../supabase.js')
 const { isJdcActive, fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
 
-const BASE             = process.env.BACKEND_URL
+const BASE              = process.env.BACKEND_URL
 const RAPPEL_CHANNEL_ID = '1510972919407317142'
-const DR1_TAG          = '#29292QPRC'
-const DR2_TAG          = '#2RCGG9YR9'
+const DR1_TAG           = '#29292QPRC'
+const DR2_TAG           = '#2RCGG9YR9'
 
 // ─── Helpers API ──────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ async function fetchWar(clanKey) {
   const ourTag  = clanKey === 'dr1' ? DR1_TAG : DR2_TAG
   const ldcPath = clanKey === 'dr1' ? '/ldc/current' : '/ldc/dr2/current'
   try {
-    const war = await apiGet(`/clan/${clanKey}/war`)
+    const war      = await apiGet(`/clan/${clanKey}/war`)
     const inactive = !war || war.state === 'notInWar' || war.state === 'warEnded'
     if (!inactive) return { war, isLdc: false }
     try {
@@ -84,102 +84,77 @@ async function fetchAllClanMembers() {
 
 // ─── Embed builders (aucune mention) ─────────────────────────────────────────
 
-function buildWarRappelEmbed(clanKey, war, isLdc) {
-  const label = clanKey === 'dr1' ? 'DR1' : 'DR2'
-  const title = `⚔️ RETARDATAIRES GUERRE — ${label}`
-  const now   = Math.floor(Date.now() / 1000)
-
-  if (!war || war.state === 'notInWar' || war.state === 'warEnded') {
-    return new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle(title)
-      .setDescription('😴 Aucune guerre en cours')
-      .setTimestamp()
-  }
-
-  if (war.state === 'preparation') {
-    const startTs = Math.floor((parseWarTime(war.startTime)?.getTime() ?? Date.now()) / 1000)
-    return new EmbedBuilder()
-      .setColor(0xFF6600)
-      .setTitle(title)
-      .setDescription(`🛡️ Guerre en préparation — début <t:${startTs}:R>`)
-      .setTimestamp()
-  }
-
-  if (war.state === 'inWar') {
-    const late  = (war.clan?.members ?? []).filter(m => (m.attacks?.length ?? 0) === 0)
-    const endTs = war.endTime ? Math.floor((parseWarTime(war.endTime)?.getTime() ?? Date.now()) / 1000) : null
-    const parts = [`📅 Guerre en cours • Mis à jour <t:${now}:R>`, '']
-
-    if (late.length === 0) {
-      parts.push('✅ Tous les membres ont attaqué !')
-    } else {
-      parts.push('Membres sans attaque :')
-      late.forEach(m => parts.push(`• ${m.name}`))
-      parts.push('')
-      parts.push(`**${late.length} membre${late.length > 1 ? 's' : ''} n'ont pas encore attaqué**`)
-    }
-    if (endTs) parts.push(`⏰ Fin de guerre <t:${endTs}:R>`)
-
-    return new EmbedBuilder()
-      .setColor(late.length === 0 ? 0x2E7D32 : 0xFF6600)
-      .setTitle(title)
-      .setDescription(parts.join('\n').slice(0, 4096))
-      .setTimestamp()
-  }
-
-  return new EmbedBuilder()
-    .setColor(0x5865F2)
-    .setTitle(title)
-    .setDescription('😴 Aucune guerre en cours')
-    .setTimestamp()
-}
-
 async function buildRaidRappelEmbed(raid) {
-  const title = '💎 RETARDATAIRES RAID CAPITAL'
-  const now   = Math.floor(Date.now() / 1000)
-
   if (!raid) {
     return new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle(title)
-      .setDescription('😴 Aucun raid en cours')
+      .setColor(0x8B0000)
+      .setTitle('😴 Raid Capital — Inactif')
+      .setDescription('😴 Prochain raid vendredi — DR1 uniquement')
+      .setFooter({ text: 'Donjon Rouge • Raid Capital' })
       .setTimestamp()
   }
 
-  const allMembers = await fetchAllClanMembers()
-  const raidMap    = new Map((raid.members ?? []).map(m => [m.tag, m]))
-  const noAttack   = allMembers.filter(m => !raidMap.has(m.tag))
-  const endTs      = raid.endTime ? Math.floor((parseWarTime(raid.endTime)?.getTime() ?? 0) / 1000) : null
+  const allMembers  = await fetchAllClanMembers()
+  const raidMap     = new Map((raid.members ?? []).map(m => [m.tag, m]))
+  const attacksUsed = (raid.members ?? []).reduce((acc, m) => acc + (m.attacks ?? 0), 0)
+  const noAttack    = allMembers.filter(m => !raidMap.has(m.tag))
+  const partial     = allMembers.filter(m => {
+    const rm = raidMap.get(m.tag)
+    return rm && (rm.attacks ?? 0) > 0 && (rm.attacks ?? 0) < (rm.attackLimit ?? 5)
+  })
 
-  const parts = [`📅 Raid en cours • Mis à jour <t:${now}:R>`, '']
-  if (noAttack.length === 0) {
-    parts.push('✅ Tous les membres ont participé au raid !')
-  } else {
-    parts.push('Membres sans attaque raid :')
-    noAttack.forEach(m => parts.push(`• ${m.name}`))
-    parts.push('')
-    parts.push(`**${noAttack.length} membre${noAttack.length > 1 ? 's' : ''} n'ont pas encore raidé**`)
+  const retardataires = [...noAttack, ...partial]
+
+  if (retardataires.length === 0) {
+    return new EmbedBuilder()
+      .setColor(0x2E7D32)
+      .setTitle('💎 Raid Capital — Actif')
+      .addFields({
+        name:  '📊 Participation',
+        value: `✅ Tous les membres ont attaqué !\n⚔️ ${attacksUsed} attaques au total`,
+      })
+      .setFooter({ text: 'Donjon Rouge • Raid Capital' })
+      .setTimestamp()
   }
-  if (endTs) parts.push(`⏰ Fin du raid <t:${endTs}:R>`)
+
+  const lateLines = [
+    ...noAttack.map(m => `❌ ${m.name} — 0/5 att.`),
+    ...partial.map(m => {
+      const rm = raidMap.get(m.tag)
+      return `⚡ ${m.name} — ${rm.attacks}/${rm.attackLimit ?? 5} att.`
+    }),
+  ]
 
   return new EmbedBuilder()
-    .setColor(noAttack.length === 0 ? 0x2E7D32 : 0xFF6600)
-    .setTitle(title)
-    .setDescription(parts.join('\n').slice(0, 4096))
+    .setColor(0xFF6600)
+    .setTitle('💎 Raid Capital — Actif')
+    .addFields(
+      {
+        name:  '📊 Avancement',
+        value: `⚔️ ${attacksUsed} attaques utilisées | **${retardataires.length} membre${retardataires.length > 1 ? 's' : ''}** n'ont pas terminé`,
+      },
+      {
+        name:  '❌ Retardataires',
+        value: lateLines.join('\n').slice(0, 1024) || '—',
+      },
+      {
+        name:  '⏱️ Rappels',
+        value: '⏰ Mentions automatiques à 10h et 20h (heure Paris)',
+      },
+    )
+    .setFooter({ text: 'Donjon Rouge • Raid Capital' })
     .setTimestamp()
 }
 
 async function buildJdcRappelEmbed() {
-  const title  = '🎮 RETARDATAIRES JDC'
-  const now    = Math.floor(Date.now() / 1000)
   const active = await isJdcActive()
 
   if (!active) {
     return new EmbedBuilder()
-      .setColor(0x5865F2)
-      .setTitle(title)
+      .setColor(0x8B0000)
+      .setTitle('😴 Jeux de Clan — Inactif')
       .setDescription('😴 Aucun Jeux de Clan en cours')
+      .setFooter({ text: 'Donjon Rouge • Jeux de Clan' })
       .setTimestamp()
   }
 
@@ -188,28 +163,50 @@ async function buildJdcRappelEmbed() {
   const partial  = allUnder.filter(m => m.points > 0)
   const fmtPts   = n => n.toLocaleString('fr-FR')
 
-  const parts = [`📅 Jeux de Clan en cours • Mis à jour <t:${now}:R>`, '']
+  if (allUnder.length === 0) {
+    return new EmbedBuilder()
+      .setColor(0x2E7D32)
+      .setTitle('🎮 Jeux de Clan — Actif')
+      .addFields({
+        name:  '📊 Objectif DR',
+        value: '✅ Tous les membres ont atteint 5 000 pts !',
+      })
+      .setFooter({ text: 'Donjon Rouge • Jeux de Clan' })
+      .setTimestamp()
+  }
+
+  const fields = [
+    {
+      name:  '📊 Retardataires',
+      value: `**${allUnder.length} membre${allUnder.length > 1 ? 's' : ''}** sous 5 000 pts` +
+             (zero.length > 0 ? ` | **${zero.length}** à 0 pt` : ''),
+    },
+  ]
 
   if (zero.length > 0) {
-    parts.push('Membres à 0 pts :')
-    zero.forEach(m => parts.push(`• ${m.name}`))
-    parts.push('')
-  }
-  if (partial.length > 0) {
-    parts.push('Membres en cours (< 5 000 pts) :')
-    partial.forEach(m => parts.push(`• ${m.name} — ${fmtPts(m.points)} pts`))
-    parts.push('')
-  }
-  if (allUnder.length === 0) {
-    parts.push('✅ Tous les membres ont atteint 5 000 pts !')
-  } else {
-    parts.push(`**${allUnder.length} membre${allUnder.length > 1 ? 's' : ''} n'ont pas atteint l'objectif DR (5 000 pts)**`)
+    fields.push({
+      name:  '❌ Membres à 0 pt',
+      value: zero.map(m => `• ${m.name}`).join('\n').slice(0, 1024),
+    })
   }
 
+  if (partial.length > 0) {
+    fields.push({
+      name:  '⚠️ En cours (< 5 000 pts)',
+      value: partial.map(m => `• ${m.name} — ${fmtPts(m.points)} pts`).join('\n').slice(0, 1024),
+    })
+  }
+
+  fields.push({
+    name:  '⏱️ Rappels',
+    value: '⏰ Mentions automatiques à 10h et 20h (heure Paris)',
+  })
+
   return new EmbedBuilder()
-    .setColor(allUnder.length === 0 ? 0x2E7D32 : 0xFF6600)
-    .setTitle(title)
-    .setDescription(parts.join('\n').slice(0, 4096))
+    .setColor(0xFF6600)
+    .setTitle('🎮 Jeux de Clan — Actif')
+    .addFields(...fields)
+    .setFooter({ text: 'Donjon Rouge • Jeux de Clan' })
     .setTimestamp()
 }
 
@@ -270,21 +267,12 @@ async function updateRappelEmbeds(client) {
   const channel = await client.channels.fetch(RAPPEL_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
-  const [{ war: warDR1, isLdc: dr1Ldc }, { war: warDR2, isLdc: dr2Ldc }, raid] = await Promise.all([
-    fetchWar('dr1'),
-    fetchWar('dr2'),
+  const [raid, embedJdc] = await Promise.all([
     fetchRaid(),
-  ])
-
-  const [embedDR1, embedDR2, embedRaid, embedJdc] = await Promise.all([
-    Promise.resolve(buildWarRappelEmbed('dr1', warDR1, dr1Ldc)),
-    Promise.resolve(buildWarRappelEmbed('dr2', warDR2, dr2Ldc)),
-    buildRaidRappelEmbed(raid),
     buildJdcRappelEmbed(),
   ])
+  const embedRaid = await buildRaidRappelEmbed(raid)
 
-  await ensureRappelEmbed(channel, 'rappel_embed_dr1_id',  embedDR1)
-  await ensureRappelEmbed(channel, 'rappel_embed_dr2_id',  embedDR2)
   await ensureRappelEmbed(channel, 'rappel_embed_raid_id', embedRaid)
   await ensureRappelEmbed(channel, 'rappel_embed_jdc_id',  embedJdc)
 }
@@ -353,9 +341,9 @@ async function sendRappelPings(client) {
 
   // ── JDC ───────────────────────────────────────────────────────────────────
   if (jdcActive) {
-    const allUnder   = await fetchJdcMembersUnder5000()
-    const zero       = allUnder.filter(m => m.points === 0)
-    const partial    = allUnder.filter(m => m.points > 0)
+    const allUnder = await fetchJdcMembersUnder5000()
+    const zero     = allUnder.filter(m => m.points === 0)
+    const partial  = allUnder.filter(m => m.points > 0)
     if (allUnder.length === 0) return
 
     const discordMap = await getDiscordIds(allUnder.map(m => m.tag))
