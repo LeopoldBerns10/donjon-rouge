@@ -402,34 +402,11 @@ async function updateJdcEmbeds(client) {
   }
 }
 
-// ─── Rappels automatiques 20h ─────────────────────────────────────────────────
+// ─── Envoi des rappels JDC (logique partagée) ─────────────────────────────────
 
-const sentJdcReminders = new Set()
-
-async function checkJdcReminders(client) {
-  const [startStr, endStr] = await Promise.all([getConfig('jdc_start'), getConfig('jdc_end')])
-  if (!startStr || !endStr) return
-  const season = startStr.slice(0, 7)
-
-  const now   = Date.now()
-  const start = new Date(startStr).getTime()
-  const end   = new Date(endStr).getTime()
-  if (now < start || now > end) return
-
-  const daysSinceStart = Math.floor((now - start) / 86400000)
-  if (daysSinceStart < 1 || daysSinceStart > 4) return
-
-  // Heure Paris (UTC+2 en été)
-  const parisHour = new Date(now + 2 * 3600000).getUTCHours()
-  if (parisHour !== REMINDER_HOUR) return
-
-  const today = new Date(now + 2 * 3600000).toISOString().slice(0, 10)
-  if (sentJdcReminders.has(today)) return
-
+async function sendJdcReminders(client, daysLeft) {
   const channel = await client.channels.fetch(JDC_REMINDER_CHANNEL).catch(() => null)
-  if (!channel) return
-
-  const daysLeft = Math.max(1, Math.ceil((end - now) / 86400000))
+  if (!channel) return { zero: 0, partial: 0 }
 
   try {
     const allUnder = await fetchJdcMembersUnder5000()
@@ -467,9 +444,43 @@ async function checkJdcReminders(client) {
         autoDelete(await channel.send(header + chunks[i].join('\n')))
       }
     }
+
+    return { zero: zero.length, partial: partial.length }
   } catch (e) {
-    console.error('[JDC] checkJdcReminders:', e)
+    console.error('[JDC] sendJdcReminders:', e)
+    return null
   }
+}
+
+// ─── Rappels automatiques 20h ─────────────────────────────────────────────────
+
+const sentJdcReminders = new Set()
+
+async function checkJdcReminders(client) {
+  const [startStr, endStr] = await Promise.all([getConfig('jdc_start'), getConfig('jdc_end')])
+  if (!startStr || !endStr) return
+  const season = startStr.slice(0, 7)
+
+  const now   = Date.now()
+  const start = new Date(startStr).getTime()
+  const end   = new Date(endStr).getTime()
+  if (now < start || now > end) return
+
+  const daysSinceStart = Math.floor((now - start) / 86400000)
+  if (daysSinceStart < 1 || daysSinceStart > 4) return
+
+  // Heure Paris (UTC+2 en été)
+  const parisHour = new Date(now + 2 * 3600000).getUTCHours()
+  if (parisHour !== REMINDER_HOUR) return
+
+  const today = new Date(now + 2 * 3600000).toISOString().slice(0, 10)
+  if (sentJdcReminders.has(today)) return
+
+  const channel = await client.channels.fetch(JDC_REMINDER_CHANNEL).catch(() => null)
+  if (!channel) return
+
+  const daysLeft = Math.max(1, Math.ceil((end - now) / 86400000))
+  await sendJdcReminders(client, daysLeft)
 
   sentJdcReminders.add(today)
   console.log(`[JDC] Rappels envoyés pour le ${today}`)
@@ -688,6 +699,7 @@ module.exports = {
   isJdcActive,
   startJdcTracking,
   updateJdcEmbeds,
+  sendJdcReminders,
   checkJdcReminders,
   checkJdcEnd,
   autoDetectJdc,

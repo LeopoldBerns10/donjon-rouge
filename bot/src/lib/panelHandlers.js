@@ -18,7 +18,7 @@ const { TICKET_CHANNEL_ID } = require('../config/tickets.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { getPlayer, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
-const { updateJdcEmbeds } = require('./jdcTracker.js')
+const { updateJdcEmbeds, isJdcActive, fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
 const { assignHdvRole } = require('../utils/assignHdvRole.js')
 const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('../config/warChannels.js')
@@ -29,6 +29,8 @@ const { JDC_TRACKING_CHANNEL } = require('../config/jdcConfig.js')
 const sleep        = ms => new Promise(r => setTimeout(r, ms))
 const bulkDeleteCh = async ch => { try { await ch.bulkDelete(100) } catch {} }
 const JDC_EMBED_KEYS = ['jdc_embed_all_id', 'jdc_embed_absent_id']
+const JDC_RAPPEL_CHANNEL = '1510972919407317142'
+const TWO_HOURS = 2 * 60 * 60 * 1000
 
 const PAGE_SIZE = 10
 
@@ -876,11 +878,64 @@ async function handleAdminRefreshRappel(interaction) {
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   try {
     const { client } = interaction
-    const ch = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
-    if (ch) await bulkDeleteCh(ch)
+
+    const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
+    if (channel) await bulkDeleteCh(channel)
+
     await resetStatus()
     await updateReminderMessages(client)
-    await updateJdcEmbeds(client)
+
+    const jdcActive = await isJdcActive()
+    try {
+      await updateJdcEmbeds(client)
+    } catch (e) {
+      console.error('[adminRefreshRappel] Erreur updateJdcEmbeds :', e)
+    }
+
+    if (jdcActive) {
+      try {
+        const allUnder = await fetchJdcMembersUnder5000()
+        const zero    = allUnder.filter(m => m.points === 0)
+        const partial = allUnder.filter(m => m.points > 0)
+
+        const rappelChannel = await client.channels.fetch(JDC_RAPPEL_CHANNEL).catch(() => null)
+        if (rappelChannel) {
+          const allTags = allUnder.map(m => m.tag)
+          const { data: links } = await supabase.from('discord_links').select('discord_id, coc_tag').in('coc_tag', allTags)
+          const discordMap = Object.fromEntries((links || []).map(r => [r.coc_tag, r.discord_id]))
+
+          const mention    = m => discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
+          const fmtPts     = n => n.toLocaleString('fr-FR')
+          const chunk      = (arr, size) => Array.from({ length: Math.ceil(arr.length / size) }, (_, i) => arr.slice(i * size, i * size + size))
+          const autoDelete = msg => setTimeout(() => msg.delete().catch(() => {}), TWO_HOURS)
+
+          if (zero.length > 0) {
+            const lines  = zero.map(m => mention(m))
+            const chunks = chunk(lines, 10)
+            for (let i = 0; i < chunks.length; i++) {
+              const header = i === 0
+                ? `🎮 Jeux de Clan en cours — **${zero.length} membre${zero.length > 1 ? 's' : ''} n'ont pas encore participé**\nObjectif DR : 5 000 pts minimum 🎯\n`
+                : `🎮 *(suite ${i + 1}/${chunks.length})*\n`
+              autoDelete(await rappelChannel.send(header + chunks[i].join('\n')))
+            }
+          }
+
+          if (partial.length > 0) {
+            const lines  = partial.map(m => `${mention(m)} — ${fmtPts(m.points)} pts`)
+            const chunks = chunk(lines, 10)
+            for (let i = 0; i < chunks.length; i++) {
+              const header = i === 0
+                ? `🔥 En bonne voie, mais l'objectif DR est 5 000 pts !\n`
+                : `🔥 *(suite ${i + 1}/${chunks.length})*\n`
+              autoDelete(await rappelChannel.send(header + chunks[i].join('\n')))
+            }
+          }
+        }
+      } catch (e) {
+        console.error('[adminRefreshRappel] Erreur rappels JDC :', e)
+      }
+    }
+
     await interaction.editReply('✅ Rappels réinitialisés.')
   } catch (e) { console.error('[adminRefreshRappel]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
 }
