@@ -56,7 +56,7 @@ async function resetGift() {
 // ─── Jeu ─────────────────────────────────────────────────────────────────────
 
 async function sendError(message, content) {
-  const errMsg = await message.reply({ content }).catch(() => null)
+  const errMsg = await message.channel.send({ content }).catch(() => null)
   if (errMsg) setTimeout(() => errMsg.delete().catch(() => {}), 5000)
 }
 
@@ -95,7 +95,7 @@ async function handleRouteMessage(message) {
 
   if (isNaN(num) || num.toString() !== trimmed || num < 1) {
     await message.delete().catch(() => {})
-    return sendError(message, `❌ <@${message.author.id}> Seuls les nombres entiers positifs sont autorisés ici !`)
+    return sendError(message, `❌ Tu n'es pas autorisé à écrire du texte ici !`)
   }
 
   const state = await getRouteState()
@@ -103,12 +103,12 @@ async function handleRouteMessage(message) {
 
   if (num !== state.current_number + 1) {
     await message.delete().catch(() => {})
-    return sendError(message, `❌ Le prochain nombre est **${state.current_number + 1}** !`)
+    return sendError(message, `❌ Ce nombre n'est pas correct ! Le prochain nombre est **${state.current_number + 1}**.`)
   }
 
   if (message.author.id === state.last_discord_id) {
     await message.delete().catch(() => {})
-    return sendError(message, `❌ Tu ne peux pas écrire deux nombres consécutifs ! Attends qu'un autre membre joue.`)
+    return sendError(message, `❌ Un autre joueur doit d'abord réagir avant toi !`)
   }
 
   const cooldown = await getCooldown(message.author.id)
@@ -118,7 +118,7 @@ async function handleRouteMessage(message) {
     if (remaining > 0) {
       const minutes = Math.ceil(remaining / 60000)
       await message.delete().catch(() => {})
-      return sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de rejouer !`)
+      return sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de jouer à nouveau !`)
     }
   }
 
