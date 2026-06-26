@@ -53,6 +53,7 @@ const { handleJdcRefresh, handleJdcReminderRefresh } = require('../lib/jdcTracke
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { forceRefresh } = require('../scheduler.js')
+const { updateRappelEmbeds } = require('../lib/rappelManager.js')
 const { updateEventsMessage } = require('../setup/sendEventsPanel.js')
 const { buildVoiceManageEmbed, buildVoiceManageComponents, isVoicePrivate, LIE_ROLE_ID } = require('../lib/voiceManage.js')
 const {
@@ -82,6 +83,14 @@ async function handleRefreshEvents(interaction) {
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   await updateEventsMessage(interaction.client)
   await interaction.editReply('✅ Événements actualisés.')
+}
+
+// ─── Bouton refresh_rappel_jdc ────────────────────────────────────────────────
+
+async function handleRefreshRappelJdc(interaction) {
+  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
+  await updateRappelEmbeds(interaction.client)
+  await interaction.editReply('✅ Embed JDC actualisé.')
 }
 
 // ─── Bouton open_warrior_space ────────────────────────────────────────────────
@@ -672,6 +681,7 @@ const BUTTON_HANDLERS = {
   msg_custom_confirm:        handleMsgCustomConfirm,
   msg_custom_cancel:         handleMsgCustomCancel,
   msg_global:                handleMsgGlobal,
+  refresh_rappel_jdc:        handleRefreshRappelJdc,
   jdc_refresh:               handleJdcRefresh,
   jdc_reminder_refresh:      handleJdcReminderRefresh,
   admin_refresh_war:         handleAdminRefreshWar,

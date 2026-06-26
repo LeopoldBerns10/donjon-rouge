@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js')
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('../supabase.js')
 const { isJdcActive, fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
 
@@ -130,12 +130,12 @@ async function buildJdcRappelEmbed() {
 
 const embedCache = {}
 
-async function ensureRappelEmbed(channel, key, embed) {
+async function ensureRappelEmbed(channel, key, embed, components = []) {
   const cached = embedCache[key]
   if (cached) {
     try {
       const msg = await channel.messages.fetch(cached)
-      await msg.edit({ embeds: [embed], components: [] })
+      await msg.edit({ embeds: [embed], components })
       console.log(`[RappelManager] ensureRappelEmbed key=${key} action=edited_from_cache`)
       return msg
     } catch (e) {
@@ -152,7 +152,7 @@ async function ensureRappelEmbed(channel, key, embed) {
     try {
       const msg = await channel.messages.fetch(data.value)
       embedCache[key] = msg.id
-      await msg.edit({ embeds: [embed], components: [] })
+      await msg.edit({ embeds: [embed], components })
       console.log(`[RappelManager] ensureRappelEmbed key=${key} action=edited_from_db`)
       return msg
     } catch (e) {
@@ -163,7 +163,7 @@ async function ensureRappelEmbed(channel, key, embed) {
     }
   }
 
-  const msg = await channel.send({ embeds: [embed], components: [] })
+  const msg = await channel.send({ embeds: [embed], components })
   await supabase.from('bot_config').upsert({ key, value: msg.id, updated_at: new Date().toISOString() })
   embedCache[key] = msg.id
   console.log(`[RappelManager] ensureRappelEmbed key=${key} action=created msg=${msg.id}`)
@@ -183,12 +183,19 @@ async function replacePingMessage(channel, key, content) {
 
 // ─── Fonctions principales ────────────────────────────────────────────────────
 
+const JDC_REFRESH_ROW = new ActionRowBuilder().addComponents(
+  new ButtonBuilder()
+    .setCustomId('refresh_rappel_jdc')
+    .setLabel('🔄 Actualiser')
+    .setStyle(ButtonStyle.Secondary)
+)
+
 async function updateRappelEmbeds(client) {
   const channel = await client.channels.fetch(RAPPEL_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
   const embedJdc = await buildJdcRappelEmbed()
-  await ensureRappelEmbed(channel, 'rappel_embed_jdc_id', embedJdc)
+  await ensureRappelEmbed(channel, 'rappel_embed_jdc_id', embedJdc, [JDC_REFRESH_ROW])
 }
 
 async function sendRappelPings(client) {
