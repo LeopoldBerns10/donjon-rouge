@@ -3,7 +3,8 @@ const supabase = require('./supabase.js')
 const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
 const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
-const { isJdcActive, updateJdcEmbeds, checkJdcReminders, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
+const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
+const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
 
 const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
@@ -366,105 +367,6 @@ async function updateReminderMessages(client) {
   await _doUpdateReminderMessages(channel, warData)
 }
 
-// ─── Rappels automatiques (messages @mention auto-supprimés) ──────────────────
-
-const sentWarReminders = new Set()
-const sentRaidReminders = new Set()
-
-function buildReminderText(members, discordMap, label) {
-  const lines = members.map(m => {
-    const ids = discordMap[m.tag] || []
-    const mention = ids.length > 0 ? `<@${ids[0]}>` : m.name
-    return `${mention} — ${m.name} ${m.tag} n'a pas attaqué !`
-  })
-  return `${label}\n${lines.join('\n')}\n\n⚠️ Selon le règlement, un joueur n'ayant pas attaqué peut être remplacé pour la prochaine guerre.`
-}
-
-async function sendReminder(channel, members, discordMap, label) {
-  const msg = await channel.send(buildReminderText(members, discordMap, label))
-  setTimeout(() => msg.delete().catch(() => {}), 2 * 60 * 60 * 1000)
-}
-
-async function checkWarReminders(channel, { wars, dr1IsLdc, dr2IsLdc, currentRaid }) {
-  for (const clanKey of CLANS) {
-    const war = wars[clanKey]
-    if (!war || war.state !== 'inWar') continue
-
-    const startTime = parseWarTime(war.startTime)
-    if (!startTime) continue
-    const hoursElapsed = (Date.now() - startTime.getTime()) / 3600000
-    const warId = war.preparationStartTime || startTime.toISOString()
-    const isLdc = clanKey === 'dr1' ? dr1IsLdc : dr2IsLdc
-
-    if (hoursElapsed >= 10 && hoursElapsed < 11) {
-      const key = `${warId}_10h_${clanKey}`
-      if (!sentWarReminders.has(key)) {
-        const noAttack = (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) === 0)
-        if (noAttack.length > 0) {
-          const discordMap = await getDiscordIds(noAttack.map(m => m.tag))
-          const type = isLdc ? 'LDC' : 'GDC'
-          await sendReminder(channel, noAttack, discordMap, `⚔️ [${clanKey.toUpperCase()}] Rappel 10h ${type}`)
-          sentWarReminders.add(key)
-        }
-      }
-    }
-
-    if (hoursElapsed >= 20 && hoursElapsed < 21) {
-      const key = `${warId}_20h_${clanKey}`
-      if (!sentWarReminders.has(key)) {
-        const laggards = isLdc
-          ? (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) === 0)
-          : (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) < 2)
-        if (laggards.length > 0) {
-          const discordMap = await getDiscordIds(laggards.map(m => m.tag))
-          const type = isLdc ? 'LDC' : 'GDC'
-          await sendReminder(channel, laggards, discordMap, `⚔️ [${clanKey.toUpperCase()}] Rappel 20h ${type}`)
-          sentWarReminders.add(key)
-        }
-      }
-    }
-
-    if (hoursElapsed >= 22 && hoursElapsed < 23) {
-      const key = `${warId}_22h_${clanKey}`
-      if (!sentWarReminders.has(key)) {
-        const laggards = isLdc
-          ? (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) === 0)
-          : (war.clan?.members || []).filter(m => (m.attacks?.length ?? 0) < 2)
-        if (laggards.length > 0) {
-          const discordMap = await getDiscordIds(laggards.map(m => m.tag))
-          const type = isLdc ? 'LDC' : 'GDC'
-          await sendReminder(channel, laggards, discordMap, `🚨 [${clanKey.toUpperCase()}] Dernière chance ! Rappel 22h ${type}`)
-          sentWarReminders.add(key)
-        }
-      }
-    }
-  }
-
-  if (currentRaid) {
-    const utcPlus2 = new Date(Date.now() + 2 * 3600000)
-    if (utcPlus2.getUTCDay() === 0 && utcPlus2.getUTCHours() >= 12 && utcPlus2.getUTCHours() < 13) {
-      const key = `raid_${currentRaid.startTime || 'current'}`
-      if (!sentRaidReminders.has(key)) {
-        let allMembers = []
-        try {
-          const [membersDR1, membersDR2] = await Promise.all([
-            apiGet('/clan/dr1/members'),
-            apiGet('/clan/dr2/members'),
-          ])
-          allMembers = [...(membersDR1?.items || []), ...(membersDR2?.items || [])]
-        } catch {}
-        const raidMap  = new Map((currentRaid.members || []).map(m => [m.tag, m]))
-        const noAttack = allMembers.filter(m => !raidMap.has(m.tag))
-        if (noAttack.length > 0) {
-          const discordMap = await getDiscordIds(noAttack.map(m => m.tag))
-          await sendReminder(channel, noAttack, discordMap, '🏰 Rappel Raid du Capital')
-          sentRaidReminders.add(key)
-        }
-      }
-    }
-  }
-}
-
 // ─── Exploits (récaps de fins de guerre/raid) ─────────────────────────────────
 
 async function checkExploits(client, warData) {
@@ -509,14 +411,21 @@ async function checkAndUpdate(client) {
   const warData = await fetchWarData()
   await _doUpdateReminderMessages(channel, warData)
   await checkExploits(client, warData).catch(e => console.error('[Scheduler] Exploits:', e))
-  await checkWarReminders(channel, warData)
   await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))
+
+  // Rappels v2 — embeds liste mis à jour à chaque tick
+  await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds:', e))
+
+  // Rappels v2 — pings à 10h et 20h (heure Paris = UTC+2)
+  const parisHour = new Date(Date.now() + 2 * 3600000).getUTCHours()
+  if (parisHour === 10 || parisHour === 20) {
+    await sendRappelPings(client).catch(e => console.error('[Scheduler] RappelPings:', e))
+  }
 
   // JDC — toutes les 30 min
   const jdcActive = await isJdcActive().catch(() => false)
   if (jdcActive) {
     await updateJdcEmbeds(client).catch(e => console.error('[Scheduler] JDC embeds:', e))
-    await checkJdcReminders(client).catch(e => console.error('[Scheduler] JDC reminders:', e))
     await checkJdcEnd(client).catch(e => console.error('[Scheduler] JDC end:', e))
   } else {
     await autoDetectJdc(client).catch(e => console.error('[Scheduler] JDC detect:', e))
