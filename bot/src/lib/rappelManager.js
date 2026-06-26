@@ -191,10 +191,9 @@ async function sendRappelPings(client) {
   const channel = await client.channels.fetch(RAPPEL_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
-  const [{ war: warDR1, isLdc: dr1Ldc }, { war: warDR2, isLdc: dr2Ldc }, raid] = await Promise.all([
+  const [{ war: warDR1, isLdc: dr1Ldc }, { war: warDR2, isLdc: dr2Ldc }] = await Promise.all([
     fetchWar('dr1'),
     fetchWar('dr2'),
-    fetchRaid(),
   ])
 
   // ── Guerre DR1 ────────────────────────────────────────────────────────────
@@ -228,23 +227,6 @@ async function sendRappelPings(client) {
         `Il reste ${hoursLeft}h — chaque attaque compte ! ⚔️`,
       ].join('\n')
       await replacePingMessage(channel, 'rappel_ping_dr2_id', content).catch(e => console.error('[RappelManager] Ping DR2:', e))
-    }
-  }
-
-  // ── Raid ──────────────────────────────────────────────────────────────────
-  if (raid) {
-    const allMembers = await fetchAllClanMembers()
-    const raidMap    = new Map((raid.members ?? []).map(m => [m.tag, m]))
-    const noRaid     = allMembers.filter(m => !raidMap.has(m.tag))
-    if (noRaid.length > 0) {
-      const discordMap = await getDiscordIds(noRaid.map(m => m.tag))
-      const mentions   = noRaid.map(m => discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name)
-      const content = [
-        `💎 ${mentions.join(' ')}`,
-        `Vous n'avez pas encore participé au Raid Capital !`,
-        `Le raid se termine lundi à 9h ⏰`,
-      ].join('\n')
-      await replacePingMessage(channel, 'rappel_ping_raid_id', content).catch(e => console.error('[RappelManager] Ping Raid:', e))
     }
   }
 
