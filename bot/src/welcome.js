@@ -3,7 +3,6 @@ const {
   HALL_CHANNEL_ID,
   FLOOD_PUBLIC_ID,
   TICKETS_ID,
-  CONTACT_ROLE_ID,
 } = require('./config/welcome.js')
 
 async function sendWelcomeMessage(member) {
@@ -15,7 +14,7 @@ async function sendWelcomeMessage(member) {
 
   const fieldValue = [
     `👋 Annonce toi => <#${FLOOD_PUBLIC_ID}>`,
-    `⚔️ Contact le <@&${CONTACT_ROLE_ID}> pour rejoindre le jeu`,
+    `⚔️ Contact le <@&611123759864348672> ou <@&1297318759396278425> pour rejoindre le jeu`,
     `❓ Besoin d'autre chose => <#${TICKETS_ID}>`,
   ].join('\n')
 
