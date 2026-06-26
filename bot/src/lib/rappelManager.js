@@ -84,68 +84,6 @@ async function fetchAllClanMembers() {
 
 // ─── Embed builders (aucune mention) ─────────────────────────────────────────
 
-async function buildRaidRappelEmbed(raid) {
-  if (!raid) {
-    return new EmbedBuilder()
-      .setColor(0x8B0000)
-      .setTitle('😴 Raid Capital — Inactif')
-      .setDescription('😴 Prochain raid vendredi — DR1 uniquement')
-      .setFooter({ text: 'Donjon Rouge • Raid Capital' })
-      .setTimestamp()
-  }
-
-  const allMembers  = await fetchAllClanMembers()
-  const raidMap     = new Map((raid.members ?? []).map(m => [m.tag, m]))
-  const attacksUsed = (raid.members ?? []).reduce((acc, m) => acc + (m.attacks ?? 0), 0)
-  const noAttack    = allMembers.filter(m => !raidMap.has(m.tag))
-  const partial     = allMembers.filter(m => {
-    const rm = raidMap.get(m.tag)
-    return rm && (rm.attacks ?? 0) > 0 && (rm.attacks ?? 0) < (rm.attackLimit ?? 5)
-  })
-
-  const retardataires = [...noAttack, ...partial]
-
-  if (retardataires.length === 0) {
-    return new EmbedBuilder()
-      .setColor(0x2E7D32)
-      .setTitle('💎 Raid Capital — Actif')
-      .addFields({
-        name:  '📊 Participation',
-        value: `✅ Tous les membres ont attaqué !\n⚔️ ${attacksUsed} attaques au total`,
-      })
-      .setFooter({ text: 'Donjon Rouge • Raid Capital' })
-      .setTimestamp()
-  }
-
-  const lateLines = [
-    ...noAttack.map(m => `❌ ${m.name} — 0/5 att.`),
-    ...partial.map(m => {
-      const rm = raidMap.get(m.tag)
-      return `⚡ ${m.name} — ${rm.attacks}/${rm.attackLimit ?? 5} att.`
-    }),
-  ]
-
-  return new EmbedBuilder()
-    .setColor(0xFF6600)
-    .setTitle('💎 Raid Capital — Actif')
-    .addFields(
-      {
-        name:  '📊 Avancement',
-        value: `⚔️ ${attacksUsed} attaques utilisées | **${retardataires.length} membre${retardataires.length > 1 ? 's' : ''}** n'ont pas terminé`,
-      },
-      {
-        name:  '❌ Retardataires',
-        value: lateLines.join('\n').slice(0, 1024) || '—',
-      },
-      {
-        name:  '⏱️ Rappels',
-        value: '⏰ Mentions automatiques à 10h et 20h (heure Paris)',
-      },
-    )
-    .setFooter({ text: 'Donjon Rouge • Raid Capital' })
-    .setTimestamp()
-}
-
 async function buildJdcRappelEmbed() {
   const active = await isJdcActive()
 
@@ -267,14 +205,8 @@ async function updateRappelEmbeds(client) {
   const channel = await client.channels.fetch(RAPPEL_CHANNEL_ID).catch(() => null)
   if (!channel) return
 
-  const [raid, embedJdc] = await Promise.all([
-    fetchRaid(),
-    buildJdcRappelEmbed(),
-  ])
-  const embedRaid = await buildRaidRappelEmbed(raid)
-
-  await ensureRappelEmbed(channel, 'rappel_embed_raid_id', embedRaid)
-  await ensureRappelEmbed(channel, 'rappel_embed_jdc_id',  embedJdc)
+  const embedJdc = await buildJdcRappelEmbed()
+  await ensureRappelEmbed(channel, 'rappel_embed_jdc_id', embedJdc)
 }
 
 async function sendRappelPings(client) {
