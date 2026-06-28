@@ -80,13 +80,11 @@ function _warDetail(settled) {
 async function _getBirthdaysToday() {
   try {
     const today = new Date()
-    const mm = String(today.getMonth() + 1).padStart(2, '0')
-    const dd = String(today.getDate()).padStart(2, '0')
     const { count } = await supabase
       .from('birthdays')
       .select('*', { count: 'exact', head: true })
-      .eq('month', parseInt(mm))
-      .eq('day', parseInt(dd))
+      .eq('birth_month', today.getMonth() + 1)
+      .eq('birth_day', today.getDate())
     return count ?? 0
   } catch {
     return 0
@@ -98,7 +96,7 @@ async function _getActivePolls() {
     const { count } = await supabase
       .from('polls')
       .select('*', { count: 'exact', head: true })
-      .eq('is_active', true)
+      .eq('ended', false)
     return count ?? 0
   } catch {
     return 0
@@ -152,11 +150,14 @@ export async function updateConfig(req, res) {
 export async function getBirthdays(req, res) {
   const { data, error } = await supabase
     .from('birthdays')
-    .select('discord_id, discord_name, day, month, year')
-    .order('month')
-    .order('day')
+    .select('discord_id, discord_name, birth_day, birth_month, birth_year')
+    .order('birth_month')
+    .order('birth_day')
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error('[Dashboard] getBirthdays error:', error.code, error.message, error.details)
+    return res.status(500).json({ error: error.message })
+  }
   return res.json(data)
 }
 
@@ -176,10 +177,13 @@ export async function deleteBirthday(req, res) {
 export async function getPolls(req, res) {
   const { data, error } = await supabase
     .from('polls')
-    .select('id, question, options, votes, is_active, created_at, ended_at')
+    .select('id, question, options, votes, ended, ends_at, created_at, creator_id')
     .order('created_at', { ascending: false })
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error('[Dashboard] getPolls error:', error.code, error.message, error.details)
+    return res.status(500).json({ error: error.message })
+  }
   return res.json(data)
 }
 
@@ -187,10 +191,13 @@ export async function endPoll(req, res) {
   const { id } = req.params
   const { error } = await supabase
     .from('polls')
-    .update({ is_active: false, ended_at: new Date().toISOString() })
+    .update({ ended: true })
     .eq('id', id)
 
-  if (error) return res.status(500).json({ error: error.message })
+  if (error) {
+    console.error('[Dashboard] endPoll error:', error.code, error.message, error.details)
+    return res.status(500).json({ error: error.message })
+  }
   return res.json({ ok: true })
 }
 

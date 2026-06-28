@@ -7,7 +7,7 @@ function nextUpcoming(list) {
   const today = new Date()
   const todayVal = (today.getMonth() + 1) * 100 + today.getDate()
   const scored = list.map((b) => {
-    const val = parseInt(b.month) * 100 + parseInt(b.day)
+    const val = parseInt(b.birth_month) * 100 + parseInt(b.birth_day)
     return { ...b, _score: val >= todayVal ? val : val + 1300 }
   })
   scored.sort((a, b) => a._score - b._score)
@@ -47,10 +47,10 @@ export default function Birthdays() {
 
   const today = new Date()
   const todayBirthdays = list.filter(
-    (b) => parseInt(b.day) === today.getDate() && parseInt(b.month) === today.getMonth() + 1
+    (b) => parseInt(b.birth_day) === today.getDate() && parseInt(b.birth_month) === today.getMonth() + 1
   )
   const next = nextUpcoming(list.filter(
-    (b) => !(parseInt(b.day) === today.getDate() && parseInt(b.month) === today.getMonth() + 1)
+    (b) => !(parseInt(b.birth_day) === today.getDate() && parseInt(b.birth_month) === today.getMonth() + 1)
   ))
 
   if (loading) return <div className="text-dr-muted text-sm">Chargement...</div>
@@ -88,8 +88,8 @@ export default function Birthdays() {
             <>
               <div className="text-base font-bold text-dr-text">{String(next.discord_name)}</div>
               <div className="text-dr-muted text-xs mt-0.5">
-                {String(next.day).padStart(2, '0')}/{String(next.month).padStart(2, '0')}
-                {next.year ? `/${String(next.year)}` : ''}
+                {String(next.birth_day).padStart(2, '0')}/{String(next.birth_month).padStart(2, '0')}
+                {next.birth_year ? `/${String(next.birth_year)}` : ''}
               </div>
             </>
           ) : (
@@ -113,7 +113,7 @@ export default function Birthdays() {
             </thead>
             <tbody>
               {list.map((b) => {
-                const age = ageFromYear(b.year)
+                const age = ageFromYear(b.birth_year)
                 return (
                   <tr
                     key={String(b.discord_id)}
@@ -121,8 +121,8 @@ export default function Birthdays() {
                   >
                     <td className="px-5 py-3 text-dr-text font-medium">{String(b.discord_name)}</td>
                     <td className="px-5 py-3 text-dr-muted">
-                      {String(b.day).padStart(2, '0')}/{String(b.month).padStart(2, '0')}
-                      {b.year ? `/${String(b.year)}` : ''}
+                      {String(b.birth_day).padStart(2, '0')}/{String(b.birth_month).padStart(2, '0')}
+                      {b.birth_year ? `/${String(b.birth_year)}` : ''}
                     </td>
                     <td className="px-5 py-3 text-dr-muted">
                       {age !== null ? `${age} ans` : '—'}

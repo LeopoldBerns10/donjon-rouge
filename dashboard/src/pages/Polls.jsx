@@ -4,30 +4,34 @@ import { getPolls, endPoll } from '../api'
 function PollCard({ poll, onEnd }) {
   const rawVotes = poll.votes && typeof poll.votes === 'object' ? poll.votes : {}
   const options = Array.isArray(poll.options) ? poll.options : []
+  const isActive = !poll.ended
 
-  const counts = options.map((_, i) => {
-    const v = rawVotes[i] ?? rawVotes[String(i)] ?? 0
-    return typeof v === 'number' ? v : 0
-  })
+  // votes is { user_id: option_index } — count occurrences per option index
+  const counts = Array(options.length).fill(0)
+  for (const idx of Object.values(rawVotes)) {
+    const i = typeof idx === 'number' ? idx : parseInt(idx, 10)
+    if (!isNaN(i) && i >= 0 && i < options.length) counts[i]++
+  }
   const total = counts.reduce((s, v) => s + v, 0)
 
   return (
-    <div className={`bg-dr-card border rounded-xl p-5 ${poll.is_active ? 'border-dr-red/40' : 'border-dr-border'}`}>
+    <div className={`bg-dr-card border rounded-xl p-5 ${isActive ? 'border-dr-red/40' : 'border-dr-border'}`}>
       <div className="flex items-start justify-between gap-4 mb-4">
         <div className="min-w-0">
           <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full mb-2 ${
-            poll.is_active ? 'bg-dr-red/20 text-dr-red-light' : 'bg-dr-border text-dr-muted'
+            isActive ? 'bg-dr-red/20 text-dr-red-light' : 'bg-dr-border text-dr-muted'
           }`}>
-            {poll.is_active ? '● Actif' : '■ Terminé'}
+            {isActive ? '● Actif' : '■ Terminé'}
           </span>
           <h3 className="text-dr-text font-semibold leading-snug">{String(poll.question)}</h3>
           <p className="text-dr-muted text-xs mt-0.5">
             {total} vote{total !== 1 ? 's' : ''} · créé le{' '}
             {new Date(poll.created_at).toLocaleDateString('fr-FR')}
-            {poll.ended_at ? ` · terminé le ${new Date(poll.ended_at).toLocaleDateString('fr-FR')}` : ''}
+            {poll.ends_at && !isActive ? ` · terminé le ${new Date(poll.ends_at).toLocaleDateString('fr-FR')}` : ''}
+            {poll.ends_at && isActive ? ` · jusqu'au ${new Date(poll.ends_at).toLocaleDateString('fr-FR')}` : ''}
           </p>
         </div>
-        {poll.is_active && (
+        {isActive && (
           <button
             onClick={() => onEnd(poll.id)}
             className="flex-shrink-0 px-3 py-1.5 rounded-lg border border-dr-border text-dr-muted hover:border-red-700/60 hover:text-red-400 transition-colors text-xs whitespace-nowrap"
@@ -81,7 +85,7 @@ export default function Polls() {
       await endPoll(id)
       setPolls((prev) =>
         prev.map((p) =>
-          p.id === id ? { ...p, is_active: false, ended_at: new Date().toISOString() } : p
+          p.id === id ? { ...p, ended: true } : p
         )
       )
     } catch {
@@ -89,8 +93,8 @@ export default function Polls() {
     }
   }
 
-  const active = polls.filter((p) => p.is_active)
-  const ended = polls.filter((p) => !p.is_active)
+  const active = polls.filter((p) => !p.ended)
+  const ended = polls.filter((p) => p.ended)
 
   if (loading) return <div className="text-dr-muted text-sm">Chargement...</div>
 
