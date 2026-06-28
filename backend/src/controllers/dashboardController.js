@@ -106,11 +106,11 @@ async function _getActivePolls() {
 async function _getRouteNumber() {
   try {
     const { data } = await supabase
-      .from('bot_config')
-      .select('value')
-      .eq('key', 'route_current_number')
-      .single()
-    return data?.value ? parseInt(data.value) : null
+      .from('route_infinie')
+      .select('current_number')
+      .eq('active', true)
+      .maybeSingle()
+    return data?.current_number ?? null
   } catch {
     return null
   }
@@ -204,37 +204,42 @@ export async function endPoll(req, res) {
 // ── Route de l'Infinie ────────────────────────────────────────────────────────
 
 export async function getRoute(req, res) {
-  const { data, error } = await supabase
-    .from('bot_config')
-    .select('key, value')
-    .in('key', ['route_current_number', 'route_last_player', 'route_gift', 'route_gift_number'])
+  console.log('[Dashboard] getRoute — requête Supabase route_infinie...')
 
-  if (error) return res.status(500).json({ error: error.message })
+  const { data, error, status, statusText } = await supabase
+    .from('route_infinie')
+    .select('current_number, last_discord_id, gift_number, gift_desc')
+    .eq('active', true)
+    .maybeSingle()
 
-  const config = {}
-  for (const row of data ?? []) config[row.key] = row.value
-  return res.json(config)
+  console.log('[Dashboard] getRoute — status:', status, statusText)
+  console.log('[Dashboard] getRoute — error:', JSON.stringify(error))
+  console.log('[Dashboard] getRoute — data:', JSON.stringify(data))
+
+  if (error) {
+    return res.status(500).json({ error: error.message, code: error.code, details: error.details })
+  }
+  return res.json(data ?? {})
 }
 
 export async function updateRoute(req, res) {
   const { action, gift_number, gift_desc } = req.body
+  const now = new Date().toISOString()
 
   if (action === 'reset') {
-    const rows = [
-      { key: 'route_current_number', value: '0' },
-      { key: 'route_last_player', value: '' },
-    ]
-    const { error } = await supabase.from('bot_config').upsert(rows, { onConflict: 'key' })
+    const { error } = await supabase
+      .from('route_infinie')
+      .update({ current_number: 0, last_discord_id: null, last_time: null, updated_at: now })
+      .eq('active', true)
     if (error) return res.status(500).json({ error: error.message })
     return res.json({ ok: true })
   }
 
   if (gift_number !== undefined && gift_desc !== undefined) {
-    const rows = [
-      { key: 'route_gift_number', value: String(gift_number) },
-      { key: 'route_gift', value: String(gift_desc) },
-    ]
-    const { error } = await supabase.from('bot_config').upsert(rows, { onConflict: 'key' })
+    const { error } = await supabase
+      .from('route_infinie')
+      .update({ gift_number: parseInt(gift_number), gift_desc: String(gift_desc), updated_at: now })
+      .eq('active', true)
     if (error) return res.status(500).json({ error: error.message })
     return res.json({ ok: true })
   }

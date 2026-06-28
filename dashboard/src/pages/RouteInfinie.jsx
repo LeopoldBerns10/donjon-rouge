@@ -17,8 +17,8 @@ export default function RouteInfinie() {
       .then(({ data }) => {
         const safe = data && typeof data === 'object' ? data : {}
         setState(safe)
-        setGiftNumber(safe.route_gift_number ?? '')
-        setGiftDesc(safe.route_gift ?? '')
+        setGiftNumber(safe.gift_number != null ? String(safe.gift_number) : '')
+        setGiftDesc(safe.gift_desc ?? '')
       })
       .catch(() => setError('Impossible de charger la route'))
       .finally(() => setLoading(false))
@@ -30,7 +30,7 @@ export default function RouteInfinie() {
     setError(null)
     try {
       await updateRoute({ gift_number: parseInt(giftNumber), gift_desc: giftDesc })
-      setState((prev) => ({ ...prev, route_gift_number: String(giftNumber), route_gift: String(giftDesc) }))
+      setState((prev) => ({ ...prev, gift_number: parseInt(giftNumber), gift_desc: giftDesc }))
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch {
@@ -46,7 +46,7 @@ export default function RouteInfinie() {
     setError(null)
     try {
       await updateRoute({ action: 'reset' })
-      setState((prev) => ({ ...prev, route_current_number: '0', route_last_player: '' }))
+      setState((prev) => ({ ...prev, current_number: 0, last_discord_id: null }))
     } catch {
       setError('Erreur lors du reset')
     } finally {
@@ -56,8 +56,8 @@ export default function RouteInfinie() {
 
   if (loading) return <div className="text-dr-muted text-sm">Chargement...</div>
 
-  const currentNumber = state.route_current_number ? parseInt(state.route_current_number) : 0
-  const giftTarget = state.route_gift_number ? parseInt(state.route_gift_number) : 0
+  const currentNumber = typeof state.current_number === 'number' ? state.current_number : 0
+  const giftTarget = typeof state.gift_number === 'number' ? state.gift_number : 0
   const progress = giftTarget > 0 ? Math.min(100, Math.round((currentNumber / giftTarget) * 100)) : 0
 
   return (
@@ -76,21 +76,21 @@ export default function RouteInfinie() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-dr-card border border-dr-border rounded-xl p-5">
           <div className="text-dr-muted text-xs font-semibold uppercase tracking-wider mb-2">🗺️ Nombre actuel</div>
-          <div className="text-3xl font-bold text-dr-gold">{currentNumber}</div>
+          <div className="text-3xl font-bold text-dr-gold">{currentNumber.toLocaleString('fr-FR')}</div>
         </div>
         <div className="bg-dr-card border border-dr-border rounded-xl p-5">
           <div className="text-dr-muted text-xs font-semibold uppercase tracking-wider mb-2">👤 Dernier joueur</div>
-          <div className="text-lg font-bold text-dr-text">
-            {state.route_last_player ? String(state.route_last_player) : '—'}
+          <div className="text-sm font-mono text-dr-text">
+            {state.last_discord_id ? `<@${String(state.last_discord_id)}>` : '—'}
           </div>
         </div>
         <div className="bg-dr-card border border-dr-border rounded-xl p-5">
           <div className="text-dr-muted text-xs font-semibold uppercase tracking-wider mb-2">🎁 Cadeau actuel</div>
           <div className="text-sm font-semibold text-dr-text">
-            {state.route_gift ? String(state.route_gift) : '—'}
+            {state.gift_desc ? String(state.gift_desc) : '—'}
           </div>
           {giftTarget > 0 && (
-            <div className="text-dr-muted text-xs mt-1">Objectif : {giftTarget}</div>
+            <div className="text-dr-muted text-xs mt-1">Objectif : {giftTarget.toLocaleString('fr-FR')}</div>
           )}
         </div>
       </div>
@@ -99,7 +99,7 @@ export default function RouteInfinie() {
         <div className="bg-dr-card border border-dr-border rounded-xl p-5">
           <div className="flex justify-between text-xs text-dr-muted mb-2">
             <span>Progression vers le cadeau</span>
-            <span>{currentNumber} / {giftTarget} ({progress}%)</span>
+            <span>{currentNumber.toLocaleString('fr-FR')} / {giftTarget.toLocaleString('fr-FR')} ({progress}%)</span>
           </div>
           <div className="h-3 bg-dr-dark rounded-full overflow-hidden">
             <div
