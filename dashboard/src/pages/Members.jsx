@@ -4,7 +4,7 @@ import api from '../api'
 const ROLE_LABELS = {
   leader: 'Chef',
   coLeader: 'Co-chef',
-  admin: 'Ancien',
+  admin: 'Aîné',
   member: 'Membre',
 }
 

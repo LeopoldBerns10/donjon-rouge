@@ -2,6 +2,12 @@ import { useEffect, useState } from 'react'
 import { getStats } from '../api'
 import Card from '../components/Card'
 
+const RAID_STATE_LABELS = {
+  ongoing: 'En cours',
+  ended: 'Terminé',
+  notStarted: 'Pas commencé',
+}
+
 const WAR_STATE_LABELS = {
   inWar: 'En cours ⚔️',
   preparation: 'Préparation',
@@ -74,7 +80,7 @@ export default function Home() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               <Card icon="🎂" title="Anniversaires aujourd'hui" value={stats?.birthdays_today ?? 0} />
               <Card icon="📊" title="Sondages actifs" value={stats?.active_polls ?? 0} />
-              <Card icon="💥" title="Raid" value={stats?.raid_state ?? '—'} />
+              <Card icon="💥" title="Raid" value={RAID_STATE_LABELS[stats?.raid_state] ?? stats?.raid_state ?? '—'} />
               <Card icon="🗺️" title="Route de l'Infinie" value={stats?.route_number ?? '—'} subtitle="Nombre actuel" />
             </div>
           </section>
