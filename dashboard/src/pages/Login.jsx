@@ -28,7 +28,8 @@ export default function Login() {
           navigate('/', { replace: true })
         })
         .catch((err) => {
-          setError(err.response?.data?.error || 'Erreur de connexion Discord')
+          const apiError = err.response?.data?.error
+          setError(typeof apiError === 'string' ? apiError : 'Erreur de connexion Discord')
           setLoading(false)
         })
     }
