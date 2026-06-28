@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require('discord.js')
 const { SORTIE_CHANNEL_ID } = require('../config/welcome.js')
 const { invalidateMembresCache } = require('../lib/panelHandlers.js')
+const { resolveVariables } = require('../lib/messageVariables.js')
 const supabase = require('../supabase.js')
 
 function formatTimeSpent(joinedAt) {
@@ -34,8 +35,8 @@ module.exports = {
         supabase.from('bot_config').select('value').eq('key', 'departure_title').maybeSingle(),
         supabase.from('bot_config').select('value').eq('key', 'departure_desc').maybeSingle(),
       ])
-      const embedTitle = titleData?.value ?? '👋 Un guerrier quitte le Donjon...'
-      const embedDesc  = (descData?.value ?? '{user} a quitté nos rangs.').replace('{user}', `<@${member.id}>`)
+      const embedTitle = resolveVariables(titleData?.value ?? '👋 Un guerrier quitte le Donjon...', member, channel)
+      const embedDesc  = resolveVariables(descData?.value ?? '{user} a quitté nos rangs.', member, channel)
 
       const embed = new EmbedBuilder()
         .setColor(0x8B0000)
