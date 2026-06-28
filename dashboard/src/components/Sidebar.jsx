@@ -13,7 +13,7 @@ const navItems = [
     section: 'CONFIGURATION',
     items: [
       { to: '/welcome', icon: DoorOpen, label: 'Arrivées & Départs' },
-      { to: '/messages', icon: MessageSquare, label: 'Messages GDC' },
+      { to: '/messages', icon: MessageSquare, label: 'Messages modifiables' },
       { to: '/birthdays', icon: Cake, label: 'Anniversaires' },
       { to: '/polls', icon: BarChart2, label: 'Sondages' },
       { to: '/route-infinie', icon: Map, label: "Route de l'Infinie" },
