@@ -9,6 +9,16 @@ services:
         source: /*
         destination: /index.html
 
+  - type: web
+    name: donjon-rouge-dashboard
+    env: static
+    buildCommand: cd dashboard && npm install && npm run build
+    staticPublishPath: dashboard/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
   - type: worker
     name: donjon-rouge-bot
     env: node
