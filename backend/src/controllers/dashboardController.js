@@ -44,9 +44,9 @@ export async function getStats(req, res) {
           ? raidDr1.value.items[0].state
           : null,
 
-      birthdays_today: birthdaysToday,
-      active_polls: activePolls,
-      route_number: routeState,
+      birthdays_today: birthdaysToday.status === 'fulfilled' ? birthdaysToday.value : 0,
+      active_polls: activePolls.status === 'fulfilled' ? activePolls.value : 0,
+      route_number: routeState.status === 'fulfilled' ? routeState.value : null,
     }
 
     return res.json(stats)
