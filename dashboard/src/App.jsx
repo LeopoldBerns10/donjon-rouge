@@ -5,8 +5,15 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import Welcome from './pages/Welcome'
+import Messages from './pages/Messages'
+import Birthdays from './pages/Birthdays'
+import Polls from './pages/Polls'
+import RouteInfinie from './pages/RouteInfinie'
+import Members from './pages/Members'
+import Config from './pages/Config'
+import Logs from './pages/Logs'
 
-// ── ErrorBoundary (debug temporaire) ─────────────────────────────────────────
+// ── ErrorBoundary (debug) ─────────────────────────────────────────────────────
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props)
@@ -27,7 +34,7 @@ class ErrorBoundary extends Component {
       return (
         <div style={{ padding: 24, fontFamily: 'monospace', background: '#111', color: '#e0e0e0', minHeight: '100vh' }}>
           <div style={{ color: '#C0392B', fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>
-            Erreur React #{error?.name === 'Error' ? '' : error?.name} capturée
+            Erreur React capturée
           </div>
           <div style={{ color: '#FFD700', marginBottom: 16, fontSize: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
             {error?.message}
@@ -51,7 +58,7 @@ class ErrorBoundary extends Component {
   }
 }
 
-// ── Routes ────────────────────────────────────────────────────────────────────
+// ── Route protégée ────────────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) {
@@ -65,6 +72,7 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+// ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
     <ErrorBoundary>
@@ -83,6 +91,13 @@ export default function App() {
             >
               <Route index element={<Home />} />
               <Route path="welcome" element={<Welcome />} />
+              <Route path="messages" element={<Messages />} />
+              <Route path="birthdays" element={<Birthdays />} />
+              <Route path="polls" element={<Polls />} />
+              <Route path="route-infinie" element={<RouteInfinie />} />
+              <Route path="members" element={<Members />} />
+              <Route path="config" element={<Config />} />
+              <Route path="logs" element={<Logs />} />
             </Route>
           </Routes>
         </BrowserRouter>

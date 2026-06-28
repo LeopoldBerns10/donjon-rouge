@@ -1,5 +1,9 @@
 import supabase from '../lib/supabase.js'
+import { getCached } from '../services/cacheService.js'
 import { getClanInfo, getCurrentWar, getClanRaidSeasons } from '../services/cocApiService.js'
+
+const DR1 = process.env.COC_CLAN_TAG_DR1 || '#29292QPRC'
+const DR2 = process.env.COC_CLAN_TAG_DR2 || '#2RCGG9YR9'
 
 // ── Stats générales ───────────────────────────────────────────────────────────
 
@@ -16,18 +20,16 @@ export async function getStats(req, res) {
       activePolls,
       routeState,
     ] = await Promise.allSettled([
-      getClanInfo(process.env.COC_CLAN_TAG_DR1),
-      getClanInfo(process.env.COC_CLAN_TAG_DR2),
-      getCurrentWar(process.env.COC_CLAN_TAG_DR1),
-      getCurrentWar(process.env.COC_CLAN_TAG_DR2),
-      getClanRaidSeasons(process.env.COC_CLAN_TAG_DR1),
+      getCached(`clan:${DR1}`, () => getClanInfo(DR1)),
+      getCached(`clan:${DR2}`, () => getClanInfo(DR2)),
+      getCached(`war:${DR1}`, () => getCurrentWar(DR1)),
+      getCached(`war:${DR2}`, () => getCurrentWar(DR2)),
+      getCached(`raids:${DR1}`, () => getClanRaidSeasons(DR1)),
       supabase.from('discord_links').select('*', { count: 'exact', head: true }),
       _getBirthdaysToday(),
       _getActivePolls(),
       _getRouteNumber(),
     ])
-
-    const todayMM = new Date().toLocaleDateString('fr-FR', { month: '2-digit', day: '2-digit' })
 
     const stats = {
       dr1_members: dr1Info.status === 'fulfilled' ? dr1Info.value.members : null,
