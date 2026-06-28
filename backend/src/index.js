@@ -9,6 +9,7 @@ import { apiLimiter, chatLimiter } from './middleware/rateLimiter.js'
 import { syncMembers } from './services/syncMembers.js'
 
 import authRoutes from './routes/auth.js'
+import dashboardRoutes from './routes/dashboard.js'
 import playersRoutes from './routes/players.js'
 import cocRoutes from './routes/coc.js'
 import forumRoutes from './routes/forum.js'
@@ -25,14 +26,27 @@ const app = express()
 app.set('trust proxy', 1)
 const httpServer = createServer(app)
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.DASHBOARD_URL,
+].filter(Boolean)
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL,
+    origin: allowedOrigins,
     methods: ['GET', 'POST']
   }
 })
 
-app.use(cors({ origin: process.env.FRONTEND_URL }))
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
+}))
 app.use(express.json())
 app.use(apiLimiter)
 
@@ -41,6 +55,7 @@ app.get('/health', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/dashboard', dashboardRoutes)
 app.use('/api/players', playersRoutes)
 app.use('/api/coc', cocRoutes)
 app.use('/api/forum', forumRoutes)
