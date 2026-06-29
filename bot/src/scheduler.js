@@ -7,6 +7,7 @@ const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./
 const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
 const { checkExpiredPolls } = require('./lib/pollManager.js')
+const { ensureRaidEvent, ensureJdcEvent, checkEventAnnouncements } = require('./lib/discordEvents.js')
 const { getPlayer } = require('./cocApi.js')
 const { assignLeagueRole } = require('./utils/assignLeagueRole.js')
 const { assignHdvRole } = require('./utils/assignHdvRole.js')
@@ -517,6 +518,11 @@ async function checkAndUpdate(client) {
   if (parisHour === 21) {
     await checkGdcMessages(client).catch(e => console.error('[Scheduler] GDC messages:', e))
   }
+
+  // Événements Discord — raid, JDC, annonces
+  await ensureRaidEvent(client).catch(e => console.error('[Events] Raid:', e))
+  await ensureJdcEvent(client).catch(e => console.error('[Events] JDC:', e))
+  await checkEventAnnouncements(client).catch(e => console.error('[Events] Annonces:', e))
 
   // JDC — toutes les 30 min
   const jdcActive = await isJdcActive().catch(() => false)

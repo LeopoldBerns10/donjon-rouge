@@ -84,6 +84,7 @@ const {
   handleRouteSetGift, handleRouteView, handleRouteReset,
   handleModalRouteSetGift,
 } = require('../lib/routeInfinie.js')
+const { handleModalCreateEvent } = require('../lib/discordEvents.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
 
@@ -914,6 +915,11 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_route_set_gift') {
       await handleModalRouteSetGift(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_createevent') {
+      await handleModalCreateEvent(interaction)
       return
     }
 
