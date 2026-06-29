@@ -235,7 +235,11 @@ function discordHeaders() {
 }
 
 async function discordCreateEvent({ title, description, start_time, end_time }) {
-  const res = await fetch(`${DISCORD_API}/guilds/${DISCORD_GUILD_ID}/scheduled-events`, {
+  const token = process.env.DISCORD_TOKEN ?? ''
+  const url   = `${DISCORD_API}/guilds/${DISCORD_GUILD_ID}/scheduled-events`
+  console.log('[Discord] token (10 premiers chars):', token.slice(0, 10) || '(vide)')
+  console.log('[Discord] URL:', url)
+  const res = await fetch(url, {
     method: 'POST',
     headers: discordHeaders(),
     body: JSON.stringify({
