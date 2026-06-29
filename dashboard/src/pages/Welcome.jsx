@@ -1,18 +1,133 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getConfig, updateConfig } from '../api'
 import { SaveBar } from '../components/SaveBar'
 
-const DEFAULTS = {
-  welcome_dm_msg: 'Bienvenue {username} sur {server} ! 🎉\nNous sommes ravis de te compter parmi nous.',
-  departure_title: 'Un membre nous a quittés',
-  departure_desc: '{user} a quitté le serveur Donjon Rouge.',
+// ── Définition des variables disponibles ─────────────────────────────────────
+
+const VAR_CATS = [
+  {
+    key: 'user', label: 'Utilisateur',
+    vars: [
+      { v: 'user',             d: 'Mention (@)' },
+      { v: 'user.id',          d: 'ID Discord' },
+      { v: 'user.username',    d: 'Username' },
+      { v: 'user.nickname',    d: 'Surnom serveur' },
+      { v: 'user.globalname',  d: 'Nom global' },
+      { v: 'user.tag',         d: 'Tag (déprécié)' },
+      { v: 'user.rolecount',   d: 'Nombre de rôles' },
+      { v: 'user.created_at',  d: 'Création du compte' },
+      { v: 'user.joined_at',   d: "Date d'arrivée" },
+    ],
+  },
+  {
+    key: 'server', label: 'Serveur',
+    vars: [
+      { v: 'server',               d: 'Nom du serveur' },
+      { v: 'server.membercount',   d: 'Membres total' },
+      { v: 'server.humancount',    d: 'Membres humains' },
+      { v: 'server.botcount',      d: 'Bots' },
+      { v: 'server.rolecount',     d: 'Nombre de rôles' },
+      { v: 'server.channelcount',  d: 'Nombre de salons' },
+      { v: 'server.boosts.level',  d: 'Niveau boost' },
+      { v: 'server.boosts.count',  d: 'Nombre de boosts' },
+      { v: 'server.created_at',    d: 'Création du serveur' },
+    ],
+  },
+  {
+    key: 'channel', label: 'Salon',
+    vars: [
+      { v: 'channel',                    d: 'Mention (#)' },
+      { v: 'channel.name',               d: 'Nom du salon' },
+      { v: 'channel.created_at',         d: 'Création du salon' },
+      { v: 'channel.parent',             d: 'Catégorie (mention)' },
+      { v: 'channel.parent.name',        d: 'Nom catégorie' },
+      { v: 'channel.parent.created_at',  d: 'Création catégorie' },
+    ],
+  },
+  {
+    key: 'date', label: 'Date / Heure',
+    vars: [
+      { v: 'date', d: 'Date DD/MM/YYYY' },
+      { v: 'time', d: 'Heure HH:MM' },
+    ],
+  },
+]
+
+const ALL_VAR_NAMES = VAR_CATS.flatMap(c => c.vars.map(v => v.v))
+
+// ── Valeurs de prévisualisation ───────────────────────────────────────────────
+
+const PREVIEW = {
+  'user':                     '@NouveauMembre',
+  'user.id':                  '123456789012345678',
+  'user.username':            'nouveau_membre',
+  'user.nickname':            'Nouveau Membre',
+  'user.globalname':          'NouveauMembre',
+  'user.tag':                 'nouveau_membre#0000',
+  'user.rolecount':           '2',
+  'user.created_at':          '15/01/2023',
+  'user.joined_at':           '28/06/2026',
+  'server':                   'Donjon Rouge',
+  'server.id':                '610767309031866371',
+  'server.name':              'Donjon Rouge',
+  'server.membercount':       '256',
+  'server.humancount':        '248',
+  'server.botcount':          '8',
+  'server.rolecount':         '42',
+  'server.channelcount':      '35',
+  'server.boosts.level':      '2',
+  'server.boosts.count':      '14',
+  'server.created_at':        '04/07/2019',
+  'channel':                  '#bienvenue',
+  'channel.id':               '1520034360559013939',
+  'channel.name':             'bienvenue',
+  'channel.created_at':       '04/07/2019',
+  'channel.parent':           '#INFORMATIONS',
+  'channel.parent.id':        '987654321',
+  'channel.parent.name':      'INFORMATIONS',
+  'channel.parent.created_at': '04/07/2019',
+  'date':                     '28/06/2026',
+  'time':                     '14:30',
 }
 
-function Badge({ label }) {
+function previewText(text) {
+  let out = text
+  for (const [k, v] of Object.entries(PREVIEW)) {
+    out = out.replaceAll(`{${k}}`, v)
+  }
+  return out
+}
+
+// ── Helpers curseur ───────────────────────────────────────────────────────────
+
+function getOpenBrace(text, cursor) {
+  const before = text.slice(0, cursor)
+  const match = before.match(/\{([a-z._]*)$/)
+  return match ? match[1] : null
+}
+
+// ── Sous-composants ───────────────────────────────────────────────────────────
+
+function SuggestList({ matches, onSelect, onDismiss }) {
+  if (!matches.length) return null
   return (
-    <span className="inline-block bg-dr-red/20 text-dr-red-light border border-dr-red/30 text-xs px-2 py-0.5 rounded font-mono mr-1 mb-1">
-      {'{' + label + '}'}
-    </span>
+    <div className="absolute left-0 right-0 top-full z-20 mt-0.5 bg-dr-dark border border-dr-border rounded-lg shadow-xl overflow-hidden">
+      {matches.slice(0, 12).map(v => (
+        <button
+          key={v}
+          onMouseDown={(e) => { e.preventDefault(); onSelect(v) }}
+          className="w-full text-left px-3 py-1.5 text-xs font-mono text-dr-gold hover:bg-dr-card transition-colors"
+        >
+          {`{${v}}`}
+        </button>
+      ))}
+      <button
+        onMouseDown={(e) => { e.preventDefault(); onDismiss() }}
+        className="w-full text-center text-dr-muted text-xs py-1 border-t border-dr-border hover:bg-dr-card/50 transition-colors"
+      >
+        Fermer
+      </button>
+    </div>
   )
 }
 
@@ -49,20 +164,41 @@ function DiscordEmbed({ title, description }) {
   )
 }
 
+// ── Page principale ───────────────────────────────────────────────────────────
+
+const DEFAULTS = {
+  welcome_dm_msg:  '',
+  departure_title: '',
+  departure_desc:  '',
+}
+
 export default function Welcome() {
   const [original, setOriginal] = useState(DEFAULTS)
-  const [form, setForm] = useState(DEFAULTS)
-  const [saving, setSaving] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [form, setForm]         = useState(DEFAULTS)
+  const [saving, setSaving]     = useState(false)
+  const [loading, setLoading]   = useState(true)
   const [saveError, setSaveError] = useState(null)
+
+  const [activeCat,   setActiveCat]   = useState('user')
+  const [activeField, setActiveField] = useState('welcome_dm_msg')
+  const [suggest, setSuggest]         = useState(null) // { field, matches } | null
+
+  const refWelcome = useRef(null)
+  const refTitle   = useRef(null)
+  const refDesc    = useRef(null)
+  const FIELD_REFS = {
+    welcome_dm_msg:  refWelcome,
+    departure_title: refTitle,
+    departure_desc:  refDesc,
+  }
 
   useEffect(() => {
     getConfig()
       .then(({ data }) => {
         const loaded = {
-          welcome_dm_msg: data.welcome_dm_msg ?? DEFAULTS.welcome_dm_msg,
-          departure_title: data.departure_title ?? DEFAULTS.departure_title,
-          departure_desc: data.departure_desc ?? DEFAULTS.departure_desc,
+          welcome_dm_msg:  data.welcome_dm_msg  ?? '',
+          departure_title: data.departure_title ?? '',
+          departure_desc:  data.departure_desc  ?? '',
         }
         setOriginal(loaded)
         setForm(loaded)
@@ -72,17 +208,61 @@ export default function Welcome() {
   }, [])
 
   const dirty =
-    form.welcome_dm_msg !== original.welcome_dm_msg ||
+    form.welcome_dm_msg  !== original.welcome_dm_msg  ||
     form.departure_title !== original.departure_title ||
-    form.departure_desc !== original.departure_desc
+    form.departure_desc  !== original.departure_desc
 
-  function handleChange(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }))
+  // onChange avec détection d'autocomplétion
+  function handleInput(key, e) {
+    const value  = e.target.value
+    const cursor = e.target.selectionStart
+    setForm(prev => ({ ...prev, [key]: value }))
+
+    const partial = getOpenBrace(value, cursor)
+    if (partial !== null) {
+      const matches = ALL_VAR_NAMES.filter(v => v.startsWith(partial))
+      setSuggest(matches.length ? { field: key, matches } : null)
+    } else {
+      setSuggest(null)
+    }
   }
 
-  function handleReset() {
-    setForm(original)
-    setSaveError(null)
+  // Insère {varName} à la position du curseur dans le champ actif
+  function insertVariable(varName) {
+    const el = FIELD_REFS[activeField]?.current
+    if (!el) return
+    const start = el.selectionStart ?? 0
+    const end   = el.selectionEnd   ?? start
+    const toInsert = `{${varName}}`
+    const newVal = form[activeField].slice(0, start) + toInsert + form[activeField].slice(end)
+    setForm(prev => ({ ...prev, [activeField]: newVal }))
+    setSuggest(null)
+    const newPos = start + toInsert.length
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(newPos, newPos)
+    })
+  }
+
+  // Remplace {partial en cours par {varName}
+  function applySuggest(varName) {
+    const field = suggest.field
+    const el    = FIELD_REFS[field]?.current
+    if (!el) return
+    const cursor  = el.selectionStart
+    const text    = form[field]
+    const before  = text.slice(0, cursor)
+    const partial = before.match(/\{([a-z._]*)$/)?.[1] ?? ''
+    const replaceStart = cursor - partial.length - 1
+    const toInsert = `{${varName}}`
+    const newVal = text.slice(0, replaceStart) + toInsert + text.slice(cursor)
+    setForm(prev => ({ ...prev, [field]: newVal }))
+    setSuggest(null)
+    const newPos = replaceStart + toInsert.length
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(newPos, newPos)
+    })
   }
 
   async function handleSave() {
@@ -90,9 +270,9 @@ export default function Welcome() {
     setSaveError(null)
     try {
       await updateConfig({
-        welcome_dm_msg: form.welcome_dm_msg,
+        welcome_dm_msg:  form.welcome_dm_msg,
         departure_title: form.departure_title,
-        departure_desc: form.departure_desc,
+        departure_desc:  form.departure_desc,
       })
       setOriginal(form)
     } catch {
@@ -102,9 +282,9 @@ export default function Welcome() {
     }
   }
 
-  if (loading) {
-    return <div className="text-dr-muted text-sm">Chargement...</div>
-  }
+  if (loading) return <div className="text-dr-muted text-sm">Chargement...</div>
+
+  const currentCatVars = VAR_CATS.find(c => c.key === activeCat)?.vars ?? []
 
   return (
     <div className="space-y-6 pb-24">
@@ -120,25 +300,68 @@ export default function Welcome() {
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Formulaires */}
-        <div className="space-y-6">
+        {/* ── Colonne gauche : formulaires ──────────────────────────────── */}
+        <div className="space-y-5">
+
+          {/* Variable picker */}
+          <div className="bg-dr-card border border-dr-border rounded-xl p-4">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="text-dr-muted text-xs font-semibold uppercase tracking-wider mr-1">Variables</span>
+              {VAR_CATS.map(cat => (
+                <button
+                  key={cat.key}
+                  onClick={() => setActiveCat(cat.key)}
+                  className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                    activeCat === cat.key
+                      ? 'bg-dr-red text-white'
+                      : 'bg-dr-dark text-dr-muted hover:text-dr-text'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {currentCatVars.map(({ v, d }) => (
+                <button
+                  key={v}
+                  onClick={() => insertVariable(v)}
+                  title={d}
+                  className="text-xs font-mono px-2 py-1 rounded bg-dr-dark border border-dr-border text-dr-gold/80 hover:border-dr-red/50 hover:text-dr-gold transition-colors"
+                >
+                  {`{${v}}`}
+                </button>
+              ))}
+            </div>
+            <p className="text-dr-muted text-xs">
+              Cliquer insère dans le champ actif · Taper <code className="text-dr-gold/70">{'{'}</code> dans un champ pour l'autocomplétion
+            </p>
+          </div>
+
           {/* Message d'arrivée */}
           <div className="bg-dr-card border border-dr-border rounded-xl p-6">
-            <h3 className="font-semibold text-dr-text mb-0.5">Message d'arrivée</h3>
+            <h3 className="font-semibold text-dr-text mb-0.5">Message d'arrivée (DM)</h3>
             <p className="text-dr-muted text-xs mb-3">
-              Envoyé en DM aux nouveaux membres • Clé : <code className="text-dr-gold/80">welcome_dm_msg</code>
+              Clé : <code className="text-dr-gold/80">welcome_dm_msg</code>
             </p>
-            <div className="mb-3">
-              <Badge label="username" />
-              <Badge label="server" />
+            <div className="relative">
+              <textarea
+                ref={refWelcome}
+                value={form.welcome_dm_msg}
+                onFocus={() => { setActiveField('welcome_dm_msg'); setSuggest(null) }}
+                onChange={(e) => handleInput('welcome_dm_msg', e)}
+                rows={5}
+                placeholder="Message de bienvenue..."
+                className="w-full bg-dr-dark border border-dr-border rounded-lg p-3 text-dr-text text-sm resize-none focus:outline-none focus:border-dr-red/60 transition-colors font-mono"
+              />
+              {suggest?.field === 'welcome_dm_msg' && (
+                <SuggestList
+                  matches={suggest.matches}
+                  onSelect={applySuggest}
+                  onDismiss={() => setSuggest(null)}
+                />
+              )}
             </div>
-            <textarea
-              value={form.welcome_dm_msg}
-              onChange={(e) => handleChange('welcome_dm_msg', e.target.value)}
-              rows={5}
-              placeholder="Message de bienvenue..."
-              className="w-full bg-dr-dark border border-dr-border rounded-lg p-3 text-dr-text text-sm resize-none focus:outline-none focus:border-dr-red/60 transition-colors font-mono"
-            />
             <div className="text-dr-muted text-xs mt-1.5 text-right">
               {form.welcome_dm_msg.length} caractères
             </div>
@@ -146,43 +369,62 @@ export default function Welcome() {
 
           {/* Message de départ */}
           <div className="bg-dr-card border border-dr-border rounded-xl p-6">
-            <h3 className="font-semibold text-dr-text mb-0.5">Message de départ</h3>
-            <p className="text-dr-muted text-xs mb-3">
-              Embed affiché dans le salon quand un membre quitte
+            <h3 className="font-semibold text-dr-text mb-0.5">Message de départ (embed)</h3>
+            <p className="text-dr-muted text-xs mb-4">
+              Affiché dans le salon quand un membre quitte
             </p>
-            <div className="mb-3">
-              <Badge label="user" />
-            </div>
             <div className="space-y-3">
               <div>
                 <label className="text-dr-muted text-xs block mb-1">
-                  Titre • <code className="text-dr-gold/80">departure_title</code>
+                  Titre · <code className="text-dr-gold/80">departure_title</code>
                 </label>
-                <input
-                  type="text"
-                  value={form.departure_title}
-                  onChange={(e) => handleChange('departure_title', e.target.value)}
-                  placeholder="Titre de l'embed..."
-                  className="w-full bg-dr-dark border border-dr-border rounded-lg px-3 py-2.5 text-dr-text text-sm focus:outline-none focus:border-dr-red/60 transition-colors"
-                />
+                <div className="relative">
+                  <input
+                    ref={refTitle}
+                    type="text"
+                    value={form.departure_title}
+                    onFocus={() => { setActiveField('departure_title'); setSuggest(null) }}
+                    onChange={(e) => handleInput('departure_title', e)}
+                    placeholder="Titre de l'embed..."
+                    className="w-full bg-dr-dark border border-dr-border rounded-lg px-3 py-2.5 text-dr-text text-sm focus:outline-none focus:border-dr-red/60 transition-colors"
+                  />
+                  {suggest?.field === 'departure_title' && (
+                    <SuggestList
+                      matches={suggest.matches}
+                      onSelect={applySuggest}
+                      onDismiss={() => setSuggest(null)}
+                    />
+                  )}
+                </div>
               </div>
               <div>
                 <label className="text-dr-muted text-xs block mb-1">
-                  Description • <code className="text-dr-gold/80">departure_desc</code>
+                  Description · <code className="text-dr-gold/80">departure_desc</code>
                 </label>
-                <textarea
-                  value={form.departure_desc}
-                  onChange={(e) => handleChange('departure_desc', e.target.value)}
-                  rows={3}
-                  placeholder="Description de l'embed..."
-                  className="w-full bg-dr-dark border border-dr-border rounded-lg p-3 text-dr-text text-sm resize-none focus:outline-none focus:border-dr-red/60 transition-colors font-mono"
-                />
+                <div className="relative">
+                  <textarea
+                    ref={refDesc}
+                    value={form.departure_desc}
+                    onFocus={() => { setActiveField('departure_desc'); setSuggest(null) }}
+                    onChange={(e) => handleInput('departure_desc', e)}
+                    rows={3}
+                    placeholder="Description de l'embed..."
+                    className="w-full bg-dr-dark border border-dr-border rounded-lg p-3 text-dr-text text-sm resize-none focus:outline-none focus:border-dr-red/60 transition-colors font-mono"
+                  />
+                  {suggest?.field === 'departure_desc' && (
+                    <SuggestList
+                      matches={suggest.matches}
+                      onSelect={applySuggest}
+                      onDismiss={() => setSuggest(null)}
+                    />
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Prévisualisation */}
+        {/* ── Colonne droite : prévisualisation ─────────────────────────── */}
         <div className="bg-dr-card border border-dr-border rounded-xl p-6 h-fit sticky top-6">
           <h3 className="font-semibold text-dr-text mb-5">Prévisualisation</h3>
 
@@ -190,7 +432,7 @@ export default function Welcome() {
             <p className="text-dr-muted text-xs font-semibold uppercase tracking-wider mb-2">
               Message d'arrivée (DM)
             </p>
-            <DiscordDM content={form.welcome_dm_msg} />
+            <DiscordDM content={previewText(form.welcome_dm_msg)} />
           </div>
 
           <div>
@@ -198,19 +440,22 @@ export default function Welcome() {
               Message de départ (embed)
             </p>
             <div className="bg-[#36393f] rounded-lg p-3">
-              <DiscordEmbed title={form.departure_title} description={form.departure_desc} />
+              <DiscordEmbed
+                title={previewText(form.departure_title)}
+                description={previewText(form.departure_desc)}
+              />
             </div>
           </div>
 
           <div className="mt-4 pt-4 border-t border-dr-border">
-            <p className="text-dr-muted text-xs">
-              Les variables entre accolades ({'{username}'}, {'{user}'}...) sont remplacées automatiquement par le bot.
+            <p className="text-dr-muted text-xs leading-relaxed">
+              La prévisualisation utilise des valeurs fictives. Les vraies valeurs sont injectées par le bot au moment de l'événement.
             </p>
           </div>
         </div>
       </div>
 
-      <SaveBar dirty={dirty} onSave={handleSave} onReset={handleReset} saving={saving} />
+      <SaveBar dirty={dirty} onSave={handleSave} onReset={() => { setForm(original); setSaveError(null) }} saving={saving} />
     </div>
   )
 }

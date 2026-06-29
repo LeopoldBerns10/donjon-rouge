@@ -52,6 +52,7 @@ const {
   handleModalPanelMsgArrivee, handleModalPanelMsgDepart,
   handleAdminRefreshWar, handleAdminRefreshRaid, handleAdminRefreshJdc,
   handleAdminRefreshLeague, handleAdminRefreshStatus, handleAdminRefreshRappel,
+  handleAdminCreateEvent,
 } = require('../lib/panelHandlers.js')
 const { handleJdcRefresh, handleJdcReminderRefresh } = require('../lib/jdcTracker.js')
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
@@ -740,6 +741,7 @@ const BUTTON_HANDLERS = {
   admin_refresh_league:      handleAdminRefreshLeague,
   admin_refresh_status:      handleAdminRefreshStatus,
   admin_refresh_rappel:      handleAdminRefreshRappel,
+  admin_create_event:        handleAdminCreateEvent,
   route_set_gift:            handleRouteSetGift,
   route_view:                handleRouteView,
   route_reset:               handleRouteReset,

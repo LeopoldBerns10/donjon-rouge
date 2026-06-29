@@ -222,6 +222,112 @@ export async function getRoute(req, res) {
   return res.json(data ?? {})
 }
 
+// ── Événements Discord ────────────────────────────────────────────────────────
+
+const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || '610767309031866371'
+const DISCORD_API      = 'https://discord.com/api/v10'
+
+function discordHeaders() {
+  return {
+    Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
+    'Content-Type': 'application/json',
+  }
+}
+
+async function discordCreateEvent({ title, description, start_time, end_time }) {
+  const res = await fetch(`${DISCORD_API}/guilds/${DISCORD_GUILD_ID}/scheduled-events`, {
+    method: 'POST',
+    headers: discordHeaders(),
+    body: JSON.stringify({
+      name:                  title,
+      description,
+      scheduled_start_time:  start_time,
+      scheduled_end_time:    end_time,
+      privacy_level:         2,
+      entity_type:           3,
+      entity_metadata:       { location: 'Clash of Clans' },
+    }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Discord API ${res.status}: ${text}`)
+  }
+  return res.json()
+}
+
+async function discordDeleteEvent(eventId) {
+  const res = await fetch(`${DISCORD_API}/guilds/${DISCORD_GUILD_ID}/scheduled-events/${eventId}`, {
+    method: 'DELETE',
+    headers: discordHeaders(),
+  })
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text()
+    throw new Error(`Discord API ${res.status}: ${text}`)
+  }
+}
+
+export async function getEvents(req, res) {
+  const { data, error } = await supabase
+    .from('discord_events')
+    .select('id, discord_event_id, type, title, description, start_time, end_time, announced, created_at')
+    .order('start_time', { ascending: false })
+
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json(data)
+}
+
+export async function createEvent(req, res) {
+  const { title, description, start_time, end_time } = req.body
+  if (!title || !description || !start_time || !end_time) {
+    return res.status(400).json({ error: 'Champs manquants : title, description, start_time, end_time' })
+  }
+
+  const startDate = new Date(start_time)
+  const endDate   = new Date(end_time)
+  if (isNaN(startDate) || isNaN(endDate)) return res.status(400).json({ error: 'Dates invalides' })
+  if (endDate <= startDate) return res.status(400).json({ error: 'end_time doit être après start_time' })
+
+  let discordEventId = null
+  try {
+    const ev = await discordCreateEvent({ title, description, start_time, end_time })
+    discordEventId = ev.id
+  } catch (err) {
+    console.error('[Dashboard] createEvent Discord error:', err.message)
+    return res.status(502).json({ error: `Erreur Discord : ${err.message}` })
+  }
+
+  const { data, error } = await supabase
+    .from('discord_events')
+    .insert({ discord_event_id: discordEventId, type: 'manual', title, description, start_time, end_time })
+    .select()
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  return res.status(201).json(data)
+}
+
+export async function deleteEvent(req, res) {
+  const { id } = req.params
+
+  const { data: ev, error: fetchError } = await supabase
+    .from('discord_events')
+    .select('discord_event_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchError) return res.status(500).json({ error: fetchError.message })
+  if (!ev) return res.status(404).json({ error: 'Événement introuvable' })
+
+  if (ev.discord_event_id) {
+    try { await discordDeleteEvent(ev.discord_event_id) }
+    catch (err) { console.error('[Dashboard] deleteEvent Discord error:', err.message) }
+  }
+
+  const { error } = await supabase.from('discord_events').delete().eq('id', id)
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ ok: true })
+}
+
 export async function updateRoute(req, res) {
   const { action, gift_number, gift_desc } = req.body
   const now = new Date().toISOString()

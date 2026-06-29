@@ -61,8 +61,11 @@ async function sendMessagingPanel(client) {
     new ButtonBuilder().setCustomId('msg_custom').setLabel('✏️ Message personnalisé').setStyle(ButtonStyle.Secondary),
     new ButtonBuilder().setCustomId('msg_global').setLabel('📢 Message global').setStyle(ButtonStyle.Danger),
   )
+  const row5 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('admin_create_event').setLabel('📅 Créer événement').setStyle(ButtonStyle.Success),
+  )
 
-  const msg = await channel.send({ embeds: [embed], components: [row1, row2, row3, row4] })
+  const msg = await channel.send({ embeds: [embed], components: [row1, row2, row3, row4, row5] })
   await supabase.from('bot_config').upsert({ key: 'messaging_panel_id', value: msg.id, updated_at: new Date().toISOString() })
   return msg
 }

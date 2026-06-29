@@ -12,6 +12,7 @@ import RouteInfinie from './pages/RouteInfinie'
 import Members from './pages/Members'
 import Config from './pages/Config'
 import Logs from './pages/Logs'
+import Events from './pages/Events'
 
 // ── ErrorBoundary (debug) ─────────────────────────────────────────────────────
 class ErrorBoundary extends Component {
@@ -96,6 +97,7 @@ export default function App() {
               <Route path="polls" element={<Polls />} />
               <Route path="route-infinie" element={<RouteInfinie />} />
               <Route path="members" element={<Members />} />
+              <Route path="events" element={<Events />} />
               <Route path="config" element={<Config />} />
               <Route path="logs" element={<Logs />} />
             </Route>

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Users, DoorOpen, MessageSquare, Cake, BarChart2, Map, Settings, FileText } from 'lucide-react'
+import { Home, Users, DoorOpen, MessageSquare, Cake, BarChart2, Map, Settings, FileText, CalendarDays } from 'lucide-react'
 
 const navItems = [
   {
@@ -17,6 +17,7 @@ const navItems = [
       { to: '/birthdays', icon: Cake, label: 'Anniversaires' },
       { to: '/polls', icon: BarChart2, label: 'Sondages' },
       { to: '/route-infinie', icon: Map, label: "Route de l'Infinie" },
+      { to: '/events', icon: CalendarDays, label: 'Événements Discord' },
     ],
   },
   {

@@ -10,6 +10,9 @@ import {
   endPoll,
   getRoute,
   updateRoute,
+  getEvents,
+  createEvent,
+  deleteEvent,
 } from '../controllers/dashboardController.js'
 
 const router = Router()
@@ -25,5 +28,8 @@ router.get('/polls', getPolls)
 router.post('/polls/:id/end', endPoll)
 router.get('/route', getRoute)
 router.post('/route', updateRoute)
+router.get('/events', getEvents)
+router.post('/events', createEvent)
+router.delete('/events/:id', deleteEvent)
 
 export default router

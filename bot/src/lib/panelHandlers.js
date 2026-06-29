@@ -952,6 +952,53 @@ async function handleAdminRefreshLeague(interaction) {
   } catch (e) { console.error('[adminRefreshLeague]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
 }
 
+async function handleAdminCreateEvent(interaction) {
+  if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
+
+  const { ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js')
+
+  const modal = new ModalBuilder()
+    .setCustomId('modal_createevent')
+    .setTitle('Créer un événement Discord')
+
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('event_title')
+        .setLabel('Titre')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setMaxLength(100)
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('event_description')
+        .setLabel('Description')
+        .setStyle(TextInputStyle.Paragraph)
+        .setRequired(true)
+        .setMaxLength(1000)
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('event_start')
+        .setLabel('Date début (JJ/MM/YYYY HH:MM)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setPlaceholder('01/07/2026 18:00')
+    ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId('event_end')
+        .setLabel('Date fin (JJ/MM/YYYY HH:MM)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(true)
+        .setPlaceholder('01/07/2026 20:00')
+    ),
+  )
+
+  await interaction.showModal(modal)
+}
+
 async function handleAdminRefreshStatus(interaction) {
   if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
@@ -1025,6 +1072,8 @@ module.exports = {
   handleModalPanelMsgGdc,
   handleModalPanelMsgArrivee,
   handleModalPanelMsgDepart,
+  // Admin actions
+  handleAdminCreateEvent,
   // Admin refresh
   handleAdminRefreshWar,
   handleAdminRefreshRaid,
