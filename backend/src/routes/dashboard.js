@@ -12,6 +12,7 @@ import {
   updateRoute,
   getEvents,
   createEvent,
+  updateEvent,
   deleteEvent,
 } from '../controllers/dashboardController.js'
 
@@ -30,6 +31,7 @@ router.get('/route', getRoute)
 router.post('/route', updateRoute)
 router.get('/events', getEvents)
 router.post('/events', createEvent)
+router.put('/events/:id', updateEvent)
 router.delete('/events/:id', deleteEvent)
 
 export default router

@@ -34,6 +34,7 @@ export const getRoute = () => api.get('/api/dashboard/route')
 export const updateRoute = (data) => api.post('/api/dashboard/route', data)
 export const getEvents = () => api.get('/api/dashboard/events')
 export const createEvent = (data) => api.post('/api/dashboard/events', data)
+export const updateEvent = (id, data) => api.put(`/api/dashboard/events/${id}`, data)
 export const deleteEvent = (id) => api.delete(`/api/dashboard/events/${id}`)
 
 export default api

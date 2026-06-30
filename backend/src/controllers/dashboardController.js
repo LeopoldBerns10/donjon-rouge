@@ -270,6 +270,24 @@ async function discordDeleteEvent(eventId) {
   }
 }
 
+async function discordUpdateEvent(eventId, { title, description, start_time, end_time }) {
+  const res = await fetch(`${DISCORD_API}/guilds/${DISCORD_GUILD_ID}/scheduled-events/${eventId}`, {
+    method: 'PATCH',
+    headers: discordHeaders(),
+    body: JSON.stringify({
+      name:                 title,
+      description,
+      scheduled_start_time: start_time,
+      scheduled_end_time:   end_time,
+    }),
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`Discord API ${res.status}: ${text}`)
+  }
+  return res.json()
+}
+
 export async function getEvents(req, res) {
   const { data, error } = await supabase
     .from('discord_events')
@@ -308,6 +326,47 @@ export async function createEvent(req, res) {
 
   if (error) return res.status(500).json({ error: error.message })
   return res.status(201).json(data)
+}
+
+export async function updateEvent(req, res) {
+  const { id } = req.params
+  const { title, description, start_time, end_time } = req.body
+  if (!title || !description || !start_time || !end_time) {
+    return res.status(400).json({ error: 'Champs manquants : title, description, start_time, end_time' })
+  }
+
+  const startDate = new Date(start_time)
+  const endDate   = new Date(end_time)
+  if (isNaN(startDate) || isNaN(endDate)) return res.status(400).json({ error: 'Dates invalides' })
+  if (endDate <= startDate) return res.status(400).json({ error: 'end_time doit être après start_time' })
+
+  const { data: ev, error: fetchError } = await supabase
+    .from('discord_events')
+    .select('discord_event_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  if (fetchError) return res.status(500).json({ error: fetchError.message })
+  if (!ev) return res.status(404).json({ error: 'Événement introuvable' })
+
+  if (ev.discord_event_id) {
+    try {
+      await discordUpdateEvent(ev.discord_event_id, { title, description, start_time, end_time })
+    } catch (err) {
+      console.error('[Dashboard] updateEvent Discord error:', err.message)
+      return res.status(502).json({ error: `Erreur Discord : ${err.message}` })
+    }
+  }
+
+  const { data, error } = await supabase
+    .from('discord_events')
+    .update({ title, description, start_time, end_time })
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json(data)
 }
 
 export async function deleteEvent(req, res) {
