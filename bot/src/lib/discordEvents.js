@@ -376,6 +376,87 @@ async function fetchSupercellEvents(client) {
   await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
 }
 
+// ─── Événements du mois suivant (le 28 de chaque mois) ───────────────────────
+
+async function ensureNextMonthEvents(client) {
+  const now = new Date()
+
+  const nextDate  = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+  const nextYear  = nextDate.getUTCFullYear()
+  const nextMonth = nextDate.getUTCMonth() // 0-indexed
+  const nextKey   = `${nextYear}-${String(nextMonth + 1).padStart(2, '0')}`
+
+  const sentKey = `next_month_events_${nextKey}`
+  const { data: already } = await supabase.from('bot_config').select('value').eq('key', sentKey).maybeSingle()
+  if (already) return
+
+  console.log(`[Events/NextMonth] Création des événements pour ${nextKey}...`)
+  let created = 0
+
+  async function createIfMissing({ type, title, description, startTime, endTime }) {
+    const { data: existing } = await supabase
+      .from('discord_events')
+      .select('id')
+      .eq('title', title)
+      .eq('start_time', startTime.toISOString())
+      .maybeSingle()
+    if (existing) {
+      console.log(`[Events/NextMonth] ⏭  Ignoré (déjà présent) : "${title}" (${startTime.toISOString()})`)
+      return
+    }
+    try {
+      const eventId = await createDiscordEvent(client, { title, description, startTime, endTime })
+      await supabase.from('discord_events').insert({
+        discord_event_id: eventId,
+        type,
+        title,
+        description,
+        start_time:  startTime.toISOString(),
+        end_time:    endTime.toISOString(),
+        announced:   false,
+      })
+      console.log(`[Events/NextMonth] ✅ Créé : "${title}" (${startTime.toISOString()})`)
+      created++
+    } catch (e) {
+      console.error(`[Events/NextMonth] ❌ Erreur "${title}" :`, e.message)
+    }
+  }
+
+  // Raids — chaque vendredi du mois suivant, 9h UTC → lundi 9h UTC
+  const daysInMonth = new Date(Date.UTC(nextYear, nextMonth + 1, 0)).getUTCDate()
+  for (let day = 1; day <= daysInMonth; day++) {
+    if (new Date(Date.UTC(nextYear, nextMonth, day)).getUTCDay() !== 5) continue
+    await createIfMissing({
+      type:        'raid',
+      title:       '💎 Raid Capital — Donjon Rouge',
+      description: 'Le Raid Capital commence ! Participez pour contribuer au clan et gagner des ressources Capital.',
+      startTime:   new Date(Date.UTC(nextYear, nextMonth, day,     9, 0, 0)),
+      endTime:     new Date(Date.UTC(nextYear, nextMonth, day + 3, 9, 0, 0)),
+    })
+  }
+
+  // JDC — du 22 au 28
+  await createIfMissing({
+    type:        'jdc',
+    title:       '🎮 Jeux de Clan — Donjon Rouge',
+    description: 'Les Jeux de Clan sont lancés ! Objectif minimum : 5 000 pts pour les membres DR.',
+    startTime:   new Date(Date.UTC(nextYear, nextMonth, 22, 8, 0, 0)),
+    endTime:     new Date(Date.UTC(nextYear, nextMonth, 29, 8, 0, 0)),
+  })
+
+  // LDC — du 1 au 11
+  await createIfMissing({
+    type:        'ldc',
+    title:       '⚔️ Ligue de Guerre — Donjon Rouge',
+    description: 'La Ligue de Guerre de Clans commence ! Donnez le meilleur pour monter dans les ligues.',
+    startTime:   new Date(Date.UTC(nextYear, nextMonth,  1, 8, 0, 0)),
+    endTime:     new Date(Date.UTC(nextYear, nextMonth, 12, 8, 0, 0)),
+  })
+
+  console.log(`[Events/NextMonth] Terminé — ${created} créé(s) pour ${nextKey}`)
+  await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
+}
+
 // ─── Handler modal /createevent ───────────────────────────────────────────────
 
 async function handleModalCreateEvent(interaction) {
@@ -417,6 +498,7 @@ module.exports = {
   deleteDiscordEvent,
   ensureRaidEvent,
   ensureJdcEvent,
+  ensureNextMonthEvents,
   checkEventAnnouncements,
   fetchSupercellEvents,
   handleModalCreateEvent,

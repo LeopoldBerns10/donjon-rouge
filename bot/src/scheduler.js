@@ -7,7 +7,7 @@ const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./
 const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
 const { checkExpiredPolls } = require('./lib/pollManager.js')
-const { ensureRaidEvent, ensureJdcEvent, checkEventAnnouncements, fetchSupercellEvents } = require('./lib/discordEvents.js')
+const { ensureRaidEvent, ensureJdcEvent, ensureNextMonthEvents, checkEventAnnouncements, fetchSupercellEvents } = require('./lib/discordEvents.js')
 const { getPlayer } = require('./cocApi.js')
 const { assignLeagueRole } = require('./utils/assignLeagueRole.js')
 const { assignHdvRole } = require('./utils/assignHdvRole.js')
@@ -504,7 +504,9 @@ async function checkAndUpdate(client) {
   await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds:', e))
 
   // Rappels v2 — pings à 10h et 20h (heure Paris = UTC+2)
-  const parisHour = new Date(Date.now() + 2 * 3600000).getUTCHours()
+  const parisNow  = new Date(Date.now() + 2 * 3600000)
+  const parisHour = parisNow.getUTCHours()
+  const parisDay  = parisNow.getUTCDate()
   console.log('[Scheduler] Heure Paris:', parisHour)
   if (parisHour === 10 || parisHour === 20) {
     await sendRappelPings(client).catch(e => console.error('[Scheduler] RappelPings:', e))
@@ -527,6 +529,11 @@ async function checkAndUpdate(client) {
   // Événements Supercell — scraping blog CoC, une fois par jour à 8h Paris
   if (parisHour === 8) {
     await fetchSupercellEvents(client).catch(e => console.error('[Events] Supercell:', e))
+  }
+
+  // Événements mois suivant — le 28 à 8h Paris
+  if (parisHour === 8 && parisDay === 28) {
+    await ensureNextMonthEvents(client).catch(e => console.error('[Events] NextMonth:', e))
   }
 
   // JDC — toutes les 30 min
