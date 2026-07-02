@@ -222,6 +222,34 @@ export async function getRoute(req, res) {
   return res.json(data ?? {})
 }
 
+export async function getRouteLastPlayer(req, res) {
+  try {
+    const { data: route } = await supabase
+      .from('route_infinie')
+      .select('last_discord_id')
+      .eq('active', true)
+      .maybeSingle()
+
+    if (!route?.last_discord_id) {
+      return res.json({ discord_id: null, name: null })
+    }
+
+    const { data: link } = await supabase
+      .from('discord_links')
+      .select('coc_name')
+      .eq('discord_id', route.last_discord_id)
+      .eq('is_primary', true)
+      .maybeSingle()
+
+    return res.json({
+      discord_id: route.last_discord_id,
+      name: link?.coc_name ?? null,
+    })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}
+
 // ── Événements Discord ────────────────────────────────────────────────────────
 
 const DISCORD_GUILD_ID = process.env.DISCORD_GUILD_ID || '610767309031866371'

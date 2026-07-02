@@ -31,6 +31,7 @@ export const deleteBirthday = (discord_id) => api.delete(`/api/dashboard/birthda
 export const getPolls = () => api.get('/api/dashboard/polls')
 export const endPoll = (id) => api.post(`/api/dashboard/polls/${id}/end`)
 export const getRoute = () => api.get('/api/dashboard/route')
+export const getRouteLastPlayer = () => api.get('/api/dashboard/route/last-player')
 export const updateRoute = (data) => api.post('/api/dashboard/route', data)
 export const getEvents = () => api.get('/api/dashboard/events')
 export const createEvent = (data) => api.post('/api/dashboard/events', data)

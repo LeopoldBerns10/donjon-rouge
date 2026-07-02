@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getRoute, updateRoute } from '../api'
+import { getRoute, getRouteLastPlayer, updateRoute } from '../api'
 import { RotateCcw } from 'lucide-react'
 
 export default function RouteInfinie() {
@@ -11,6 +11,7 @@ export default function RouteInfinie() {
   const [saving, setSaving] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [lastPlayer, setLastPlayer] = useState(null)
 
   useEffect(() => {
     getRoute()
@@ -19,6 +20,9 @@ export default function RouteInfinie() {
         setState(safe)
         setGiftNumber(safe.gift_number != null ? String(safe.gift_number) : '')
         setGiftDesc(safe.gift_desc ?? '')
+        if (safe.last_discord_id) {
+          getRouteLastPlayer().then(({ data: lp }) => setLastPlayer(lp)).catch(() => {})
+        }
       })
       .catch(() => setError('Impossible de charger la route'))
       .finally(() => setLoading(false))
@@ -47,6 +51,7 @@ export default function RouteInfinie() {
     try {
       await updateRoute({ action: 'reset' })
       setState((prev) => ({ ...prev, current_number: 0, last_discord_id: null }))
+      setLastPlayer(null)
     } catch {
       setError('Erreur lors du reset')
     } finally {
@@ -80,8 +85,10 @@ export default function RouteInfinie() {
         </div>
         <div className="bg-dr-card border border-dr-border rounded-xl p-5">
           <div className="text-dr-muted text-xs font-semibold uppercase tracking-wider mb-2">👤 Dernier joueur</div>
-          <div className="text-sm font-mono text-dr-text">
-            {state.last_discord_id ? `<@${String(state.last_discord_id)}>` : '—'}
+          <div className="text-sm font-semibold text-dr-text">
+            {state.last_discord_id
+              ? (lastPlayer?.name ?? <span className="font-mono text-xs text-dr-muted">{String(state.last_discord_id)}</span>)
+              : '—'}
           </div>
         </div>
         <div className="bg-dr-card border border-dr-border rounded-xl p-5">

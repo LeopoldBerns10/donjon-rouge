@@ -9,6 +9,7 @@ import {
   getPolls,
   endPoll,
   getRoute,
+  getRouteLastPlayer,
   updateRoute,
   getEvents,
   createEvent,
@@ -28,6 +29,7 @@ router.delete('/birthdays/:discord_id', deleteBirthday)
 router.get('/polls', getPolls)
 router.post('/polls/:id/end', endPoll)
 router.get('/route', getRoute)
+router.get('/route/last-player', getRouteLastPlayer)
 router.post('/route', updateRoute)
 router.get('/events', getEvents)
 router.post('/events', createEvent)
