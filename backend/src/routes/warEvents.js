@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { requireAuth, requireAdmin } from '../middleware/auth.js'
+import { requireAuth, requireAdmin, requireSuperAdmin } from '../middleware/auth.js'
 import supabase from '../lib/supabase.js'
 import { getClanMembers } from '../services/cocApiService.js'
 import { getCached } from '../services/cacheService.js'
@@ -513,6 +513,97 @@ router.post('/:id/end', requireAuth, async (req, res) => {
     res.json(data)
   } catch (err) {
     res.status(500).json({ error: err.message })
+  }
+})
+
+// POST /api/war-events/:id/send-discord — poster le récap sur Discord (SuperAdmin uniquement)
+router.post('/:id/send-discord', requireAuth, requireSuperAdmin, async (req, res) => {
+  const CHANNEL_ID = '1441176254769401969'
+
+  try {
+    const { data: event, error: evErr } = await supabase
+      .from('war_events')
+      .select('id, title, type, proposed_date, close_date')
+      .eq('id', req.params.id)
+      .single()
+    if (evErr || !event) return res.status(404).json({ error: 'Événement introuvable' })
+
+    const { data: signups, error: signErr } = await supabase
+      .from('war_signups')
+      .select('coc_name, coc_role, clan_tag, signed_up_at, users(clan_tag)')
+      .eq('event_id', req.params.id)
+      .order('signed_up_at', { ascending: true })
+    if (signErr) throw signErr
+
+    const typeLabels = { gdc: '⚔️ GDC Classique', gdc_selection: '🏆 GDC Sélection', ldc: '👑 Ligue de Guerre' }
+
+    function formatRole(role) {
+      const map = { leader: 'Chef', coLeader: 'Co-Chef', admin: 'Ancien', member: 'Membre' }
+      return map[role] || role || '—'
+    }
+
+    function resolveClan(signup) {
+      const tag = signup.clan_tag || signup.users?.clan_tag || ''
+      if (tag.includes('2RCGG9YR9') || tag === 'DR2') return 'DR2'
+      if (tag.includes('29292QPRC') || tag === 'DR1') return 'DR1'
+      return '—'
+    }
+
+    function fmtDate(d) {
+      if (!d) return '—'
+      return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
+    }
+
+    const lines = signups.length === 0
+      ? ['_Aucun inscrit_']
+      : signups.map((s, i) =>
+          `\`${String(i + 1).padStart(2, '0')}.\` **${s.coc_name}** · ${formatRole(s.coc_role)} · ${resolveClan(s)}`
+        )
+
+    // Découper en chunks de 1024 chars max (limite Discord field value)
+    const chunks = []
+    let current = ''
+    for (const line of lines) {
+      const next = current ? current + '\n' + line : line
+      if (next.length > 1020) { chunks.push(current); current = line }
+      else { current = next }
+    }
+    if (current) chunks.push(current)
+
+    const fields = [
+      { name: 'Type', value: typeLabels[event.type] || event.type, inline: true },
+      { name: '📅 Date début', value: fmtDate(event.proposed_date), inline: true },
+      { name: '🔒 Clôture inscriptions', value: fmtDate(event.close_date), inline: true },
+      { name: `👥 Inscrits — ${signups.length} joueur${signups.length !== 1 ? 's' : ''}`, value: chunks[0] || '_Aucun inscrit_' },
+      ...chunks.slice(1).map((c, i) => ({ name: `(suite ${i + 2})`, value: c })),
+    ]
+
+    const embed = {
+      color: 0x8B0000,
+      title: `📋 ${event.title}`,
+      fields,
+      footer: { text: 'Envoyé depuis le Dashboard' },
+      timestamp: new Date().toISOString(),
+    }
+
+    const discordRes = await fetch(`https://discord.com/api/v10/channels/${CHANNEL_ID}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ embeds: [embed] }),
+    })
+
+    if (!discordRes.ok) {
+      const errText = await discordRes.text()
+      throw new Error(`Discord API ${discordRes.status}: ${errText}`)
+    }
+
+    return res.json({ ok: true })
+  } catch (err) {
+    console.error('[send-discord]', err.message)
+    return res.status(500).json({ error: err.message })
   }
 })
 

@@ -338,8 +338,29 @@ function AdminActions({ event, onValidate, onClose, onReopen, onEnd, onEdit, onA
 
 // ─── EventCard ────────────────────────────────────────────────────────────────
 
-function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onReopen, onEnd, onEdit, onAddSignup, onRemoveSignup, canManage }) {
+function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onReopen, onEnd, onEdit, onAddSignup, onRemoveSignup, canManage, onSendDiscord }) {
+  const { user } = useAuth()
+  const isSuperAdmin = user?.site_role === 'superadmin'
+  const [sending, setSending] = useState(false)
+  const [sendOk, setSendOk] = useState(false)
+  const [sendErr, setSendErr] = useState(null)
+
   const isSignedUp = userSignedUpEventIds.has(event.id)
+
+  async function handleSendDiscord() {
+    setSending(true)
+    setSendErr(null)
+    try {
+      await onSendDiscord(event.id)
+      setSendOk(true)
+      setTimeout(() => setSendOk(false), 4000)
+    } catch (err) {
+      setSendErr(err.response?.data?.error ?? 'Erreur lors de l\'envoi.')
+      setTimeout(() => setSendErr(null), 5000)
+    } finally {
+      setSending(false)
+    }
+  }
   const borderClass =
     event.type === 'ldc' ? 'border-[#f59e0b]/40' :
     event.type === 'gdc_selection' ? 'border-[#dc2626]/40' :
@@ -415,6 +436,21 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
 
         <SignupsList signups={signups[event.id] || []} canManage={canManage} eventId={event.id} eventType={event.type} onRemove={onRemoveSignup} />
         <AdminActions event={event} onValidate={onValidate} onClose={onClose} onReopen={onReopen} onEnd={onEnd} onEdit={onEdit} onAddSignup={onAddSignup} />
+
+        {isSuperAdmin && (
+          <div className="mt-3 pt-3 border-t border-[#1a1a1a]">
+            <button
+              onClick={handleSendDiscord}
+              disabled={sending}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#5865F2]/10 border border-[#5865F2]/40 text-[#7983f5] hover:bg-[#5865F2]/20 disabled:opacity-50 transition-colors"
+            >
+              {sending ? '⏳ Envoi...' : sendOk ? '✅ Envoyé !' : '📢 Envoyer sur Discord'}
+            </button>
+            {sendErr && (
+              <p className="mt-1 text-[10px] text-red-400">{sendErr}</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1214,6 +1250,10 @@ export default function Inscriptions({ embedded = false }) {
     }
   }
 
+  const handleSendDiscord = async (eventId) => {
+    await api.post(`/api/war-events/${eventId}/send-discord`)
+  }
+
   return (
     <div className={embedded ? '' : 'min-h-screen'} style={embedded ? {} : { background: '#0d0d0d' }}>
       {!embedded && (
@@ -1283,6 +1323,7 @@ export default function Inscriptions({ embedded = false }) {
                 onAddSignup={setAddSignupModal}
                 onRemoveSignup={handleRemoveSignup}
                 canManage={canManage}
+                onSendDiscord={handleSendDiscord}
               />
             ))}
           </div>
