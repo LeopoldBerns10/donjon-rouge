@@ -1,11 +1,10 @@
 import { Router } from 'express'
 import supabase from '../lib/supabase.js'
-import authMiddleware from '../middleware/auth.js'
-import adminOnly from '../middleware/adminOnly.js'
+import authMiddleware, { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
-router.get('/', authMiddleware, adminOnly, async (req, res) => {
+router.get('/', authMiddleware, requireAdmin, async (req, res) => {
   const { data, error } = await supabase
     .from('players')
     .select('id, username, coc_tag, role, is_admin, avatar_url, created_at, last_seen')
@@ -15,7 +14,7 @@ router.get('/', authMiddleware, adminOnly, async (req, res) => {
   res.json(data)
 })
 
-router.patch('/:id', authMiddleware, adminOnly, async (req, res) => {
+router.patch('/:id', authMiddleware, requireAdmin, async (req, res) => {
   const { id } = req.params
   const { role, is_admin } = req.body
 
@@ -30,7 +29,7 @@ router.patch('/:id', authMiddleware, adminOnly, async (req, res) => {
   res.json(data)
 })
 
-router.delete('/:id', authMiddleware, adminOnly, async (req, res) => {
+router.delete('/:id', authMiddleware, requireAdmin, async (req, res) => {
   const { id } = req.params
   const { error } = await supabase.from('players').delete().eq('id', id)
   if (error) return res.status(500).json({ error: error.message })

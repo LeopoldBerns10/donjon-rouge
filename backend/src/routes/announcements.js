@@ -4,13 +4,12 @@ import {
   createAnnouncement,
   updateAnnouncement
 } from '../controllers/announcementController.js'
-import authMiddleware from '../middleware/auth.js'
-import adminOnly from '../middleware/adminOnly.js'
+import authMiddleware, { requireAdmin } from '../middleware/auth.js'
 
 const router = Router()
 
 router.get('/', getAnnouncements)
-router.post('/', authMiddleware, adminOnly, createAnnouncement)
-router.put('/:id', authMiddleware, adminOnly, updateAnnouncement)
+router.post('/', authMiddleware, requireAdmin, createAnnouncement)
+router.put('/:id', authMiddleware, requireAdmin, updateAnnouncement)
 
 export default router
