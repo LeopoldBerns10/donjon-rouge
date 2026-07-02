@@ -24,10 +24,10 @@ function AnnouncementToast() {
   const [toast, setToast] = useState(null)
 
   useEffect(() => {
-    api.get('/api/forum/posts').then((r) => {
+    api.get('/api/announcements').then((r) => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
       const recent = (r.data || []).find(
-        (p) => p.category === 'Annonces' && new Date(p.created_at) > since
+        (p) => new Date(p.created_at) > since
       )
       if (recent) {
         setToast(recent.title)

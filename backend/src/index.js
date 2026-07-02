@@ -11,7 +11,7 @@ import verifyToken, { requireAdmin } from './middleware/auth.js'
 
 import authRoutes from './routes/auth.js'
 import dashboardRoutes from './routes/dashboard.js'
-import playersRoutes from './routes/players.js'
+// import playersRoutes from './routes/players.js' // table players obsolète — routes désactivées
 import cocRoutes from './routes/coc.js'
 import forumRoutes from './routes/forum.js'
 import chatRouter from './routes/chat.js'
@@ -57,7 +57,7 @@ app.get('/health', (req, res) => {
 
 app.use('/api/auth', authRoutes)
 app.use('/api/dashboard', dashboardRoutes)
-app.use('/api/players', playersRoutes)
+// app.use('/api/players', playersRoutes) // table players obsolète — routes désactivées
 app.use('/api/coc', cocRoutes)
 app.use('/api/forum', forumRoutes)
 app.use('/api/chat', chatLimiter, chatRouter(io))

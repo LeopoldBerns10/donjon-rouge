@@ -955,8 +955,6 @@ async function handleAdminRefreshLeague(interaction) {
 async function handleAdminCreateEvent(interaction) {
   if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
 
-  const { ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js')
-
   const modal = new ModalBuilder()
     .setCustomId('modal_createevent')
     .setTitle('Créer un événement Discord')

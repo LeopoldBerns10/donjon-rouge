@@ -22,9 +22,6 @@ const supabaseAdmin = createClient(
 // ── Upload image ──────────────────────────────────────────────────────────────
 router.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {
-    console.log('UPLOAD - supabase url:', process.env.SUPABASE_URL?.slice(0, 10))
-    console.log('UPLOAD - file received:', req.file?.originalname, req.file?.size)
-    console.log('UPLOAD - using key type:', process.env.SUPABASE_SERVICE_KEY ? 'service_key OK' : 'MANQUANT')
     if (!req.file) return res.status(400).json({ error: 'Aucun fichier fourni' })
 
     const ext = req.file.originalname.split('.').pop().toLowerCase()

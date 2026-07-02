@@ -197,27 +197,4 @@ router.put('/content/:key', requireAuth, requireAdmin, async (req, res) => {
   res.json({ success: true })
 })
 
-// POST /api/vitrine/upload-audio (ancien chemin — conservé)
-router.post('/upload-audio', requireAuth, requireAdmin, upload.single('file'), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Aucun fichier' })
-  const ext = req.file.originalname.split('.').pop().toLowerCase()
-  const filePath = `hymne/hymne.${ext}`
-
-  const { error } = await supabaseAdmin.storage
-    .from('forum-images')
-    .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: true })
-  if (error) return res.status(500).json({ error: error.message })
-
-  const { data: urlData } = supabaseAdmin.storage.from('forum-images').getPublicUrl(filePath)
-
-  await supabase.from('vitrine_content').upsert({
-    key: 'hymne_url',
-    value: urlData.publicUrl,
-    updated_at: new Date().toISOString(),
-    updated_by: req.user.coc_name || req.user.id,
-  })
-
-  res.json({ url: urlData.publicUrl })
-})
-
 export default router
