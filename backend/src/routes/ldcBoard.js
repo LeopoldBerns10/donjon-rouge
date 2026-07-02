@@ -12,13 +12,37 @@ router.get('/', async (req, res) => {
       .select('*')
       .single()
 
-    const { data: warriors, error } = await supabase
-      .from('ldc_board_warriors')
-      .select('*')
-      .order('score', { ascending: false })
-    if (error) throw error
+    // Chercher l'événement LDC actif
+    const { data: ldcEvent } = await supabase
+      .from('war_events')
+      .select('id')
+      .eq('type', 'ldc')
+      .in('status', ['open', 'validated'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
 
-    res.json({ board: board || { title: 'Guerriers Sélectionnés — LDC' }, warriors: warriors || [] })
+    let warriors = []
+    if (ldcEvent) {
+      // LDC active → source unique : ldc_warriors (inclut auto-sélection GDC Sélection)
+      const { data, error } = await supabase
+        .from('ldc_warriors')
+        .select('*')
+        .eq('ldc_event_id', ldcEvent.id)
+        .order('score', { ascending: false })
+      if (error) throw error
+      warriors = data || []
+    } else {
+      // Pas de LDC active → tableau de staging pré-lancement
+      const { data, error } = await supabase
+        .from('ldc_board_warriors')
+        .select('*')
+        .order('score', { ascending: false })
+      if (error) throw error
+      warriors = data || []
+    }
+
+    res.json({ board: board || { title: 'Guerriers Sélectionnés — LDC' }, warriors })
   } catch (err) {
     res.status(500).json({ error: err.message })
   }
@@ -138,6 +162,17 @@ router.post('/launch', requireAuth, requireAdmin, async (req, res) => {
       .from('war_signups')
       .insert(signupsToInsert)
     if (signupErr) throw signupErr
+
+    // Peupler ldc_warriors pour que le dashboard lise depuis la source unique
+    const ldcWarriorsToInsert = warriors.map(w => ({
+      ldc_event_id: event.id,
+      user_id: w.user_id,
+      coc_name: w.coc_name,
+      coc_tag: w.coc_tag,
+      auto_selected: w.auto_selected ?? false,
+      score: w.score ?? 0,
+    }))
+    await supabase.from('ldc_warriors').insert(ldcWarriorsToInsert)
 
     res.json({ event_id: event.id, signup_count: signupsToInsert.length })
   } catch (err) {

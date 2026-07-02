@@ -28,9 +28,9 @@ export const requireAuth = verifyToken
 
 // ── Middlewares de permissions ────────────────────────────────────────────────
 
-// Seul superadmin peut gérer les rôles
+// Seul superadmin (ou CyberAlf par coc_name) peut gérer les rôles
 export function requireSuperAdmin(req, res, next) {
-  if (req.user?.site_role !== 'superadmin') {
+  if (req.user?.coc_name !== 'CyberAlf' && req.user?.site_role !== 'superadmin') {
     return res.status(403).json({ error: 'Réservé au super administrateur' })
   }
   next()

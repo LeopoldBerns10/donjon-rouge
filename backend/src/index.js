@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs'
 import supabase from './lib/supabase.js'
 import { apiLimiter, chatLimiter } from './middleware/rateLimiter.js'
 import { syncMembers } from './services/syncMembers.js'
+import verifyToken, { requireAdmin } from './middleware/auth.js'
 
 import authRoutes from './routes/auth.js'
 import dashboardRoutes from './routes/dashboard.js'
@@ -68,7 +69,7 @@ app.use('/api/roulette', rouletteRoutes)
 app.use('/api/vitrine', vitrineRoutes)
 app.use('/api/cache', cacheRoutes)
 
-app.get('/api/debug/sync', async (req, res) => {
+app.get('/api/debug/sync', verifyToken, requireAdmin, async (req, res) => {
   const result = await syncMembers()
   res.json(result)
 })
