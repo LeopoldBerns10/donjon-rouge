@@ -340,7 +340,7 @@ function AdminActions({ event, onValidate, onClose, onReopen, onEnd, onEdit, onA
 
 function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onReopen, onEnd, onEdit, onAddSignup, onRemoveSignup, canManage, onSendDiscord }) {
   const { user } = useAuth()
-  const isSuperAdmin = user?.site_role === 'superadmin'
+  const isCyberAlf = user?.coc_name === 'CyberAlf' || user?.site_role === 'superadmin'
   const [sending, setSending] = useState(false)
   const [sendOk, setSendOk] = useState(false)
   const [sendErr, setSendErr] = useState(null)
@@ -361,6 +361,7 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
       setSending(false)
     }
   }
+
   const borderClass =
     event.type === 'ldc' ? 'border-[#f59e0b]/40' :
     event.type === 'gdc_selection' ? 'border-[#dc2626]/40' :
@@ -437,7 +438,7 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
         <SignupsList signups={signups[event.id] || []} canManage={canManage} eventId={event.id} eventType={event.type} onRemove={onRemoveSignup} />
         <AdminActions event={event} onValidate={onValidate} onClose={onClose} onReopen={onReopen} onEnd={onEnd} onEdit={onEdit} onAddSignup={onAddSignup} />
 
-        {isSuperAdmin && (
+        {isCyberAlf && (
           <div className="mt-3 pt-3 border-t border-[#1a1a1a]">
             <button
               onClick={handleSendDiscord}

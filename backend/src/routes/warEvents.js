@@ -516,8 +516,11 @@ router.post('/:id/end', requireAuth, async (req, res) => {
   }
 })
 
-// POST /api/war-events/:id/send-discord — poster le récap sur Discord (SuperAdmin uniquement)
-router.post('/:id/send-discord', requireAuth, requireSuperAdmin, async (req, res) => {
+// POST /api/war-events/:id/send-discord — poster le récap sur Discord (CyberAlf uniquement)
+router.post('/:id/send-discord', requireAuth, async (req, res) => {
+  if (req.user.coc_name !== 'CyberAlf' && req.user.site_role !== 'superadmin') {
+    return res.status(403).json({ error: 'Réservé à CyberAlf' })
+  }
   const CHANNEL_ID = '1441176254769401969'
 
   try {
