@@ -10,7 +10,7 @@ const {
 const supabase = require('../supabase.js')
 
 const ROUTE_CHANNEL_ID = '1520108333846233098'
-const PANEL_CHANNEL_ID = '1520111778766262386'
+const PANEL_CHANNEL_ID = '1522353459364626625'
 const CYBERALF_ID      = '610765755553939456'
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────
