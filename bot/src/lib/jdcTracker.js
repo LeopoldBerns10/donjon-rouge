@@ -12,6 +12,8 @@ const {
   CLANS,
 } = require('../config/jdcConfig.js')
 
+const { recordJdcParticipation } = require('./participationStats.js')
+
 const sleep = ms => new Promise(r => setTimeout(r, ms))
 
 // ─── bot_config helpers ───────────────────────────────────────────────────────
@@ -475,9 +477,14 @@ async function checkJdcEnd(client) {
   const monthName = new Date(endStr).toLocaleString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' })
   const SEP = '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 
+  const allMembersForParticipation = {}
+
   for (const clan of CLANS) {
     try {
       const members     = await fetchClanMembersWithPoints(clan.key, season)
+      for (const m of members) {
+        if (!allMembersForParticipation[m.tag]) allMembersForParticipation[m.tag] = m
+      }
       const totalPoints = members.reduce((s, m) => s + m.points, 0)
       const { current } = getTierInfo(totalPoints)
       const tierReached = current?.tier ?? 0
@@ -523,6 +530,10 @@ async function checkJdcEnd(client) {
       console.error(`[JDC] checkJdcEnd ${clan.key}:`, e)
     }
   }
+
+  await recordJdcParticipation(Object.values(allMembersForParticipation), endStr).catch(e =>
+    console.error('[JDC] recordJdcParticipation:', e)
+  )
 
   await setConfig(`jdc_archived_${season}`, 'true')
   await setConfig('jdc_active', 'false')

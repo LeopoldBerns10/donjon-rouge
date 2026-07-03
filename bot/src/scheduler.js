@@ -3,6 +3,7 @@ const supabase = require('./supabase.js')
 const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
 const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
+const { recordGdcParticipation } = require('./lib/participationStats.js')
 const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
 const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
@@ -391,6 +392,7 @@ async function checkExploits(client, warData) {
       await postExploit(client, buildLdcRecapMessage(cwl, ourTag), `exploit_ldc_${cwl.season}`)
     } else if (war.endTime) {
       await postExploit(client, buildGdcRecapMessage(war, clanLabel), `exploit_war_${war.endTime}`)
+      await recordGdcParticipation(war).catch(e => console.error('[Participation] GDC:', e))
     }
   }
 
