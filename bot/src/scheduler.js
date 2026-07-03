@@ -148,14 +148,7 @@ async function fetchWarData() {
   try {
     const raidData = await apiGet('/clan/raids')
     const latest = raidData?.items?.[0] || null
-    if (latest?.startTime) {
-      const start = parseWarTime(latest.startTime) || new Date(latest.startTime)
-      const end = latest.endTime ? (parseWarTime(latest.endTime) || new Date(latest.endTime)) : null
-      const sevenDaysAgo = Date.now() - 7 * 24 * 3600000
-      if (!isNaN(start) && start.getTime() > sevenDaysAgo && (!end || end.getTime() > Date.now())) {
-        currentRaid = latest
-      }
-    }
+    if (latest?.state === 'ongoing') currentRaid = latest
   } catch {}
 
   return { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds, dr1Cwl, dr2Cwl, currentRaid }

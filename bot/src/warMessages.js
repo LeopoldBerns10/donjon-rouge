@@ -449,14 +449,7 @@ async function updateWarChannels(client) {
     try {
       const raidData = await apiGet('/clan/raids')
       const latest   = raidData?.items?.[0] || null
-      if (latest?.startTime) {
-        const start        = parseWarTime(latest.startTime) || new Date(latest.startTime)
-        const end          = latest.endTime ? (parseWarTime(latest.endTime) || new Date(latest.endTime)) : null
-        const sevenDaysAgo = Date.now() - 7 * 24 * 3600000
-        const notTooOld    = !isNaN(start) && start.getTime() > sevenDaysAgo
-        const notEnded     = !end || end.getTime() > Date.now()
-        if (notTooOld && notEnded) currentRaid = latest
-      }
+      if (latest?.state === 'ongoing') currentRaid = latest
     } catch {}
 
     const raidEmbed = await buildRaidEmbed(currentRaid)
