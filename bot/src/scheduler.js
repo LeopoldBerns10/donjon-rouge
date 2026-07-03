@@ -5,6 +5,35 @@ const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
 const { recordGdcParticipation } = require('./lib/participationStats.js')
 const { sendWeeklyStats } = require('./lib/weeklyStats.js')
+
+// ─── Snapshot mensuel ─────────────────────────────────────────────────────────
+
+async function takeMonthlySnapshot() {
+  const parisNow = new Date(Date.now() + 2 * 3600000)
+  if (parisNow.getUTCDate() !== 1) return
+
+  const yyyy         = parisNow.getUTCFullYear()
+  const mm           = String(parisNow.getUTCMonth() + 1).padStart(2, '0')
+  const snapshotDate = `${yyyy}-${mm}-01`
+
+  const [dr1, dr2] = await Promise.allSettled([
+    apiGet('/clan/members'),
+    apiGet('/clan/dr2/members'),
+  ])
+
+  for (const [tag, result] of [[DR1_TAG, dr1], [DR2_TAG, dr2]]) {
+    if (result.status !== 'fulfilled') continue
+    const items = result.value?.items || []
+    await supabase.from('clan_snapshots').upsert({
+      snapshot_date:   snapshotDate,
+      clan_tag:        tag,
+      member_count:    items.length,
+      avg_trophies:    items.length ? Math.round(items.reduce((s, m) => s + (m.trophies ?? 0), 0) / items.length) : 0,
+      total_donations: items.reduce((s, m) => s + (m.donations ?? 0), 0),
+    }, { onConflict: 'snapshot_date,clan_tag', ignoreDuplicates: true })
+  }
+  console.log(`[Snapshot] Snapshot mensuel — ${snapshotDate}`)
+}
 const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
 const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
@@ -533,6 +562,7 @@ async function checkAndUpdate(client) {
   // Événements Supercell — scraping blog CoC, une fois par jour à 8h Paris
   if (parisHour === 8) {
     await fetchSupercellEvents(client).catch(e => console.error('[Events] Supercell:', e))
+    await takeMonthlySnapshot().catch(e => console.error('[Scheduler] Snapshot:', e))
   }
 
   // Événements mois suivant — le 28 à 8h Paris

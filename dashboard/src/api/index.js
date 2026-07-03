@@ -37,5 +37,7 @@ export const getEvents = () => api.get('/api/dashboard/events')
 export const createEvent = (data) => api.post('/api/dashboard/events', data)
 export const updateEvent = (id, data) => api.put(`/api/dashboard/events/${id}`, data)
 export const deleteEvent = (id) => api.delete(`/api/dashboard/events/${id}`)
+export const getSnapshots = () => api.get('/api/dashboard/snapshots')
+export const getNotifications = () => api.get('/api/dashboard/notifications')
 
 export default api

@@ -15,6 +15,8 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
+  getSnapshots,
+  getNotifications,
 } from '../controllers/dashboardController.js'
 
 const router = Router()
@@ -35,5 +37,7 @@ router.get('/events', getEvents)
 router.post('/events', createEvent)
 router.put('/events/:id', updateEvent)
 router.delete('/events/:id', deleteEvent)
+router.get('/snapshots', getSnapshots)
+router.get('/notifications', getNotifications)
 
 export default router

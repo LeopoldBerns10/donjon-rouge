@@ -419,6 +419,84 @@ export async function deleteEvent(req, res) {
   return res.json({ ok: true })
 }
 
+// ── Snapshots mensuels ────────────────────────────────────────────────────────
+
+export async function getSnapshots(req, res) {
+  try {
+    const { data, error } = await supabase
+      .from('clan_snapshots')
+      .select('snapshot_date, clan_tag, member_count, avg_trophies, total_donations')
+      .order('snapshot_date', { ascending: true })
+      .limit(12)
+    if (error) throw error
+    return res.json(data)
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}
+
+// ── Notifications temps réel ──────────────────────────────────────────────────
+
+export async function getNotifications(req, res) {
+  try {
+    const since = new Date(Date.now() - 24 * 3600000).toISOString()
+
+    const [memberEvts, discordEvts, botCfgEvts] = await Promise.allSettled([
+      supabase
+        .from('discord_member_events')
+        .select('event_type, username, created_at')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('discord_events')
+        .select('type, title, created_at')
+        .gte('created_at', since)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('bot_config')
+        .select('key, updated_at')
+        .gte('updated_at', since)
+        .order('updated_at', { ascending: false })
+        .limit(50),
+    ])
+
+    const notifs = []
+
+    for (const ev of memberEvts.value?.data || []) {
+      notifs.push({
+        type:      ev.event_type,
+        message:   ev.event_type === 'join'
+          ? `👋 ${ev.username} a rejoint le serveur`
+          : `🚪 ${ev.username} a quitté le serveur`,
+        timestamp: ev.created_at,
+      })
+    }
+
+    for (const ev of discordEvts.value?.data || []) {
+      notifs.push({
+        type:      'event',
+        message:   `📅 ${ev.title}`,
+        timestamp: ev.created_at,
+      })
+    }
+
+    for (const row of botCfgEvts.value?.data || []) {
+      if (row.key.startsWith('exploit_war_')) {
+        notifs.push({ type: 'war', message: '⚔️ Guerre terminée — résultats publiés', timestamp: row.updated_at })
+      } else if (row.key.startsWith('jdc_archived_')) {
+        notifs.push({ type: 'jdc', message: `🎮 JDC terminée — saison ${row.key.replace('jdc_archived_', '')}`, timestamp: row.updated_at })
+      }
+    }
+
+    notifs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+    return res.json(notifs.slice(0, 20))
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}
+
 export async function updateRoute(req, res) {
   const { action, gift_number, gift_desc } = req.body
   const now = new Date().toISOString()
