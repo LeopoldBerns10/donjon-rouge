@@ -58,7 +58,7 @@ async function getMembresData(guild) {
       const primary = links?.find(l => l.discord_id === m.id && l.is_primary)
         ?? links?.find(l => l.discord_id === m.id)
       return {
-        pseudo: m.user.username,
+        pseudo: m.nickname ?? m.user.displayName ?? m.user.username,
         role:   m.roles.highest?.name ?? 'Aucun',
         coc:    primary ? `${primary.coc_name} (${primary.coc_tag})` : 'Non lié ❌',
       }
