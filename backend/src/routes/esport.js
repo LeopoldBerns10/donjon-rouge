@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import supabase from '../lib/supabase.js'
 import { getCached } from '../services/cacheService.js'
-import { getClanInfo, getClanMembers, getClanWarLog } from '../services/cocApiService.js'
+import { getClanInfo, getClanMembers } from '../services/cocApiService.js'
 import verifyToken, { requireSuperAdmin } from '../middleware/auth.js'
 
 const router = Router()
