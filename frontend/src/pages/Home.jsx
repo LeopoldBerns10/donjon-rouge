@@ -31,14 +31,18 @@ function useCountUp(target, duration = 1500) {
 export default function Home() {
   const { data: clan, loading } = useCocClan()
   const [dr2Members, setDr2Members] = useState(0)
+  const [esport, setEsport] = useState({ enabled: false, memberCount: 0 })
 
   useEffect(() => {
     api.get('/api/coc/clan/dr2')
       .then(res => setDr2Members(res.data?.members || 0))
       .catch(() => {})
+    api.get('/api/esport/status')
+      .then(res => setEsport(res.data))
+      .catch(() => {})
   }, [])
 
-  const totalMembers = (clan?.members || 0) + dr2Members
+  const totalMembers = (clan?.members || 0) + dr2Members + (esport.enabled ? esport.memberCount : 0)
   const memberCount = useCountUp(totalMembers)
 
   return (
@@ -77,7 +81,34 @@ export default function Home() {
           <div className="my-6 flex flex-col items-center">
             <span className="text-5xl font-bold font-cinzel text-gold-light">{memberCount}</span>
             <span className="text-ash font-cinzel text-sm uppercase tracking-widest mt-1">MEMBRES</span>
+            <div className="flex flex-wrap justify-center gap-3 mt-2 text-xs text-gray-600 font-cinzel uppercase tracking-widest">
+              {clan?.members != null && <span>DR1 : {clan.members}</span>}
+              {dr2Members > 0 && <><span className="text-[#333]">|</span><span>DR2 : {dr2Members}</span></>}
+              {esport.enabled && esport.memberCount > 0 && <><span className="text-[#333]">|</span><span className="text-[#dc2626]/70">E-Sport : {esport.memberCount}</span></>}
+            </div>
           </div>
+
+          {/* Bannière E-Sport */}
+          {esport.enabled && (
+            <Link to="/esport" className="w-full max-w-md mx-auto block mb-2 group">
+              <div className="relative overflow-hidden rounded-2xl border border-[#dc2626]/30 hover:border-[#dc2626]/60 transition-all duration-300 hover:scale-[1.02]"
+                style={{ background: 'linear-gradient(135deg, #1a0000 0%, #0e0e0e 50%, #1a0500 100%)' }}>
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: 'radial-gradient(circle at 50% 50%, rgba(220,38,38,0.15), transparent 70%)' }} />
+                <div className="relative z-10 flex items-center gap-4 px-5 py-4">
+                  <span className="text-3xl drop-shadow-lg">🏆</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-cinzel-deco font-black text-sm uppercase tracking-widest"
+                      style={{ background: 'linear-gradient(90deg, #dc2626, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                      DR E-SPORT
+                    </p>
+                    <p className="text-xs text-gray-400 mt-0.5">Town Hall Cup TH15 2026 — Suivez le parcours de notre équipe</p>
+                  </div>
+                  <span className="text-[#dc2626] text-lg group-hover:translate-x-1 transition-transform duration-200">→</span>
+                </div>
+              </div>
+            </Link>
+          )}
 
           {/* CTA Buttons */}
           <div className="flex flex-wrap justify-center gap-3 mt-6">

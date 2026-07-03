@@ -24,6 +24,7 @@ import rouletteRoutes from './routes/roulette.js'
 import vitrineRoutes from './routes/vitrine.js'
 import cacheRoutes from './routes/cache.js'
 import membersRoutes from './routes/members.js'
+import esportRoutes from './routes/esport.js'
 
 const app = express()
 app.set('trust proxy', 1)
@@ -71,6 +72,7 @@ app.use('/api/roulette', rouletteRoutes)
 app.use('/api/vitrine', vitrineRoutes)
 app.use('/api/cache', cacheRoutes)
 app.use('/api/members', membersRoutes)
+app.use('/api/esport', esportRoutes)
 
 app.get('/api/debug/sync', verifyToken, requireAdmin, async (req, res) => {
   const result = await syncMembers()
