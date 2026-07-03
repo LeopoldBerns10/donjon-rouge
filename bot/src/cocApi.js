@@ -1,6 +1,6 @@
 const BASE = process.env.BACKEND_URL
 
-async function get(path) {
+async function apiGet(path) {
   const res = await fetch(`${BASE}/api/coc${path}`)
   if (!res.ok) throw new Error(`Backend ${res.status}: ${await res.text()}`)
   return res.json()
@@ -18,17 +18,30 @@ async function flushCocCache() {
   }
 }
 
-const getClanInfo    = ()    => get('/clan')
-const getClanMembers    = ()    => get('/clan/members')
-const getClanMembersDR2 = ()    => get('/clan/dr2/members')
-const getCurrentWar  = ()    => get('/clan/war')
-const getWarLog      = ()    => get('/clan/warlog')
-const getRaidSeasons = ()    => get('/clan/raids')
-const getCwl         = ()    => get('/clan/cwl')
-const getPlayer      = (tag) => get(`/player/${encodeURIComponent(tag)}`)
-const getLdcCurrent    = ()    => get('/ldc/current')
-const getLdcCurrentDR2 = ()    => get('/ldc/dr2/current')
-const getLdcWar        = (warTag) => get(`/ldc/war/${encodeURIComponent(warTag)}`)
+const getClanInfo    = ()    => apiGet('/clan')
+const getClanMembers    = ()    => apiGet('/clan/members')
+const getClanMembersDR2 = ()    => apiGet('/clan/dr2/members')
+const getCurrentWar  = ()    => apiGet('/clan/war')
+const getWarLog      = ()    => apiGet('/clan/warlog')
+const getRaidSeasons = ()    => apiGet('/clan/raids')
+const getCwl         = ()    => apiGet('/clan/cwl')
+const getPlayer      = (tag) => apiGet(`/player/${encodeURIComponent(tag)}`)
+const getLdcCurrent    = ()    => apiGet('/ldc/current')
+const getLdcCurrentDR2 = ()    => apiGet('/ldc/dr2/current')
+const getLdcWar        = (warTag) => apiGet(`/ldc/war/${encodeURIComponent(warTag)}`)
+
+function parseWarTime(str) {
+  if (!str) return null
+  const s = str.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')
+  return new Date(s)
+}
+
+function normalizeWar(war, ourTag) {
+  if (!war) return war
+  if (war.clan?.tag === ourTag) return war
+  if (war.opponent?.tag === ourTag) return { ...war, clan: war.opponent, opponent: war.clan }
+  return war
+}
 
 function extractClanGamePoints(data) {
   if (data?.clanGamePoints != null) return data.clanGamePoints
@@ -47,4 +60,4 @@ async function getPlayerClanGamePoints(playerTag) {
   return extractClanGamePoints(data)
 }
 
-module.exports = { getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer, getPlayerClanGamePoints, extractClanGamePoints, getLdcCurrent, getLdcCurrentDR2, getLdcWar, flushCocCache }
+module.exports = { apiGet, parseWarTime, normalizeWar, getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer, getPlayerClanGamePoints, extractClanGamePoints, getLdcCurrent, getLdcCurrentDR2, getLdcWar, flushCocCache }

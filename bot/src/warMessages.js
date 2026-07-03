@@ -1,9 +1,8 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('./supabase.js')
 const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('./config/warChannels.js')
-const { getClanInfo, getClanMembers, getClanMembersDR2 } = require('./cocApi.js')
+const { getClanInfo, getClanMembers, getClanMembersDR2, apiGet, parseWarTime, normalizeWar } = require('./cocApi.js')
 
-const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
 const DR2_TAG = '#2RCGG9YR9'
 
@@ -29,28 +28,6 @@ let warChannelsInitialized = false
 
 function activateWarChannels() {
   warChannelsInitialized = true
-}
-
-async function apiGet(path) {
-  const res = await fetch(`${BASE}/api/coc${path}`)
-  if (!res.ok) throw new Error(`Backend ${res.status}: ${await res.text()}`)
-  return res.json()
-}
-
-function parseWarTime(cocTimeStr) {
-  if (!cocTimeStr) return null
-  const s = cocTimeStr.replace(
-    /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/,
-    '$1-$2-$3T$4:$5:$6'
-  )
-  return new Date(s)
-}
-
-function normalizeWar(war, ourTag) {
-  if (!war) return war
-  if (war.clan?.tag === ourTag) return war
-  if (war.opponent?.tag === ourTag) return { ...war, clan: war.opponent, opponent: war.clan }
-  return war
 }
 
 // ─── Embed builders ────────────────────────────────────────────────────────────

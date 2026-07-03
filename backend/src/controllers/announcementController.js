@@ -3,7 +3,7 @@ import supabase from '../lib/supabase.js'
 export async function getAnnouncements(req, res) {
   const { data, error } = await supabase
     .from('announcements')
-    .select('*, author:players(id, username, role)')
+    .select('*, author:users(id, coc_name, site_role)')
     .eq('is_active', true)
     .order('created_at', { ascending: false })
 
@@ -20,7 +20,7 @@ export async function createAnnouncement(req, res) {
   const { data, error } = await supabase
     .from('announcements')
     .insert({ author_id: req.user.id, type, title, content, is_active: true })
-    .select('*, author:players(id, username, role)')
+    .select('*, author:users(id, coc_name, site_role)')
     .single()
 
   if (error) return res.status(500).json({ error: error.message })

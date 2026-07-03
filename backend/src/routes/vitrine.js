@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import multer from 'multer'
 import { createClient } from '@supabase/supabase-js'
-import { requireAuth } from '../middleware/auth.js'
+import { requireAuth, requireAdmin } from '../middleware/auth.js'
 import supabase from '../lib/supabase.js'
 
 const router = Router()
@@ -11,13 +11,6 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 )
-
-function requireAdmin(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: 'Non connecté' })
-  const ok = req.user.coc_name === 'CyberAlf' || ['superadmin', 'admin'].includes(req.user.site_role)
-  if (!ok) return res.status(403).json({ error: 'Non autorisé' })
-  next()
-}
 
 // ─── Blocks CRUD ──────────────────────────────────────────────────────────────
 

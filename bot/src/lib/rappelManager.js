@@ -1,32 +1,11 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
+const { apiGet, parseWarTime, normalizeWar } = require('../cocApi.js')
 const supabase = require('../supabase.js')
 const { isJdcActive, fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
 
-const BASE              = process.env.BACKEND_URL
 const RAPPEL_CHANNEL_ID = '1510972919407317142'
 const DR1_TAG           = '#29292QPRC'
 const DR2_TAG           = '#2RCGG9YR9'
-
-// ─── Helpers API ──────────────────────────────────────────────────────────────
-
-async function apiGet(path) {
-  const res = await fetch(`${BASE}/api/coc${path}`)
-  if (!res.ok) throw new Error(`Backend ${res.status}: ${await res.text()}`)
-  return res.json()
-}
-
-function parseWarTime(str) {
-  if (!str) return null
-  const s = str.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')
-  return new Date(s)
-}
-
-function normalizeWar(war, ourTag) {
-  if (!war) return war
-  if (war.clan?.tag === ourTag) return war
-  if (war.opponent?.tag === ourTag) return { ...war, clan: war.opponent, opponent: war.clan }
-  return war
-}
 
 async function fetchWar(clanKey) {
   const ourTag  = clanKey === 'dr1' ? DR1_TAG : DR2_TAG
