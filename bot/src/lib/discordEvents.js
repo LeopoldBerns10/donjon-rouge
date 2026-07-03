@@ -1,5 +1,6 @@
 const { GuildScheduledEventEntityType, GuildScheduledEventPrivacyLevel } = require('discord.js')
 const supabase = require('../supabase.js')
+const { log } = require('./botLogger.js')
 
 const GUILD_ID           = '610767309031866371'
 const ANNOUNCE_CHANNEL_ID = '1441176254769401969'
@@ -100,6 +101,7 @@ async function ensureRaidEvent(client) {
       end_time:   raidEnd.toISOString(),
     })
     console.log(`[Events] Raid créé — ${raidStart.toISOString()}`)
+    log(client, 'EVENT', `Raid Capital créé — ${raidStart.toISOString()}`).catch(() => {})
     return
   }
 
@@ -111,6 +113,7 @@ async function ensureRaidEvent(client) {
       .update({ discord_event_id: eventId })
       .eq('id', existing.id)
     console.log(`[Events] Raid recréé (supprimé manuellement) — ${raidStart.toISOString()}`)
+    log(client, 'EVENT', `Raid Capital recréé — ${raidStart.toISOString()}`).catch(() => {})
   }
 }
 
@@ -149,6 +152,7 @@ async function ensureJdcEvent(client) {
       end_time:   jdcEnd.toISOString(),
     })
     console.log(`[Events] JDC créé — ${jdcStart.toISOString()}`)
+    log(client, 'EVENT', `Jeux de Clan créé — ${jdcStart.toISOString()}`).catch(() => {})
     return
   }
 
@@ -160,6 +164,7 @@ async function ensureJdcEvent(client) {
       .update({ discord_event_id: eventId })
       .eq('id', existing.id)
     console.log(`[Events] JDC recréé (supprimé manuellement) — ${jdcStart.toISOString()}`)
+    log(client, 'EVENT', `Jeux de Clan recréé — ${jdcStart.toISOString()}`).catch(() => {})
   }
 }
 
@@ -373,6 +378,9 @@ async function fetchSupercellEvents(client) {
   }
 
   console.log(`[Events/Supercell] Terminé — ${created} créé(s) sur ${events.length} parsé(s)`)
+  if (created > 0) {
+    log(client, 'EVENT', `Événements Supercell — ${created} créé(s) sur ${events.length} parsé(s)`).catch(() => {})
+  }
   await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
 }
 
@@ -454,6 +462,9 @@ async function ensureNextMonthEvents(client) {
   })
 
   console.log(`[Events/NextMonth] Terminé — ${created} créé(s) pour ${nextKey}`)
+  if (created > 0) {
+    log(client, 'EVENT', `Événements mois suivant (${nextKey}) — ${created} créé(s)`).catch(() => {})
+  }
   await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
 }
 
@@ -490,6 +501,7 @@ async function handleModalCreateEvent(interaction) {
     end_time:   endTime.toISOString(),
   })
 
+  log(interaction.client, 'EVENT', `Événement créé par ${interaction.user.username} : "${title}" (${startRaw} → ${endRaw})`).catch(() => {})
   await interaction.editReply('✅ Événement créé !')
 }
 

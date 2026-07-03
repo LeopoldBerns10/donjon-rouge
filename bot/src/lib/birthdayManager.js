@@ -1,5 +1,6 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js')
 const supabase = require('../supabase.js')
+const { log } = require('./botLogger.js')
 
 const BIRTHDAY_CHANNEL_ID = '1520034360559013939'
 const CHEF_ROLE_ID        = '611123759864348672'
@@ -166,6 +167,8 @@ async function checkBirthdays(client) {
         `🎂 <@${discord_id}> Joyeux anniversaire !${ageSuffix}\n\nLe Donjon Rouge te souhaite une excellente journée ! 🐉🎉`
       )
       console.log(`[Birthdays] Souhait envoyé pour ${discord_name} (${discord_id})`)
+      const ageSuffix2 = birth_year ? ` (${yyyy - birth_year} ans)` : ''
+      log(client, 'ANNIVERSAIRE', `Souhait envoyé à @${discord_name}${ageSuffix2}`).catch(() => {})
     } catch (e) {
       console.error(`[Birthdays] Erreur souhait ${discord_id}:`, e)
     }

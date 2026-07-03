@@ -3,6 +3,7 @@ const { SORTIE_CHANNEL_ID } = require('../config/welcome.js')
 const { invalidateMembresCache } = require('../lib/panelHandlers.js')
 const { resolveVariables } = require('../lib/messageVariables.js')
 const supabase = require('../supabase.js')
+const { log } = require('../lib/botLogger.js')
 
 function formatTimeSpent(joinedAt) {
   if (!joinedAt) return null
@@ -76,6 +77,7 @@ module.exports = {
       })
     } catch {}
 
+    log(member.client, 'MEMBRE', `Membre parti : ${member.user.username} a quitté le serveur`).catch(() => {})
     invalidateMembresCache()
   },
 }

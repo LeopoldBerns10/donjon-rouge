@@ -2,6 +2,7 @@ const { ROLES } = require('../config/onboarding.js')
 const { invalidateMembresCache } = require('../lib/panelHandlers.js')
 const { resolveVariables } = require('../lib/messageVariables.js')
 const supabase = require('../supabase.js')
+const { log } = require('../lib/botLogger.js')
 
 const WELCOME_DM_DEFAULT = 'Bienvenue sur le serveur {server} ! Rends-toi dans le salon vérification pour accéder au serveur.'
 
@@ -30,6 +31,7 @@ module.exports = {
       })
     } catch {}
 
+    log(member.client, 'MEMBRE', `Nouveau membre : ${member.user.username} a rejoint le serveur`).catch(() => {})
     invalidateMembresCache()
   },
 }

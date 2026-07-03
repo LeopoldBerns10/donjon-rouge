@@ -2,6 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('
 const { apiGet, parseWarTime, normalizeWar } = require('../cocApi.js')
 const supabase = require('../supabase.js')
 const { isJdcActive, fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
+const { log } = require('./botLogger.js')
 
 const RAPPEL_CHANNEL_ID = '1510972919407317142'
 const DR1_TAG           = '#29292QPRC'
@@ -194,6 +195,7 @@ async function sendRappelPings(client) {
         `Il reste ${hoursLeft}h — chaque attaque compte ! ⚔️`,
       ].join('\n')
       await replacePingMessage(channel, 'rappel_ping_dr1_id', content).catch(e => console.error('[RappelManager] Ping DR1:', e))
+      log(client, 'GUERRE', `Ping guerre DR1 envoyé — ${late.length} retardataire(s)`).catch(() => {})
     }
   }
 
@@ -211,6 +213,7 @@ async function sendRappelPings(client) {
         `Il reste ${hoursLeft}h — chaque attaque compte ! ⚔️`,
       ].join('\n')
       await replacePingMessage(channel, 'rappel_ping_dr2_id', content).catch(e => console.error('[RappelManager] Ping DR2:', e))
+      log(client, 'GUERRE', `Ping guerre DR2 envoyé — ${late.length} retardataire(s)`).catch(() => {})
     }
   }
 

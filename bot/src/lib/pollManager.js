@@ -1,5 +1,6 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js')
 const supabase = require('../supabase.js')
+const { log } = require('./botLogger.js')
 
 const POLL_CHANNEL_ID = '1520034566532759633'
 const CHEF_ROLE_ID    = '611123759864348672'
@@ -238,6 +239,7 @@ async function handleModalPollCreate(interaction) {
   })
 
   await supabase.from('polls').update({ message_id: msg.id }).eq('id', poll.id)
+  log(interaction.client, 'SONDAGE', `Sondage créé par ${interaction.user.username} : "${question}" (${hours}h)`).catch(() => {})
   await interaction.editReply(`✅ Sondage créé ! ${hours}h pour voter.`)
 }
 
@@ -278,6 +280,7 @@ async function endPoll(poll, client) {
   }
 
   console.log(`[Poll] Sondage ${poll.id} terminé — gagnant: ${winnerName} (${maxCount} votes)`)
+  log(client, 'SONDAGE', `Sondage ${poll.id} terminé — gagnant: ${winnerName} (${maxCount} votes, ${winnerPct}%)`).catch(() => {})
 }
 
 // ─── Vérification automatique ─────────────────────────────────────────────────

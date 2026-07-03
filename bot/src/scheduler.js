@@ -1,6 +1,7 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('./supabase.js')
 const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
+const { log } = require('./lib/botLogger.js')
 const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
 const { recordGdcParticipation } = require('./lib/participationStats.js')
@@ -45,6 +46,8 @@ const { assignHdvRole } = require('./utils/assignHdvRole.js')
 
 const DR1_TAG = '#29292QPRC'
 const DR2_TAG = '#2RCGG9YR9'
+
+let lastRappelEmbedLogHour = -1
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -441,6 +444,7 @@ async function checkGdcMessages(client) {
   await channel.send(text)
   await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
   console.log(`[Scheduler] Message GDC ${dayName} envoyé`)
+  log(client, 'GDC', `Message GDC ${dayName} envoyé`).catch(() => {})
 }
 
 // ─── Refresh ligues automatique (lundi 12h Paris) ────────────────────────────
@@ -488,6 +492,7 @@ async function checkLeagueRefresh(client) {
 
   await supabase.from('bot_config').upsert({ key: sentKey, value: new Date().toISOString(), updated_at: new Date().toISOString() })
   console.log(`[Scheduler] League refresh lundi — ${updated} mis à jour, ${errors} erreur(s)`)
+  log(client, 'SCHEDULER', `Refresh ligue lundi — ${updated} mis à jour, ${errors} erreur(s)`).catch(() => {})
 }
 
 // ─── Boucle principale ────────────────────────────────────────────────────────
@@ -500,13 +505,22 @@ async function checkAndUpdate(client) {
   // Sondages — vérification des sondages expirés à chaque tick
   await checkExpiredPolls(client).catch(e => console.error('[Scheduler] Polls:', e))
 
-  // Rappels v2 — embeds liste mis à jour à chaque tick
-  await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds:', e))
-
-  // Rappels v2 — pings à 10h et 20h (heure Paris = UTC+2)
+  // Calcul heure Paris en avance (utilisé pour les logs et les conditions)
   const parisNow  = new Date(Date.now() + 2 * 3600000)
   const parisHour = parisNow.getUTCHours()
   const parisDay  = parisNow.getUTCDate()
+
+  // Rappels v2 — embeds liste mis à jour à chaque tick
+  await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds:', e))
+  if (parisHour !== lastRappelEmbedLogHour) {
+    lastRappelEmbedLogHour = parisHour
+    const dr1State  = warData.wars?.dr1?.state ?? 'unknown'
+    const dr2State  = warData.wars?.dr2?.state ?? 'unknown'
+    const raidState = warData.currentRaid ? 'ongoing' : 'inactive'
+    log(client, 'SCHEDULER', `Embeds rappel mis à jour (DR1 ${dr1State}, DR2 ${dr2State}, Raid ${raidState})`).catch(() => {})
+  }
+
+  // Rappels v2 — pings à 10h et 20h (heure Paris = UTC+2)
   console.log('[Scheduler] Heure Paris:', parisHour)
   if (parisHour === 10 || parisHour === 20) {
     await sendRappelPings(client).catch(e => console.error('[Scheduler] RappelPings:', e))
@@ -514,6 +528,7 @@ async function checkAndUpdate(client) {
   if (parisHour === 10) {
     await checkBirthdays(client).catch(e => console.error('[Scheduler] Birthdays:', e))
     await sendWeeklyStats(client).catch(e => console.error('[Scheduler] WeeklyStats:', e))
+    log(client, 'SCHEDULER', 'Stats hebdomadaires envoyées').catch(() => {})
   }
   if (parisHour === 12) {
     await checkLeagueRefresh(client).catch(e => console.error('[Scheduler] LeagueRefresh:', e))
@@ -530,6 +545,9 @@ async function checkAndUpdate(client) {
   // Événements Supercell — scraping blog CoC, une fois par jour à 8h Paris
   if (parisHour === 8) {
     await fetchSupercellEvents(client).catch(e => console.error('[Events] Supercell:', e))
+    if (parisDay === 1) {
+      log(client, 'SCHEDULER', 'Snapshot mensuel pris').catch(() => {})
+    }
     await takeMonthlySnapshot().catch(e => console.error('[Scheduler] Snapshot:', e))
   }
 
@@ -579,7 +597,10 @@ async function cleanupReminderChannel(client) {
 function startScheduler(client) {
   const run = async () => {
     try { await checkAndUpdate(client) }
-    catch (e) { console.error('[Scheduler] Erreur:', e) }
+    catch (e) {
+      console.error('[Scheduler] Erreur:', e)
+      log(client, 'ERREUR', `scheduler.js: ${e.message}`, true).catch(() => {})
+    }
   }
   cleanupReminderChannel(client)
     .catch(e => console.error('[Scheduler] cleanupReminderChannel:', e))

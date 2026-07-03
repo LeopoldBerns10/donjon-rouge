@@ -86,6 +86,7 @@ const {
   handleModalRouteSetGift,
 } = require('../lib/routeInfinie.js')
 const { handleModalCreateEvent } = require('../lib/discordEvents.js')
+const { log } = require('../lib/botLogger.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
 
@@ -761,6 +762,14 @@ module.exports = {
       try {
         if (interaction.isButton() && BUTTON_HANDLERS[interaction.customId]) {
           await BUTTON_HANDLERS[interaction.customId](interaction)
+          const buttonLog = {
+            'msg_rappel_guerre_confirm': `Rappel guerre envoyé par ${interaction.user.username}`,
+            'msg_rappel_raid_confirm':   `Rappel raid envoyé par ${interaction.user.username}`,
+            'msg_jdc_reminder_confirm':  `Rappel JDC envoyé par ${interaction.user.username}`,
+            'msg_custom_confirm':        `Message custom envoyé par ${interaction.user.username}`,
+            'poll_end':                  `Sondage terminé manuellement par ${interaction.user.username}`,
+          }[interaction.customId]
+          if (buttonLog) log(interaction.client, 'BOUTON', buttonLog).catch(() => {})
         } else if (prefix === 'stats_profil'  && argTag) {
           await handleStatsProfil(interaction, argTag)
         } else if (prefix === 'stats_heros'   && argTag) {
@@ -805,6 +814,7 @@ module.exports = {
         }
       } catch (err) {
         console.error(`[Button] ${interaction.customId}:`, err)
+        log(interaction.client, 'ERREUR', `Button ${interaction.customId}: ${err.message}`, true).catch(() => {})
         try {
           if (interaction.deferred || interaction.replied) {
             await interaction.editReply({ content: 'Une erreur est survenue.' })
@@ -878,6 +888,7 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_global') {
       await handleModalMsgGlobal(interaction)
+      log(interaction.client, 'BOUTON', `Message global envoyé par ${interaction.user.username}`).catch(() => {})
       return
     }
 
@@ -886,16 +897,20 @@ module.exports = {
       interaction.customId === 'modal_panel_msg_gdc_mardi'
     )) {
       await handleModalPanelMsgGdc(interaction)
+      const gdcType = interaction.customId === 'modal_panel_msg_gdc_dimanche' ? 'dimanche' : 'mardi'
+      log(interaction.client, 'GDC', `Message GDC ${gdcType} modifié par ${interaction.user.username}`).catch(() => {})
       return
     }
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_panel_msg_arrivee') {
       await handleModalPanelMsgArrivee(interaction)
+      log(interaction.client, 'BOUTON', `Message d'arrivée modifié par ${interaction.user.username}`).catch(() => {})
       return
     }
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_panel_msg_depart') {
       await handleModalPanelMsgDepart(interaction)
+      log(interaction.client, 'BOUTON', `Message de départ modifié par ${interaction.user.username}`).catch(() => {})
       return
     }
 
@@ -945,8 +960,10 @@ module.exports = {
 
     try {
       await command.execute(interaction)
+      log(interaction.client, 'COMMANDE', `/${interaction.commandName} lancé par ${interaction.user.username}`).catch(() => {})
     } catch (err) {
       console.error(`Erreur commande /${interaction.commandName}:`, err)
+      log(interaction.client, 'ERREUR', `/${interaction.commandName}: ${err.message}`, true).catch(() => {})
       try {
         if (interaction.deferred || interaction.replied) {
           await interaction.editReply({ content: 'Une erreur est survenue.' })

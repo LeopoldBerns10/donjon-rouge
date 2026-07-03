@@ -8,6 +8,7 @@ const {
   TextInputStyle,
 } = require('discord.js')
 const supabase = require('../supabase.js')
+const { log } = require('./botLogger.js')
 
 const ROUTE_CHANNEL_ID = '1520108333846233098'
 const PANEL_CHANNEL_ID = '1522353459364626625'
@@ -263,6 +264,7 @@ async function handleRouteReset(interaction) {
     updated_at:      new Date().toISOString(),
   }).eq('active', true)
 
+  log(interaction.client, 'ROUTE', `Compteur Route Infinie remis à 0 par ${interaction.user.username}`).catch(() => {})
   const state = await getRouteState()
   await refreshPanelEmbed(interaction.client, state)
   await interaction.editReply({ content: '✅ Compteur remis à zéro.', components: [] })
@@ -289,6 +291,7 @@ async function handleModalRouteSetGift(interaction) {
     updated_at:  new Date().toISOString(),
   }).eq('active', true)
 
+  log(interaction.client, 'ROUTE', `Cadeau défini sur ${giftNum.toLocaleString('fr-FR')} : ${giftDesc}`).catch(() => {})
   const state = await getRouteState()
   await refreshPanelEmbed(interaction.client, state)
 
