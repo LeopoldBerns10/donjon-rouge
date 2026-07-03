@@ -133,6 +133,14 @@ export default function Navbar() {
                         className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#1a1a1a] hover:text-white transition-colors">
                         Mon profil
                       </Link>
+                      <Link to="/performance" onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#1a1a1a] hover:text-white transition-colors">
+                        🎯 Performance
+                      </Link>
+                      <Link to="/historique" onClick={() => setShowUserMenu(false)}
+                        className="flex items-center gap-3 px-4 py-2 text-sm text-gray-300 hover:bg-[#1a1a1a] hover:text-white transition-colors">
+                        📜 Historique
+                      </Link>
                       {['admin', 'superadmin'].includes(user.site_role) && (
                         <Link to="/admin" onClick={() => setShowUserMenu(false)}
                           className="flex items-center gap-3 px-4 py-2 text-sm text-[#dc2626] hover:bg-[#1a1a1a] transition-colors">
@@ -275,6 +283,14 @@ export default function Navbar() {
                 <Link to="/mon-profil" onClick={closeMenu}
                   className="px-4 py-3 rounded-xl text-sm text-gray-400 hover:bg-[#1a1a1a] hover:text-white transition-colors">
                   👤 Mon profil
+                </Link>
+                <Link to="/performance" onClick={closeMenu}
+                  className="px-4 py-3 rounded-xl text-sm text-gray-400 hover:bg-[#1a1a1a] hover:text-white transition-colors">
+                  🎯 Performance
+                </Link>
+                <Link to="/historique" onClick={closeMenu}
+                  className="px-4 py-3 rounded-xl text-sm text-gray-400 hover:bg-[#1a1a1a] hover:text-white transition-colors">
+                  📜 Historique
                 </Link>
                 {['admin', 'superadmin'].includes(user.site_role) && (
                   <Link to="/admin" onClick={closeMenu}

@@ -150,6 +150,31 @@ router.get('/', async (req, res) => {
   }
 })
 
+// GET /api/war-events/history — événements terminés (status = 'ended') triés par date DESC
+router.get('/history', async (req, res) => {
+  try {
+    const { data: events, error } = await supabase
+      .from('war_events')
+      .select('*')
+      .eq('status', 'ended')
+      .order('proposed_date', { ascending: false })
+    if (error) throw error
+
+    const eventsWithCount = await Promise.all(
+      events.map(async (ev) => {
+        const { count } = await supabase
+          .from('war_signups')
+          .select('*', { count: 'exact', head: true })
+          .eq('event_id', ev.id)
+        return { ...ev, signup_count: count || 0 }
+      })
+    )
+    res.json(eventsWithCount)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // GET /api/war-events/:id
 router.get('/:id', async (req, res) => {
   try {

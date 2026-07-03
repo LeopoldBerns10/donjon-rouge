@@ -19,6 +19,8 @@ import Guilde from './pages/Guilde.jsx'
 import Login from './pages/Login.jsx'
 import ChangePassword from './pages/ChangePassword.jsx'
 import MonProfil from './pages/MonProfil.jsx'
+import Historique from './pages/Historique.jsx'
+import Performance from './pages/Performance.jsx'
 
 function AnnouncementToast() {
   const [toast, setToast] = useState(null)
@@ -121,6 +123,8 @@ function AppContent() {
           <Route path="/guilde" element={<Guilde />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/mon-profil" element={<PrivateRoute><MonProfil /></PrivateRoute>} />
+          <Route path="/historique" element={<PrivateRoute><Historique /></PrivateRoute>} />
+          <Route path="/performance" element={<PrivateRoute><Performance /></PrivateRoute>} />
         </Routes>
       </main>
       <Footer />
