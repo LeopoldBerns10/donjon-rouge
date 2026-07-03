@@ -68,11 +68,13 @@ module.exports = {
       console.error('[guildMemberRemove]', err)
     }
 
-    supabase.from('discord_member_events').insert({
-      event_type: 'leave',
-      discord_id: member.id,
-      username:   member.user.username,
-    }).catch(() => {})
+    try {
+      await supabase.from('discord_member_events').insert({
+        event_type: 'leave',
+        discord_id: member.id,
+        username:   member.user.username,
+      })
+    } catch {}
 
     invalidateMembresCache()
   },

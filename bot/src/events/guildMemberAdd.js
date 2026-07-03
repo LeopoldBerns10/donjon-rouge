@@ -22,11 +22,13 @@ module.exports = {
       // DMs désactivés
     }
 
-    supabase.from('discord_member_events').insert({
-      event_type: 'join',
-      discord_id: member.id,
-      username:   member.user.username,
-    }).catch(() => {})
+    try {
+      await supabase.from('discord_member_events').insert({
+        event_type: 'join',
+        discord_id: member.id,
+        username:   member.user.username,
+      })
+    } catch {}
 
     invalidateMembresCache()
   },
