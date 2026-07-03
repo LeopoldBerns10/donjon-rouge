@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs'
 import supabase from './lib/supabase.js'
 import { apiLimiter, chatLimiter } from './middleware/rateLimiter.js'
 import { syncMembers } from './services/syncMembers.js'
+import jwt from 'jsonwebtoken'
 import verifyToken, { requireAdmin } from './middleware/auth.js'
 
 import authRoutes from './routes/auth.js'
@@ -89,8 +90,15 @@ io.on('connection', (socket) => {
     }
   })
 
-  socket.on('send_message', async ({ channel, content, user, replyTo }) => {
+  socket.on('send_message', async ({ channel, content, user, replyTo, token }) => {
     if (!channel || !content || !user?.id) return
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET)
+      if (decoded.discord_id !== user.id) return
+    } catch {
+      return
+    }
 
     const { data: userData } = await supabase
       .from('users')

@@ -59,7 +59,8 @@ export function useSocket(channel, user) {
 
   function sendMessage(content, replyTo = null) {
     if (!socketRef.current || !content.trim()) return
-    socketRef.current.emit('send_message', { channel, content, user, replyTo })
+    const token = localStorage.getItem('dr_token')
+    socketRef.current.emit('send_message', { channel, content, user, replyTo, token })
   }
 
   return { messages, connected, sendMessage, setMessages }

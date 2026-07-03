@@ -8,7 +8,7 @@ async function get(path) {
 
 async function flushCocCache() {
   try {
-    const res = await fetch(`${BASE}/api/coc/cache/flush`, {
+    const res = await fetch(`${BASE}/api/cache/flush/players`, {
       method: 'POST',
       headers: { 'x-bot-secret': process.env.BOT_SECRET ?? '' },
     })

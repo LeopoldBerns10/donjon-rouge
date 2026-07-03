@@ -53,13 +53,7 @@ async function fetchRaid() {
   try {
     const data   = await apiGet('/clan/raids')
     const latest = data?.items?.[0] ?? null
-    if (!latest?.startTime) return null
-    const start = parseWarTime(latest.startTime) ?? new Date(latest.startTime)
-    const end   = latest.endTime ? (parseWarTime(latest.endTime) ?? new Date(latest.endTime)) : null
-    if (isNaN(start)) return null
-    if (start.getTime() < Date.now() - 7 * 24 * 3600000) return null
-    if (end && end.getTime() < Date.now()) return null
-    return latest
+    return latest?.state === 'ongoing' ? latest : null
   } catch {
     return null
   }

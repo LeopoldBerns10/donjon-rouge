@@ -43,7 +43,7 @@ export async function discordOAuth(req, res) {
     // 3. Vérifie membership et rôle Chef via le bot token
     const memberRes = await fetch(
       `https://discord.com/api/guilds/${GUILD_ID}/members/${discordUser.id}`,
-      { headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` } }
+      { headers: { Authorization: `Bot ${process.env.DISCORD_TOKEN}` } }
     )
 
     if (memberRes.status === 404) {
