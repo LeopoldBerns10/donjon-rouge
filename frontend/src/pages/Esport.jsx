@@ -12,6 +12,13 @@ const ROLE_LABELS = {
 
 const AVATAR_COLORS = ['#dc2626', '#b91c1c', '#7f1d1d']
 
+function parseCocDate(endTime) {
+  if (!endTime) return null
+  // Format CoC : "20230101T120000.000Z" → "2023-01-01T12:00:00.000Z"
+  const iso = endTime.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})/, '$1-$2-$3T$4:$5:$6')
+  return new Date(iso)
+}
+
 function MemberCard({ member, index }) {
   const initials = member.name?.slice(0, 2).toUpperCase() || '??'
   const color = AVATAR_COLORS[index % AVATAR_COLORS.length]
@@ -137,7 +144,7 @@ export default function Esport() {
   const isSuperAdmin = user?.site_role === 'superadmin' || user?.coc_name === 'CyberAlf'
 
   const [status, setStatus] = useState({ enabled: null, loading: true })
-  const [clanData, setClanData] = useState({ clan: null, members: [], loading: true })
+  const [clanData, setClanData] = useState({ clan: null, members: [], warlog: [], loading: true })
   const [results, setResults] = useState([])
   const [showModal, setShowModal] = useState(false)
   const [toggling, setToggling] = useState(false)
@@ -162,7 +169,7 @@ export default function Esport() {
       navigate('/', { replace: true })
       return
     }
-    api.get('/api/esport/clan-info').then(r => setClanData({ clan: r.data.clan, members: r.data.members, loading: false })).catch(() => setClanData(d => ({ ...d, loading: false })))
+    api.get('/api/esport/clan-info').then(r => setClanData({ clan: r.data.clan, members: r.data.members, warlog: r.data.warlog || [], loading: false })).catch(() => setClanData(d => ({ ...d, loading: false })))
     loadResults()
   }, [status.loading, status.enabled, isSuperAdmin])
 
@@ -200,6 +207,7 @@ export default function Esport() {
 
   const clan = clanData.clan
   const members = clanData.members
+  const warlog = clanData.warlog
   const wins = results.filter(r => r.won).length
   const losses = results.filter(r => !r.won).length
 
@@ -273,6 +281,61 @@ export default function Esport() {
                   <p className="text-[10px] uppercase tracking-widest text-gray-600 text-center">{label}</p>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* Historique des guerres */}
+        {warlog.length > 0 && (
+          <section className="mt-10">
+            <h2 className="font-cinzel text-sm uppercase tracking-[0.3em] text-[#dc2626] mb-4">Historique des guerres</h2>
+            <div className="rounded-2xl bg-[#111111] border border-[#1f1f1f] overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-[10px] uppercase tracking-widest text-gray-600 border-b border-[#1f1f1f]">
+                      <th className="text-left px-6 py-3">Date</th>
+                      <th className="text-left px-4 py-3">Adversaire</th>
+                      <th className="text-center px-4 py-3">Étoiles DR</th>
+                      <th className="text-center px-4 py-3">Étoiles Adv.</th>
+                      <th className="text-center px-4 py-3">Résultat</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {warlog.map((w, i) => {
+                      const date = parseCocDate(w.endTime)
+                      const won = w.result === 'win'
+                      const tied = w.result === 'tie'
+                      return (
+                        <tr key={i} className="border-b border-[#1a1a1a] hover:bg-[#0d0d0d] transition-colors">
+                          <td className="px-6 py-3 text-gray-500 text-xs">
+                            {date ? date.toLocaleDateString('fr-FR') : '—'}
+                          </td>
+                          <td className="px-4 py-3 text-white font-semibold">{w.opponent?.name || '—'}</td>
+                          <td className="px-4 py-3 text-center font-mono font-bold text-[#f59e0b]">
+                            {'⭐'.repeat(Math.min(w.clan?.stars ?? 0, 5))}
+                            <span className="ml-1 text-white">{w.clan?.stars ?? '—'}</span>
+                          </td>
+                          <td className="px-4 py-3 text-center font-mono text-gray-400">
+                            {w.opponent?.stars ?? '—'}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className={`text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-full ${
+                              won
+                                ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                                : tied
+                                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                            }`}>
+                              {won ? 'Victoire' : tied ? 'Nul' : 'Défaite'}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
         )}
