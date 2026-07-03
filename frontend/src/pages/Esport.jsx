@@ -143,7 +143,17 @@ export default function Esport() {
   const [toggling, setToggling] = useState(false)
 
   useEffect(() => {
-    api.get('/api/esport/status').then(r => setStatus({ enabled: r.data.enabled, loading: false })).catch(() => setStatus({ enabled: false, loading: false }))
+    api.get('/api/esport/status')
+      .then(r => {
+        const s = { enabled: r.data.enabled, loading: false }
+        setStatus(s)
+        console.log('[Esport] user:', user, '| isSuperAdmin:', isSuperAdmin, '| status:', s)
+      })
+      .catch(() => {
+        const s = { enabled: false, loading: false }
+        setStatus(s)
+        console.log('[Esport] user:', user, '| isSuperAdmin:', isSuperAdmin, '| status:', s)
+      })
   }, [])
 
   useEffect(() => {
