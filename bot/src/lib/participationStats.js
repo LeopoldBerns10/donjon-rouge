@@ -87,7 +87,7 @@ async function recordJdcParticipation(members, endStr) {
 // ── Lecture ───────────────────────────────────────────────────────────────────
 
 async function getParticipationRate(discordId, options = {}) {
-  const { eventType = 'all', windowSize = null } = options
+  const { eventType = 'all', windowSize = null, since = null } = options
 
   let query = supabase
     .from('member_participation')
@@ -96,6 +96,7 @@ async function getParticipationRate(discordId, options = {}) {
     .order('event_date', { ascending: false })
 
   if (eventType !== 'all') query = query.eq('event_type', eventType)
+  if (since)               query = query.gte('event_date', since)
   if (windowSize)          query = query.limit(windowSize)
 
   const { data, error } = await query

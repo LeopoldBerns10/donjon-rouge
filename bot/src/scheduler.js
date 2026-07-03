@@ -4,6 +4,7 @@ const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
 const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
 const { recordGdcParticipation } = require('./lib/participationStats.js')
+const { sendWeeklyStats } = require('./lib/weeklyStats.js')
 const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
 const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
@@ -515,6 +516,7 @@ async function checkAndUpdate(client) {
   }
   if (parisHour === 10) {
     await checkBirthdays(client).catch(e => console.error('[Scheduler] Birthdays:', e))
+    await sendWeeklyStats(client).catch(e => console.error('[Scheduler] WeeklyStats:', e))
   }
   if (parisHour === 12) {
     await checkLeagueRefresh(client).catch(e => console.error('[Scheduler] LeagueRefresh:', e))
