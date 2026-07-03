@@ -47,6 +47,7 @@ router.get('/clan-info', verifyToken, async (req, res) => {
     ])
     const members = membersData?.items || membersData || []
     const warlog = warlogData?.items || []
+    console.log('[Esport] warlogData brut:', JSON.stringify(warlogData, null, 2))
     res.json({ clan, members, warlog })
   } catch (e) {
     res.status(502).json({ error: e.message })
