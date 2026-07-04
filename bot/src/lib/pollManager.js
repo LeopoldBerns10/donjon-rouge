@@ -25,14 +25,21 @@ function buildPollEmbed(poll, ended = false) {
 
     const lines = ranked.map((item, rank) => {
       const pct  = totalVotes > 0 ? Math.round(item.count / totalVotes * 100) : 0
-      const icon = rank === 0 ? '🏆' : '   '
-      return `${icon} ${item.opt} — ${item.count} vote${item.count !== 1 ? 's' : ''} (${pct}%)`
+      const icon = rank === 0 ? '🏆' : '⬜'
+      return `${icon} **${item.opt}** — ${item.count} vote${item.count !== 1 ? 's' : ''} (${pct}%)`
     })
+
+    const winner    = ranked[0]
+    const winnerPct = totalVotes > 0 ? Math.round(winner.count / totalVotes * 100) : 0
 
     return new EmbedBuilder()
       .setColor(0x2E7D32)
       .setTitle(`📊 SONDAGE TERMINÉ — ${poll.question}`)
       .setDescription(`${lines.join('\n')}\n\n👥 ${totalVotes} participant(s) • ✅ Terminé`)
+      .addFields({
+        name:  '🏆 Résultat',
+        value: `**${winner.opt}** remporte le sondage avec **${winner.count} vote${winner.count !== 1 ? 's' : ''}** (${winnerPct}%) !`,
+      })
       .setTimestamp()
   }
 
@@ -271,10 +278,6 @@ async function endPoll(poll, client) {
         components: [],
       })
     }
-
-    await channel.send(
-      `🏁 Le sondage est terminé !\n\n🏆 Résultat : **${winnerName}** remporte le sondage avec ${maxCount} vote${maxCount !== 1 ? 's' : ''} (${winnerPct}%) !`
-    )
   } catch (e) {
     console.error('[Poll] Erreur endPoll:', e)
   }
