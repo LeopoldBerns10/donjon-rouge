@@ -1,4 +1,4 @@
-const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle } = require('discord.js')
+const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js')
 const supabase = require('../supabase.js')
 const { log } = require('./botLogger.js')
 
@@ -127,19 +127,57 @@ async function handlePollEnd(interaction) {
   }
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
-  const { data: poll } = await supabase
+  const { data: polls } = await supabase
     .from('polls')
     .select('*')
     .eq('channel_id', POLL_CHANNEL_ID)
     .eq('ended', false)
     .order('created_at', { ascending: false })
-    .limit(1)
+
+  if (!polls || polls.length === 0) return interaction.editReply('❌ Aucun sondage en cours.')
+
+  if (polls.length === 1) {
+    await endPoll(polls[0], interaction.client)
+    return interaction.editReply('✅ Sondage terminé.')
+  }
+
+  const menu = new StringSelectMenuBuilder()
+    .setCustomId('poll_end_select')
+    .setPlaceholder('Sélectionne le sondage à terminer')
+    .addOptions(polls.slice(0, 25).map(p => {
+      const d = new Date(p.created_at)
+      const date = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} à ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+      return new StringSelectMenuOptionBuilder()
+        .setLabel(p.question.slice(0, 100))
+        .setDescription(`Créé le ${date} • ${Object.keys(p.votes || {}).length} vote(s)`)
+        .setValue(String(p.id))
+    }))
+
+  await interaction.editReply({
+    content: `📊 **${polls.length} sondages en cours** — Lequel veux-tu terminer ?`,
+    components: [new ActionRowBuilder().addComponents(menu)],
+  })
+}
+
+async function handlePollEndSelect(interaction) {
+  if (!interaction.member.roles.cache.has(CHEF_ROLE_ID)) {
+    return interaction.reply({ content: '❌ Accès réservé aux Chefs.', ephemeral: true })
+  }
+  await interaction.deferUpdate()
+
+  const pollId = interaction.values[0]
+  const { data: poll } = await supabase
+    .from('polls')
+    .select('*')
+    .eq('id', pollId)
     .maybeSingle()
 
-  if (!poll) return interaction.editReply('❌ Aucun sondage en cours.')
+  if (!poll || poll.ended) {
+    return interaction.editReply({ content: '❌ Ce sondage est déjà terminé ou introuvable.', components: [] })
+  }
 
   await endPoll(poll, interaction.client)
-  await interaction.editReply('✅ Sondage terminé.')
+  await interaction.editReply({ content: `✅ Sondage **"${poll.question}"** terminé.`, components: [] })
 }
 
 async function handlePollVote(interaction, pollId, optionIndex) {
@@ -303,6 +341,7 @@ async function checkExpiredPolls(client) {
 module.exports = {
   handlePollCreate,
   handlePollEnd,
+  handlePollEndSelect,
   handlePollVote,
   handleModalPollCreate,
   checkExpiredPolls,

@@ -66,7 +66,7 @@ const {
   handleModalBirthdayRegister,
 } = require('../lib/birthdayManager.js')
 const {
-  handlePollCreate, handlePollEnd, handlePollVote,
+  handlePollCreate, handlePollEnd, handlePollEndSelect, handlePollVote,
   handleModalPollCreate,
 } = require('../lib/pollManager.js')
 const { updateEventsMessage } = require('../setup/sendEventsPanel.js')
@@ -767,7 +767,6 @@ module.exports = {
             'msg_rappel_raid_confirm':   `Rappel raid envoyé par ${interaction.user.username}`,
             'msg_jdc_reminder_confirm':  `Rappel JDC envoyé par ${interaction.user.username}`,
             'msg_custom_confirm':        `Message custom envoyé par ${interaction.user.username}`,
-            'poll_end':                  `Sondage terminé manuellement par ${interaction.user.username}`,
           }[interaction.customId]
           if (buttonLog) log(interaction.client, 'BOUTON', buttonLog).catch(() => {})
         } else if (prefix === 'stats_profil'  && argTag) {
@@ -788,6 +787,8 @@ module.exports = {
           await handlePanelAdminRemove(interaction)
         } else if (interaction.customId === 'panel_delier_select') {
           await handlePanelDelierSelect(interaction)
+        } else if (interaction.customId === 'poll_end_select') {
+          await handlePollEndSelect(interaction)
         } else if (interaction.customId === 'voice_kick_select') {
           await handleVoiceKickSelect(interaction)
         } else if (interaction.customId === 'voice_mute_select') {
