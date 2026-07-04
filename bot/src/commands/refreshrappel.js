@@ -54,6 +54,7 @@ module.exports = {
 
       try {
         await updateRappelEmbeds(client)
+        console.log('[refreshrappel] updateRappelEmbeds exécuté avec succès')
       } catch (e) {
         console.error('[refreshrappel] Erreur updateRappelEmbeds :', e)
       }
