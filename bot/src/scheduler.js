@@ -36,7 +36,7 @@ async function takeMonthlySnapshot() {
   console.log(`[Snapshot] Snapshot mensuel — ${snapshotDate}`)
 }
 const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
-const { updateRappelEmbeds, sendRappelPings } = require('./lib/rappelManager.js')
+const { updateRappelEmbeds } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
 const { checkExpiredPolls } = require('./lib/pollManager.js')
 const { ensureRaidEvent, ensureJdcEvent, ensureNextMonthEvents, checkEventAnnouncements, fetchSupercellEvents } = require('./lib/discordEvents.js')
@@ -520,10 +520,10 @@ async function checkAndUpdate(client) {
     log(client, 'SCHEDULER', `Embeds rappel mis à jour (DR1 ${dr1State}, DR2 ${dr2State}, Raid ${raidState})`).catch(() => {})
   }
 
-  // Rappels v2 — pings à 10h et 20h (heure Paris = UTC+2)
+  // Rappels v2 — refresh embeds à 10h et 20h (heure Paris = UTC+2)
   console.log('[Scheduler] Heure Paris:', parisHour)
   if (parisHour === 10 || parisHour === 20) {
-    await sendRappelPings(client).catch(e => console.error('[Scheduler] RappelPings:', e))
+    await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds 10h/20h:', e))
   }
   if (parisHour === 10) {
     await checkBirthdays(client).catch(e => console.error('[Scheduler] Birthdays:', e))

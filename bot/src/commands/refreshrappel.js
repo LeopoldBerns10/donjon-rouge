@@ -1,7 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const { isAdmin } = require('../lib/isAdmin.js')
 const { updateReminderMessages, resetStatus } = require('../scheduler.js')
-const { updateRappelEmbeds, sendRappelPings } = require('../lib/rappelManager.js')
+const { updateRappelEmbeds } = require('../lib/rappelManager.js')
 const supabase = require('../supabase.js')
 
 const RAPPEL_CHANNEL_ID = '1510972919407317142'
@@ -36,7 +36,7 @@ async function deleteRappelMessages(client) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('refreshrappel')
-    .setDescription('Force un refresh complet des rappels (embeds liste + pings mentions)')
+    .setDescription('Force un refresh complet des rappels (embeds liste)')
     .setDefaultMemberPermissions(PermissionFlagsBits.Administrator),
 
   async execute(interaction) {
@@ -56,12 +56,6 @@ module.exports = {
         await updateRappelEmbeds(client)
       } catch (e) {
         console.error('[refreshrappel] Erreur updateRappelEmbeds :', e)
-      }
-
-      try {
-        await sendRappelPings(client)
-      } catch (e) {
-        console.error('[refreshrappel] Erreur sendRappelPings :', e)
       }
 
       await interaction.editReply('✅ Rappels réinitialisés')
