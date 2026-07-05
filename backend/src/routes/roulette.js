@@ -157,35 +157,47 @@ router.post('/delete', verifyToken, async (req, res) => {
   return res.json({ success: true })
 })
 
-// POST /api/roulette/bonus (CyberAlf only)
-router.post('/bonus', verifyToken, async (req, res) => {
+// GET /api/roulette/history (CyberAlf only)
+router.get('/history', verifyToken, async (req, res) => {
   if (req.user.coc_name !== 'CyberAlf' && req.user.site_role !== 'superadmin') {
     return res.status(403).json({ error: 'Réservé à CyberAlf' })
   }
 
-  const { data: event } = await supabase
-    .from('roulette_events')
-    .select('*')
-    .eq('is_active', true)
-    .single()
-
-  if (!event || event.winner_id) {
-    return res.status(400).json({ error: "Pas d'event actif" })
-  }
-
-  const today = new Date().toISOString().split('T')[0]
-  await supabase
+  const { data: clicks } = await supabase
     .from('roulette_clicks')
-    .delete()
-    .eq('event_id', event.id)
-    .eq('user_id', req.user.id)
-    .gte('clicked_at', today)
+    .select('id, event_id, user_id, click_number, clicked_at')
+    .order('clicked_at', { ascending: false })
+    .limit(200)
 
-  return res.json({
-    success: true,
-    segment: 'replay',
-    message: 'Tour bonus accordé !',
+  if (!clicks?.length) return res.json([])
+
+  const userIds = [...new Set(clicks.map(c => c.user_id))]
+  const eventIds = [...new Set(clicks.map(c => c.event_id))]
+
+  const [{ data: users }, { data: events }] = await Promise.all([
+    supabase.from('users').select('id, coc_name').in('id', userIds),
+    supabase.from('roulette_events').select('id, target_clicks, title').in('id', eventIds),
+  ])
+
+  const userMap = {}
+  users?.forEach(u => { userMap[u.id] = u.coc_name })
+
+  const eventMap = {}
+  events?.forEach(e => { eventMap[e.id] = e })
+
+  const history = clicks.map(c => {
+    const ev = eventMap[c.event_id] || {}
+    return {
+      id: c.id,
+      coc_name: userMap[c.user_id] || 'Inconnu',
+      clicked_at: c.clicked_at,
+      click_number: c.click_number,
+      result: c.click_number === ev.target_clicks ? 'win' : 'lose',
+      event_title: ev.title || '',
+    }
   })
+
+  return res.json(history)
 })
 
 export default router

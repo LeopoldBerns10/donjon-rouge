@@ -112,10 +112,15 @@ export function Roulette() {
   const [wheelRotation, setWheelRotation] = useState(0)
   const [wheelAnimating, setWheelAnimating] = useState(false)
   const rotationRef = useRef(0)
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
 
   const isCyberAlf = user?.coc_name === 'CyberAlf' || user?.site_role === 'superadmin'
 
-  useEffect(() => { fetchEvent() }, [user])
+  useEffect(() => {
+    fetchEvent()
+    if (user?.coc_name === 'CyberAlf' || user?.site_role === 'superadmin') fetchHistory()
+  }, [user])
 
   const fetchEvent = async () => {
     try {
@@ -186,20 +191,6 @@ export function Roulette() {
     } catch {}
   }
 
-  const showToast = (message) => {
-    const toast = document.createElement('div')
-    toast.innerHTML = `
-      <div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
-                  background:#1a1a1a;border:1px solid #333;border-radius:12px;
-                  padding:12px 20px;color:white;font-size:0.875rem;font-weight:600;
-                  z-index:99999;white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,0.5)">
-        ${message}
-      </div>
-    `
-    document.body.appendChild(toast)
-    setTimeout(() => toast.remove(), 4000)
-  }
-
   const handleDelete = async () => {
     try {
       await api.post('/api/roulette/delete')
@@ -208,33 +199,16 @@ export function Roulette() {
     fetchEvent()
   }
 
-  const handleBonus = async () => {
-    setIsSpinning(true)
-
+  const fetchHistory = async () => {
+    setHistoryLoading(true)
     try {
-      const res = await api.post('/api/roulette/bonus')
-      if (!res.data.success) {
-        setIsSpinning(false)
-        return
-      }
+      const res = await api.get('/api/roulette/history')
+      setHistory(res.data)
     } catch {
-      setIsSpinning(false)
-      return
+      setHistory([])
+    } finally {
+      setHistoryLoading(false)
     }
-
-    const targetSegment = 0
-    const targetRotation = rotationRef.current + 1800 + (360 - targetSegment * SEG_ANGLE - SEG_ANGLE / 2)
-
-    setWheelAnimating(true)
-    setWheelRotation(targetRotation)
-    rotationRef.current = targetRotation
-
-    await new Promise(resolve => setTimeout(resolve, 6400))
-    setWheelAnimating(false)
-    setIsSpinning(false)
-    setHasClickedToday(false)
-    showToast('🔄 Tour bonus activé ! Tu peux retourner la roue.')
-    fetchEvent()
   }
 
   const triggerWinAnimation = () => {
@@ -343,26 +317,6 @@ export function Roulette() {
               </div>
             )}
 
-            {/* Bouton Tour Bonus x2 — CyberAlf */}
-            {isCyberAlf && event?.active && !event.isWon && (
-              <button
-                onClick={handleBonus}
-                disabled={isSpinning}
-                className="relative px-6 py-3 rounded-2xl text-sm font-black
-                           uppercase tracking-wide text-white
-                           bg-gradient-to-r from-[#f59e0b] to-[#d97706]
-                           hover:from-[#fbbf24] hover:to-[#f59e0b]
-                           shadow-lg shadow-[#f59e0b]/30
-                           disabled:opacity-50 transition-all duration-300
-                           hover:scale-105 border border-[#fbbf24]/30
-                           overflow-hidden group">
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent
-                                 via-white/10 to-transparent -translate-x-full
-                                 group-hover:translate-x-full transition-transform duration-700" />
-                <span className="relative">🔄 Tour Bonus x2</span>
-              </button>
-            )}
-
             {/* Bouton Supprimer la roulette — CyberAlf */}
             {isCyberAlf && event?.active && (
               <button
@@ -439,6 +393,67 @@ export function Roulette() {
                          hover:border-[#f59e0b] hover:text-[#f59e0b] transition-all">
               🔄 Relancer un event
             </button>
+          )}
+        </div>
+      )}
+
+      {/* Historique des tours — CyberAlf seulement */}
+      {isCyberAlf && (
+        <div className="mt-8">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600">
+              Historique des tours
+            </h3>
+            <button
+              onClick={fetchHistory}
+              disabled={historyLoading}
+              className="text-xs px-3 py-1.5 rounded-lg border border-[#2a2a2a]
+                         text-gray-600 hover:border-[#444] hover:text-gray-400
+                         transition-all disabled:opacity-40">
+              {historyLoading ? 'Chargement...' : '↻ Actualiser'}
+            </button>
+          </div>
+
+          {history.length === 0 ? (
+            <p className="text-xs text-gray-700 text-center py-6">
+              {historyLoading ? 'Chargement…' : 'Aucun tour enregistré'}
+            </p>
+          ) : (
+            <div className="rounded-xl border border-[#1f1f1f] overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-[#0d0d0d] border-b border-[#1f1f1f]">
+                    <th className="px-3 py-2 text-left text-gray-600 font-semibold uppercase tracking-wide">Pseudo</th>
+                    <th className="px-3 py-2 text-left text-gray-600 font-semibold uppercase tracking-wide">Date & Heure</th>
+                    <th className="px-3 py-2 text-center text-gray-600 font-semibold uppercase tracking-wide">Résultat</th>
+                    <th className="px-3 py-2 text-right text-gray-600 font-semibold uppercase tracking-wide">Clic n°</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((entry) => (
+                    <tr key={entry.id} className="border-b border-[#141414] hover:bg-[#0a0a0a]">
+                      <td className="px-3 py-2 text-white font-medium">{entry.coc_name}</td>
+                      <td className="px-3 py-2 text-gray-500">
+                        {new Date(entry.clicked_at).toLocaleDateString('fr-FR', {
+                          day: '2-digit', month: '2-digit', year: 'numeric',
+                        })}
+                        {' '}
+                        {new Date(entry.clicked_at).toLocaleTimeString('fr-FR', {
+                          hour: '2-digit', minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        {entry.result === 'win'
+                          ? <span className="text-[#f59e0b] font-bold">🏆 Gagnant</span>
+                          : <span className="text-gray-700">✕</span>
+                        }
+                      </td>
+                      <td className="px-3 py-2 text-right text-gray-600">{entry.click_number}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       )}
