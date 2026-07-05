@@ -25,18 +25,23 @@ router.get('/current', optionalAuth, async (req, res) => {
 
   if (!event) return res.json({ active: false })
 
-  let hasClickedToday = false
-  if (req.user) {
-    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const { data: click } = await supabase
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+  const [{ count: currentClicks }, clickedResult] = await Promise.all([
+    supabase
       .from('roulette_clicks')
-      .select('id')
-      .eq('event_id', event.id)
-      .eq('user_id', req.user.id)
-      .gte('clicked_at', since24h)
-      .single()
-    hasClickedToday = !!click
-  }
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', event.id),
+    req.user
+      ? supabase
+          .from('roulette_clicks')
+          .select('id')
+          .eq('event_id', event.id)
+          .eq('user_id', req.user.id)
+          .gte('clicked_at', since24h)
+          .single()
+      : Promise.resolve({ data: null }),
+  ])
 
   return res.json({
     active: true,
@@ -44,12 +49,12 @@ router.get('/current', optionalAuth, async (req, res) => {
       id: event.id,
       title: event.title,
       prize: event.prize,
-      currentClicks: event.current_clicks,
+      currentClicks: currentClicks ?? 0,
       targetClicks: event.target_clicks,
       isWon: !!event.winner_id,
       winnerName: event.winner_name,
     },
-    hasClickedToday,
+    hasClickedToday: !!clickedResult.data,
   })
 })
 
