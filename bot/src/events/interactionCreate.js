@@ -87,6 +87,12 @@ const {
 } = require('../lib/routeInfinie.js')
 const { handleModalCreateEvent } = require('../lib/discordEvents.js')
 const { log } = require('../lib/botLogger.js')
+const {
+  handleYoutubeAddFollow,
+  handleYoutubeRemoveFollow,
+  handleYoutubeRemoveSelect,
+  handleModalYoutubeAddFollow,
+} = require('../lib/youtubePanelHandlers.js')
 
 const CHEF_ROLE_ID = '611123759864348672'
 
@@ -746,6 +752,8 @@ const BUTTON_HANDLERS = {
   route_set_gift:            handleRouteSetGift,
   route_view:                handleRouteView,
   route_reset:               handleRouteReset,
+  youtube_add_follow:        handleYoutubeAddFollow,
+  youtube_remove_follow:     handleYoutubeRemoveFollow,
 }
 
 module.exports = {
@@ -803,6 +811,8 @@ module.exports = {
           await handlePanelMembresDRNav(interaction, 'dr2', 'next', parseInt(argTag))
         } else if (prefix === 'warrior_change_principal' && argTag) {
           await handleWarriorChangePrincipal(interaction, argTag)
+        } else if (interaction.customId === 'youtube_remove_select') {
+          await handleYoutubeRemoveSelect(interaction)
         } else if (prefix === 'dm_ack' && argTag) {
           await handleDmAck(interaction, argTag)
         } else if (prefix === 'dm_reply' && argTag) {
@@ -938,6 +948,11 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_createevent') {
       await handleModalCreateEvent(interaction)
+      return
+    }
+
+    if (interaction.isModalSubmit() && interaction.customId === 'modal_youtube_add_follow') {
+      await handleModalYoutubeAddFollow(interaction)
       return
     }
 

@@ -36,6 +36,7 @@ async function takeMonthlySnapshot() {
   console.log(`[Snapshot] Snapshot mensuel — ${snapshotDate}`)
 }
 const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
+const { startYoutubeScheduler } = require('./lib/youtubeTracker.js')
 const { updateRappelEmbeds } = require('./lib/rappelManager.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
 const { checkExpiredPolls } = require('./lib/pollManager.js')
@@ -607,6 +608,7 @@ function startScheduler(client) {
     .finally(run)
   setInterval(run, 30 * 60 * 1000)
   console.log('[Scheduler] Démarré — vérification toutes les 30 minutes')
+  startYoutubeScheduler(client)
 }
 
 async function forceRefresh(client) {
