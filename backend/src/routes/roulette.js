@@ -27,13 +27,13 @@ router.get('/current', optionalAuth, async (req, res) => {
 
   let hasClickedToday = false
   if (req.user) {
-    const today = new Date().toISOString().split('T')[0]
+    const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
     const { data: click } = await supabase
       .from('roulette_clicks')
       .select('id')
       .eq('event_id', event.id)
       .eq('user_id', req.user.id)
-      .gte('clicked_at', today)
+      .gte('clicked_at', since24h)
       .single()
     hasClickedToday = !!click
   }
@@ -65,17 +65,17 @@ router.post('/click', verifyToken, async (req, res) => {
     return res.status(400).json({ error: "Pas d'event actif" })
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
   const { data: existing } = await supabase
     .from('roulette_clicks')
-    .select('id')
+    .select('id, clicked_at')
     .eq('event_id', event.id)
     .eq('user_id', req.user.id)
-    .gte('clicked_at', today)
+    .gte('clicked_at', since24h)
     .single()
 
   if (existing) {
-    return res.status(429).json({ error: "Tu as déjà cliqué aujourd'hui !" })
+    return res.status(429).json({ error: 'Tu as déjà joué dans les dernières 24h !' })
   }
 
   const newClickCount = event.current_clicks + 1
