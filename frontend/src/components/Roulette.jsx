@@ -114,13 +114,11 @@ export function Roulette() {
   const rotationRef = useRef(0)
   const [history, setHistory] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
 
   const isCyberAlf = user?.coc_name === 'CyberAlf' || user?.site_role === 'superadmin'
 
-  useEffect(() => {
-    fetchEvent()
-    if (user?.coc_name === 'CyberAlf' || user?.site_role === 'superadmin') fetchHistory()
-  }, [user])
+  useEffect(() => { fetchEvent() }, [user])
 
   const fetchEvent = async () => {
     try {
@@ -317,6 +315,18 @@ export function Roulette() {
               </div>
             )}
 
+            {/* Bouton Historique — CyberAlf */}
+            {isCyberAlf && (
+              <button
+                onClick={() => { setShowHistoryModal(true); fetchHistory() }}
+                className="px-4 py-2 rounded-xl text-xs font-bold uppercase
+                           border border-[#2a2a2a] text-gray-500
+                           hover:border-[#444] hover:text-gray-300
+                           transition-all duration-200">
+                📋 Historique
+              </button>
+            )}
+
             {/* Bouton Supprimer la roulette — CyberAlf */}
             {isCyberAlf && event?.active && (
               <button
@@ -397,65 +407,66 @@ export function Roulette() {
         </div>
       )}
 
-      {/* Historique des tours — CyberAlf seulement */}
-      {isCyberAlf && (
-        <div className="mt-8">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600">
-              Historique des tours
-            </h3>
-            <button
-              onClick={fetchHistory}
-              disabled={historyLoading}
-              className="text-xs px-3 py-1.5 rounded-lg border border-[#2a2a2a]
-                         text-gray-600 hover:border-[#444] hover:text-gray-400
-                         transition-all disabled:opacity-40">
-              {historyLoading ? 'Chargement...' : '↻ Actualiser'}
-            </button>
-          </div>
-
-          {history.length === 0 ? (
-            <p className="text-xs text-gray-700 text-center py-6">
-              {historyLoading ? 'Chargement…' : 'Aucun tour enregistré'}
-            </p>
-          ) : (
-            <div className="rounded-xl border border-[#1f1f1f] overflow-hidden">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-[#0d0d0d] border-b border-[#1f1f1f]">
-                    <th className="px-3 py-2 text-left text-gray-600 font-semibold uppercase tracking-wide">Pseudo</th>
-                    <th className="px-3 py-2 text-left text-gray-600 font-semibold uppercase tracking-wide">Date & Heure</th>
-                    <th className="px-3 py-2 text-center text-gray-600 font-semibold uppercase tracking-wide">Résultat</th>
-                    <th className="px-3 py-2 text-right text-gray-600 font-semibold uppercase tracking-wide">Clic n°</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((entry) => (
-                    <tr key={entry.id} className="border-b border-[#141414] hover:bg-[#0a0a0a]">
-                      <td className="px-3 py-2 text-white font-medium">{entry.coc_name}</td>
-                      <td className="px-3 py-2 text-gray-500">
-                        {new Date(entry.clicked_at).toLocaleDateString('fr-FR', {
-                          day: '2-digit', month: '2-digit', year: 'numeric',
-                        })}
-                        {' '}
-                        {new Date(entry.clicked_at).toLocaleTimeString('fr-FR', {
-                          hour: '2-digit', minute: '2-digit',
-                        })}
-                      </td>
-                      <td className="px-3 py-2 text-center">
-                        {entry.result === 'win'
-                          ? <span className="text-[#f59e0b] font-bold">🏆 Gagnant</span>
-                          : <span className="text-gray-700">✕</span>
-                        }
-                      </td>
-                      <td className="px-3 py-2 text-right text-gray-600">{entry.click_number}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Modal historique — CyberAlf seulement */}
+      {showHistoryModal && isCyberAlf && createPortal(
+        <div className="fixed inset-0 bg-black/85 z-[99999] flex items-end sm:items-center justify-center p-4"
+             onClick={() => setShowHistoryModal(false)}>
+          <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl w-full max-w-lg
+                          shadow-2xl max-h-[80vh] flex flex-col"
+               onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-[#1f1f1f] shrink-0">
+              <h3 className="text-sm font-bold text-white uppercase tracking-wide">
+                📋 Historique des tours
+              </h3>
+              <button onClick={() => setShowHistoryModal(false)}
+                      className="text-gray-600 hover:text-gray-300 text-lg leading-none">
+                ✕
+              </button>
             </div>
-          )}
-        </div>
+            <div className="overflow-y-auto">
+              {historyLoading ? (
+                <p className="text-xs text-gray-600 text-center py-10">Chargement…</p>
+              ) : history.length === 0 ? (
+                <p className="text-xs text-gray-600 text-center py-10">Aucun tour enregistré pour cet événement</p>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-[#111111]">
+                    <tr className="border-b border-[#1f1f1f]">
+                      <th className="px-3 py-2.5 text-left text-gray-600 font-semibold uppercase tracking-wide">Pseudo</th>
+                      <th className="px-3 py-2.5 text-left text-gray-600 font-semibold uppercase tracking-wide">Date & Heure</th>
+                      <th className="px-3 py-2.5 text-center text-gray-600 font-semibold uppercase tracking-wide">Résultat</th>
+                      <th className="px-3 py-2.5 text-right text-gray-600 font-semibold uppercase tracking-wide">Clic n°</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((entry) => (
+                      <tr key={entry.id} className="border-b border-[#141414] hover:bg-[#0a0a0a]">
+                        <td className="px-3 py-2.5 text-white font-medium">{entry.coc_name}</td>
+                        <td className="px-3 py-2.5 text-gray-500">
+                          {new Date(entry.clicked_at).toLocaleDateString('fr-FR', {
+                            day: '2-digit', month: '2-digit', year: 'numeric',
+                          })}
+                          {' '}
+                          {new Date(entry.clicked_at).toLocaleTimeString('fr-FR', {
+                            hour: '2-digit', minute: '2-digit',
+                          })}
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          {entry.result === 'win'
+                            ? <span className="text-[#f59e0b] font-bold">🏆</span>
+                            : <span className="text-gray-700">✕</span>
+                          }
+                        </td>
+                        <td className="px-3 py-2.5 text-right text-gray-600">{entry.click_number}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Modal confirmation suppression */}

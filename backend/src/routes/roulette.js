@@ -157,47 +157,44 @@ router.post('/delete', verifyToken, async (req, res) => {
   return res.json({ success: true })
 })
 
-// GET /api/roulette/history (CyberAlf only)
+// GET /api/roulette/history (CyberAlf only) — clics de l'event actif courant
 router.get('/history', verifyToken, async (req, res) => {
   if (req.user.coc_name !== 'CyberAlf' && req.user.site_role !== 'superadmin') {
     return res.status(403).json({ error: 'Réservé à CyberAlf' })
   }
 
+  const { data: event } = await supabase
+    .from('roulette_events')
+    .select('id, target_clicks')
+    .eq('is_active', true)
+    .single()
+
+  if (!event) return res.json([])
+
   const { data: clicks } = await supabase
     .from('roulette_clicks')
-    .select('id, event_id, user_id, click_number, clicked_at')
+    .select('id, user_id, click_number, clicked_at')
+    .eq('event_id', event.id)
     .order('clicked_at', { ascending: false })
-    .limit(200)
 
   if (!clicks?.length) return res.json([])
 
   const userIds = [...new Set(clicks.map(c => c.user_id))]
-  const eventIds = [...new Set(clicks.map(c => c.event_id))]
-
-  const [{ data: users }, { data: events }] = await Promise.all([
-    supabase.from('users').select('id, coc_name').in('id', userIds),
-    supabase.from('roulette_events').select('id, target_clicks, title').in('id', eventIds),
-  ])
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, coc_name')
+    .in('id', userIds)
 
   const userMap = {}
   users?.forEach(u => { userMap[u.id] = u.coc_name })
 
-  const eventMap = {}
-  events?.forEach(e => { eventMap[e.id] = e })
-
-  const history = clicks.map(c => {
-    const ev = eventMap[c.event_id] || {}
-    return {
-      id: c.id,
-      coc_name: userMap[c.user_id] || 'Inconnu',
-      clicked_at: c.clicked_at,
-      click_number: c.click_number,
-      result: c.click_number === ev.target_clicks ? 'win' : 'lose',
-      event_title: ev.title || '',
-    }
-  })
-
-  return res.json(history)
+  return res.json(clicks.map(c => ({
+    id: c.id,
+    coc_name: userMap[c.user_id] || 'Inconnu',
+    clicked_at: c.clicked_at,
+    click_number: c.click_number,
+    result: c.click_number === event.target_clicks ? 'win' : 'lose',
+  })))
 })
 
 export default router
