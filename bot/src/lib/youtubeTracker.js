@@ -1,9 +1,7 @@
 const { ChannelType } = require('discord.js')
 const supabase = require('../supabase.js')
 
-const CHEF_ID      = '611123759864348672'
-const CHEF_ADJOINT = '1297318759396278425'
-const ADJOINT      = '1421254471391907840'
+const CHEF_ID = '611123759864348672'
 
 // ─── Résolution du channel_id depuis un lien YouTube ─────────────────────────
 
@@ -162,8 +160,6 @@ async function ensureMemberChannel(member, guild, client) {
       { id: guild.roles.everyone, deny:  ['ViewChannel'] },
       { id: member.id,            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
       { id: CHEF_ID,              allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
-      { id: CHEF_ADJOINT,         allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
-      { id: ADJOINT,              allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
       { id: client.user.id,       allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory', 'ManageChannels'] },
     ],
   })
