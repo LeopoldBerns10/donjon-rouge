@@ -111,34 +111,52 @@ async function ensureChannel(channelId, channelUrl) {
 // ─── Salon Discord privé du membre ────────────────────────────────────────────
 
 async function ensureMemberChannel(member, guild, client) {
-  const { data: existing } = await supabase
-    .from('youtube_member_channels')
-    .select('discord_channel_id')
-    .eq('discord_id', member.id)
-    .maybeSingle()
-
-  if (existing) {
-    const ch = await client.channels.fetch(existing.discord_channel_id).catch(() => null)
-    if (ch) return ch
-    await supabase.from('youtube_member_channels').delete().eq('discord_id', member.id)
-  }
-
-  const CATEGORY_NAME = '📺 SUIVIS YOUTUBE'
-  let category = guild.channels.cache.find(
-    c => c.type === ChannelType.GuildCategory && c.name === CATEGORY_NAME
-  )
-  if (!category) {
-    category = await guild.channels.create({ name: CATEGORY_NAME, type: ChannelType.GuildCategory })
-  }
-
   const safeName = member.user.username
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '')
+  const expectedName = `📺-suivi-${safeName}`
+
+  // 1. Vérifier la table youtube_member_channels
+  const { data: existing, error: queryError } = await supabase
+    .from('youtube_member_channels')
+    .select('discord_channel_id')
+    .eq('discord_id', member.id)
+    .maybeSingle()
+
+  if (!queryError && existing?.discord_channel_id) {
+    const ch = await client.channels.fetch(existing.discord_channel_id).catch(() => null)
+    if (ch) return ch
+    // Salon supprimé manuellement — on nettoie la ligne
+    await supabase.from('youtube_member_channels').delete().eq('discord_id', member.id)
+  }
+
+  // 2. Fallback : chercher un salon existant par nom dans le guild (réconciliation)
+  const allChannels = await guild.channels.fetch().catch(() => null)
+  const channelList = allChannels ? [...allChannels.values()] : [...guild.channels.cache.values()]
+  const existingDiscordChannel = channelList.find(c => c?.name === expectedName)
+
+  if (existingDiscordChannel) {
+    const { error: upsertErr } = await supabase.from('youtube_member_channels').upsert({
+      discord_id:         member.id,
+      discord_channel_id: existingDiscordChannel.id,
+    })
+    if (upsertErr) console.error('[YouTube] upsert member_channel (réconciliation):', upsertErr.message)
+    return existingDiscordChannel
+  }
+
+  // 3. Rien trouvé — créer un nouveau salon
+  const CATEGORY_NAME = '📺 SUIVIS YOUTUBE'
+  let category = channelList.find(
+    c => c?.type === ChannelType.GuildCategory && c.name === CATEGORY_NAME
+  )
+  if (!category) {
+    category = await guild.channels.create({ name: CATEGORY_NAME, type: ChannelType.GuildCategory })
+  }
 
   const salon = await guild.channels.create({
-    name:   `📺-suivi-${safeName}`,
+    name:   expectedName,
     parent: category.id,
     permissionOverwrites: [
       { id: guild.roles.everyone, deny:  ['ViewChannel'] },
@@ -150,10 +168,11 @@ async function ensureMemberChannel(member, guild, client) {
     ],
   })
 
-  await supabase.from('youtube_member_channels').upsert({
+  const { error: upsertErr } = await supabase.from('youtube_member_channels').upsert({
     discord_id:         member.id,
     discord_channel_id: salon.id,
   })
+  if (upsertErr) console.error('[YouTube] upsert member_channel (création):', upsertErr.message)
 
   return salon
 }
@@ -217,7 +236,7 @@ async function checkYoutubeUpdates(client) {
             const discordCh = await client.channels.fetch(mc.discord_channel_id).catch(() => null)
             if (!discordCh) continue
 
-            await discordCh.send(`<@${follow.discord_id}> ${latest.link}`)
+            await discordCh.send(`🔴 **${ch.channel_name}** a posté une nouvelle vidéo !\n<@${follow.discord_id}> ${latest.link}`)
             await new Promise(r => setTimeout(r, 500))
           } catch (e) {
             console.error(`[YouTube] Member notify ${follow.discord_id}:`, e.message)
