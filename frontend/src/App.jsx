@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { AuthProvider, useAuth } from './hooks/useAuth.jsx'
 import { useToast } from './components/Toast.jsx'
 import ChangePasswordModal from './components/ChangePasswordModal.jsx'
-import { FloatingChat } from './components/FloatingChat.jsx'
 import api from './lib/api.js'
 import Navbar from './components/Navbar.jsx'
 import Footer from './components/Footer.jsx'
@@ -11,7 +10,6 @@ import PrivateRoute from './components/PrivateRoute.jsx'
 import Home from './pages/Home.jsx'
 import Tracker from './pages/Tracker.jsx'
 import PlayerProfile from './pages/PlayerProfile.jsx'
-import Forum from './pages/Forum.jsx'
 import Announcements from './pages/Announcements.jsx'
 import Vitrine from './pages/Vitrine.jsx'
 import Admin from './pages/Admin.jsx'
@@ -58,7 +56,7 @@ function AnnouncementToast() {
 
 // Composant interne qui accède au contexte auth pour les toasts et modals
 function AppContent() {
-  const { user, welcomeData, clearWelcomeData } = useAuth()
+  const { welcomeData, clearWelcomeData } = useAuth()
   const { addToast, ToastContainer } = useToast()
   const [showPwdModal, setShowPwdModal] = useState(false)
 
@@ -71,33 +69,6 @@ function AppContent() {
       addToast(`Bienvenue ${welcomeData.name} !`, 'success')
     }
     clearWelcomeData()
-
-    // Demander permission notifications navigateur à la première connexion
-    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        if (permission === 'granted') addToast('🔔 Notifications activées !', 'success')
-      }).catch(() => {})
-    }
-
-    // Toast messages non lus au login
-    const checkUnread = async () => {
-      try {
-        const res = await api.get('/api/chat/messages/général?limit=50')
-        const msgs = res.data
-        if (user?.last_seen_chat_at) {
-          const lastSeen = new Date(user.last_seen_chat_at)
-          const unread = msgs.filter(m =>
-            new Date(m.created_at) > lastSeen && m.author_id !== user?.id
-          )
-          if (unread.length > 0) {
-            setTimeout(() => {
-              addToast(`💬 ${unread.length} nouveau${unread.length > 1 ? 'x' : ''} message${unread.length > 1 ? 's' : ''} depuis ta dernière visite`, 'info')
-            }, 1500)
-          }
-        }
-      } catch {}
-    }
-    checkUnread()
   }, [welcomeData])
 
   return (
@@ -118,7 +89,6 @@ function AppContent() {
           <Route path="/changer-mot-de-passe" element={<PrivateRoute><ChangePassword /></PrivateRoute>} />
           <Route path="/tracker" element={<Tracker />} />
           <Route path="/tracker/:tag" element={<PlayerProfile />} />
-          <Route path="/forum" element={<Forum />} />
           <Route path="/annonces" element={<Announcements />} />
           <Route path="/vitrine" element={<Vitrine />} />
           <Route path="/guilde" element={<Guilde />} />
@@ -130,7 +100,6 @@ function AppContent() {
         </Routes>
       </main>
       <Footer />
-      <FloatingChat />
     </div>
   )
 }

@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { to: '/', label: 'Accueil', icon: '🏠' },
   { to: '/guilde', label: 'Guilde', icon: '⚔️' },
   { to: '/tracker', label: 'Tracker', icon: '📊' },
-  { to: '/forum', label: 'Forum', icon: '💬' },
+  { to: '/esport', label: 'E-Sport', icon: '🏆' },
   { to: '/vitrine', label: 'Vitrine', icon: '🏆' },
 ]
 
