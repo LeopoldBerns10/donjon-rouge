@@ -478,7 +478,11 @@ async function checkLeagueRefresh(client) {
   for (const link of links) {
     try {
       const member = await guild.members.fetch(link.discord_id).catch(() => null)
-      if (!member) { errors++; continue }
+      if (!member) {
+        errors++
+        log(client, 'ERREUR', `Refresh ligue — **${link.coc_name}** (\`${link.coc_tag}\`) : membre Discord introuvable (quitté le serveur ?)`, true).catch(() => {})
+        continue
+      }
 
       const player = await getPlayer(link.coc_tag)
       await assignLeagueRole(member, player.leagueTier?.name ?? null)
@@ -487,6 +491,7 @@ async function checkLeagueRefresh(client) {
     } catch (e) {
       console.error(`[Scheduler] League refresh ${link.coc_name} (${link.coc_tag}):`, e.message)
       errors++
+      log(client, 'ERREUR', `Refresh ligue — **${link.coc_name}** (\`${link.coc_tag}\`) : ${e.message}`, true).catch(() => {})
     }
     await new Promise(r => setTimeout(r, 500))
   }

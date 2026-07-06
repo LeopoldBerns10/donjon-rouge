@@ -22,6 +22,7 @@ const { updateJdcEmbeds } = require('./jdcTracker.js')
 const { updateRappelEmbeds, sendRappelPings } = require('./rappelManager.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
 const { assignHdvRole } = require('../utils/assignHdvRole.js')
+const { log } = require('./botLogger.js')
 const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('../config/warChannels.js')
 const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../warMessages.js')
 const { forceRefresh, updateReminderMessages, resetStatus } = require('../scheduler.js')
@@ -940,12 +941,20 @@ async function handleAdminRefreshLeague(interaction) {
     for (const link of links) {
       try {
         const member = await interaction.guild.members.fetch(link.discord_id).catch(() => null)
-        if (!member) { errors++; continue }
+        if (!member) {
+          errors++
+          log(interaction.client, 'ERREUR', `Refresh ligue — **${link.coc_name}** (\`${link.coc_tag}\`) : membre Discord introuvable (quitté le serveur ?)`, true).catch(() => {})
+          continue
+        }
         const player = await getPlayer(link.coc_tag)
         await assignLeagueRole(member, player.leagueTier?.name ?? null)
         await assignHdvRole(member, player.townHallLevel)
         updated++
-      } catch (err) { console.error(`[adminRefreshLeague] ${link.coc_name}:`, err.message); errors++ }
+      } catch (err) {
+        console.error(`[adminRefreshLeague] ${link.coc_name}:`, err.message)
+        errors++
+        log(interaction.client, 'ERREUR', `Refresh ligue — **${link.coc_name}** (\`${link.coc_tag}\`) : ${err.message}`, true).catch(() => {})
+      }
       await sleep(500)
     }
     await interaction.editReply(`✅ ${updated} mis à jour, ${errors} erreur(s).`)
