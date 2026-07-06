@@ -164,6 +164,17 @@ router.post('/upload/image', requireAuth, requireAdmin, uploadImage.single('file
   if (error) return res.status(500).json({ error: error.message })
 
   const { data: { publicUrl } } = supabaseAdmin.storage.from('coc-assets').getPublicUrl(fileName)
+
+  await supabase.from('vitrine_blocks').upsert({
+    section: 'identite',
+    key,
+    type: 'image',
+    value: publicUrl,
+    order_index: key === 'logo' ? 1 : 2,
+    updated_at: new Date().toISOString(),
+    updated_by: req.user.coc_name || req.user.id,
+  }, { onConflict: 'section,key' })
+
   res.json({ url: publicUrl })
 })
 

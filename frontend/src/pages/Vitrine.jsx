@@ -164,6 +164,8 @@ function EditableImage({ src, storageKey, canEdit, label, onReplace }) {
   const [currentSrc, setCurrentSrc] = useState(src)
   const [uploading, setUploading] = useState(false)
 
+  useEffect(() => { setCurrentSrc(src) }, [src])
+
   const handleUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
@@ -424,6 +426,10 @@ export default function Vitrine() {
   const hymneTitle = (blocks.hymne || []).find(b => b.key === 'titre')
   const hymneAudio = (blocks.hymne || []).find(b => b.key === 'url')
 
+  // ─── Identité visuelle ──────────────────────────────────────────────────────
+  const logoBlock       = (blocks.identite || []).find(b => b.key === 'logo')
+  const recrutImageBlock = (blocks.identite || []).find(b => b.key === 'recrutement')
+
   // ─── Recrutement ────────────────────────────────────────────────────────────
   const recrutBlocks = blocks.recrutement || []
   const sloganBlock   = recrutBlocks.find(b => b.key === 'slogan')
@@ -677,8 +683,13 @@ export default function Vitrine() {
 
             <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl p-4">
               <p className="text-xs uppercase tracking-widest text-gray-600 mb-3">Logo Officiel</p>
-              <EditableImage src="/images/logo_2.png" storageKey="logo"
-                             canEdit={canEdit} label="Logo Officiel" />
+              <EditableImage
+                src={logoBlock?.value || '/images/logo_2.png'}
+                storageKey="logo"
+                canEdit={canEdit}
+                label="Logo Officiel"
+                onReplace={(url) => logoBlock && updateBlock(logoBlock.id, url)}
+              />
               <a href="/images/logo_2.png" download="logo_donjon_rouge.png"
                  className="mt-2 block text-center px-4 py-2 rounded-xl border border-[#1f1f1f]
                             text-gray-500 text-xs hover:border-[#dc2626]/30 hover:text-gray-300 transition-all">
@@ -688,8 +699,13 @@ export default function Vitrine() {
 
             <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl p-4">
               <p className="text-xs uppercase tracking-widest text-gray-600 mb-3">Affiche Recrutement</p>
-              <EditableImage src="/images/recru.png" storageKey="recrutement"
-                             canEdit={canEdit} label="Affiche Recrutement" />
+              <EditableImage
+                src={recrutImageBlock?.value || '/images/recru.png'}
+                storageKey="recrutement"
+                canEdit={canEdit}
+                label="Affiche Recrutement"
+                onReplace={(url) => recrutImageBlock && updateBlock(recrutImageBlock.id, url)}
+              />
               <a href="/images/recru.png" download="recrutement-donjon-rouge.png"
                  className="mt-2 block text-center px-4 py-2 rounded-xl border border-[#1f1f1f]
                             text-gray-500 text-xs hover:border-[#dc2626]/30 hover:text-gray-300 transition-all">
