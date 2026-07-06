@@ -37,6 +37,9 @@ const LEAGUE_MAP = {
   'Electro League 32':        'Electro Dragon 32',
   'Electro League 33':        'Electro Dragon 33',
   'Legend League':            'Légende',
+  'Legend I':                 'Légende',
+  'Legend II':                'Légende',
+  'Legend III':               'Légende',
 }
 
 function loadLeagueRoles() {
