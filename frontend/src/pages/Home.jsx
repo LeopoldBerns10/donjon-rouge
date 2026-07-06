@@ -116,9 +116,9 @@ export default function Home() {
               className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white border border-[#dc2626] transition-all duration-200 hover:scale-[1.02]">
               ⚔️ Tracker Stats
             </Link>
-            <Link to="/forum"
+            <Link to="/esport"
               className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#333] text-gray-300 hover:border-[#dc2626]/50 hover:text-white transition-all duration-200 hover:scale-[1.02]">
-              💬 Forum
+              🏆 E-Sport
             </Link>
             <Link to="/guilde" state={{ openTab: 'inscriptions' }}
               className="px-6 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-transparent border border-[#8b6914] text-[#f59e0b] hover:bg-[#f59e0b]/10 transition-all duration-200 hover:scale-[1.02]">
