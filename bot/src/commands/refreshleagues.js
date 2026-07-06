@@ -6,6 +6,8 @@ const { assignHdvRole } = require('../utils/assignHdvRole.js')
 const { log } = require('../lib/botLogger.js')
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
+const DONJON_ROUGE_ROLE_ID = '611125112519000064'
+const LIE_ROLE_ID          = '1511096527664320655'
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -43,6 +45,11 @@ module.exports = {
         if (!member) {
           errors++
           log(interaction.client, 'ERREUR', `Refresh ligue — **${link.coc_name}** (\`${link.coc_tag}\`) : membre Discord introuvable (quitté le serveur ?)`, true).catch(() => {})
+          continue
+        }
+
+        if (!member.roles.cache.has(DONJON_ROUGE_ROLE_ID) || !member.roles.cache.has(LIE_ROLE_ID)) {
+          await assignLeagueRole(member, null).catch(() => {})
           continue
         }
 

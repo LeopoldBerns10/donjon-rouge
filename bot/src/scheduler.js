@@ -7,6 +7,9 @@ const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postE
 const { recordGdcParticipation } = require('./lib/participationStats.js')
 const { sendWeeklyStats } = require('./lib/weeklyStats.js')
 
+const DONJON_ROUGE_ROLE_ID = '611125112519000064'
+const LIE_ROLE_ID          = '1511096527664320655'
+
 // ─── Snapshot mensuel ─────────────────────────────────────────────────────────
 
 async function takeMonthlySnapshot() {
@@ -481,6 +484,11 @@ async function checkLeagueRefresh(client) {
       if (!member) {
         errors++
         log(client, 'ERREUR', `Refresh ligue — **${link.coc_name}** (\`${link.coc_tag}\`) : membre Discord introuvable (quitté le serveur ?)`, true).catch(() => {})
+        continue
+      }
+
+      if (!member.roles.cache.has(DONJON_ROUGE_ROLE_ID) || !member.roles.cache.has(LIE_ROLE_ID)) {
+        await assignLeagueRole(member, null).catch(() => {})
         continue
       }
 
