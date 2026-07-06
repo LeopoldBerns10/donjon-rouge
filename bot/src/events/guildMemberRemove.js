@@ -70,6 +70,10 @@ module.exports = {
     }
 
     try {
+      await supabase.from('discord_links').delete().eq('discord_id', member.id)
+    } catch {}
+
+    try {
       await supabase.from('discord_member_events').insert({
         event_type: 'leave',
         discord_id: member.id,
