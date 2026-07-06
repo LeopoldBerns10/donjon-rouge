@@ -509,6 +509,72 @@ async function checkLeagueRefresh(client) {
   log(client, 'SCHEDULER', `Refresh ligue lundi — ${updated} mis à jour, ${errors} erreur(s)`).catch(() => {})
 }
 
+// ─── Purge automatique du salon Logs bot (toutes les 24h à 3h Paris) ─────────
+
+const LOGS_BOT_CHANNEL_ID = '1522722935918559364'
+const PURGE_NORMAL_MS     = 24 * 60 * 60 * 1000   // 24h — logs normaux
+const PURGE_ERROR_MS      = 48 * 60 * 60 * 1000   // 48h — logs d'erreur (🔴)
+const FOURTEEN_DAYS_MS    = 14 * 24 * 60 * 60 * 1000
+
+async function checkLogsPurge(client) {
+  const channel = await client.channels.fetch(LOGS_BOT_CHANNEL_ID).catch(() => null)
+  if (!channel) return
+
+  const now = Date.now()
+
+  // Récupère les messages par lots jusqu'à remonter au-delà du seuil le plus large (48h)
+  const all = []
+  let lastId = null
+  while (true) {
+    const options = { limit: 100 }
+    if (lastId) options.before = lastId
+    const batch = await channel.messages.fetch(options).catch(() => null)
+    if (!batch?.size) break
+    all.push(...batch.values())
+    const oldest = batch.last()
+    if (now - oldest.createdTimestamp > PURGE_ERROR_MS) break  // inutile d'aller plus loin
+    lastId = oldest.id
+    if (batch.size < 100) break
+  }
+
+  const toDeleteBulk = []
+  const toDeleteOne  = []
+
+  for (const msg of all) {
+    const isError   = msg.content.startsWith('🔴')
+    const threshold = isError ? PURGE_ERROR_MS : PURGE_NORMAL_MS
+    if (now - msg.createdTimestamp < threshold) continue
+
+    if (now - msg.createdTimestamp < FOURTEEN_DAYS_MS) {
+      toDeleteBulk.push(msg.id)
+    } else {
+      toDeleteOne.push(msg)
+    }
+  }
+
+  let deleted = 0
+
+  for (let i = 0; i < toDeleteBulk.length; i += 100) {
+    const batch = toDeleteBulk.slice(i, i + 100)
+    if (batch.length >= 2) {
+      await channel.bulkDelete(batch).catch(() => {})
+    } else {
+      await channel.messages.delete(batch[0]).catch(() => {})
+    }
+    deleted += batch.length
+  }
+
+  for (const msg of toDeleteOne) {
+    await msg.delete().catch(() => {})
+    deleted++
+    await new Promise(r => setTimeout(r, 500))
+  }
+
+  if (deleted > 0) {
+    console.log(`[Scheduler] LogsPurge — ${deleted} message(s) supprimé(s) du salon Logs bot`)
+  }
+}
+
 // ─── Boucle principale ────────────────────────────────────────────────────────
 
 async function checkAndUpdate(client) {
@@ -538,6 +604,9 @@ async function checkAndUpdate(client) {
   console.log('[Scheduler] Heure Paris:', parisHour)
   if (parisHour === 10 || parisHour === 20) {
     await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds 10h/20h:', e))
+  }
+  if (parisHour === 3) {
+    await checkLogsPurge(client).catch(e => console.error('[Scheduler] LogsPurge:', e))
   }
   if (parisHour === 10) {
     await checkBirthdays(client).catch(e => console.error('[Scheduler] Birthdays:', e))
