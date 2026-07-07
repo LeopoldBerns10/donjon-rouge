@@ -116,17 +116,21 @@ function StatusBadge({ status }) {
 
 // ─── WarningModal ─────────────────────────────────────────────────────────────
 
-function WarningModal({ type, onConfirm, onCancel }) {
+function WarningModal({ type, onConfirm, onCancel, isSubstitute = false }) {
   const isLdc = type === 'ldc'
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
          style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={onCancel}>
       <div className="bg-[#111111] border border-[#dc2626]/50 rounded-2xl shadow-2xl shadow-[#dc2626]/20 w-full max-w-md" onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-8 pb-2">
-          <div className="w-16 h-16 rounded-full bg-[#dc2626]/10 border-2 border-[#dc2626]/40 flex items-center justify-center text-3xl">⚔️</div>
+          <div className="w-16 h-16 rounded-full bg-[#dc2626]/10 border-2 border-[#dc2626]/40 flex items-center justify-center text-3xl">
+            {isSubstitute ? '🔄' : '⚔️'}
+          </div>
         </div>
         <div className="px-6 pb-2 text-center">
-          <h3 className="text-lg font-bold text-white uppercase tracking-wide">Inscription Officielle</h3>
+          <h3 className="text-lg font-bold text-white uppercase tracking-wide">
+            {isSubstitute ? 'Inscription Remplaçant' : 'Inscription Officielle'}
+          </h3>
           <p className="text-xs text-[#dc2626] uppercase tracking-widest mt-1">
             {isLdc ? 'Ligue de Guerre de Clans' : 'GDC Sélection Guerriers'}
           </p>
@@ -134,14 +138,26 @@ function WarningModal({ type, onConfirm, onCancel }) {
         <div className="px-6 py-4">
           <div className="bg-[#dc2626]/5 border border-[#dc2626]/20 rounded-xl p-4">
             <p className="text-sm text-gray-300 leading-relaxed text-center">
-              ⚠️ <strong className="text-white">Cette inscription est officielle et définitive.</strong>
+              ⚠️ <strong className="text-white">
+                {isSubstitute ? 'Tu te places en liste de remplaçants.' : 'Cette inscription est officielle et définitive.'}
+              </strong>
             </p>
             <ul className="mt-3 space-y-1.5 text-xs text-gray-400">
-              <li>• Une fois inscrit, <strong className="text-white">tu ne pourras pas te désinscrire</strong></li>
-              <li>• Ta participation sera <strong className="text-white">visible publiquement</strong></li>
-              <li>• Les règles du clan s'appliquent entièrement</li>
-              {isLdc && <li>• <strong className="text-[#f59e0b]">Les 2 attaques sont OBLIGATOIRES en LDC</strong></li>}
-              {!isLdc && <li>• <strong className="text-[#ef4444]">Les 5 meilleurs seront sélectionnés pour la LDC</strong></li>}
+              {isSubstitute ? (
+                <>
+                  <li>• Tu seras appelé si une place se libère parmi les titulaires</li>
+                  <li>• Une fois inscrit, <strong className="text-white">tu ne pourras pas te désinscrire</strong></li>
+                  <li>• Ta participation sera <strong className="text-white">visible publiquement</strong></li>
+                </>
+              ) : (
+                <>
+                  <li>• Une fois inscrit, <strong className="text-white">tu ne pourras pas te désinscrire</strong></li>
+                  <li>• Ta participation sera <strong className="text-white">visible publiquement</strong></li>
+                  <li>• Les règles du clan s'appliquent entièrement</li>
+                  {isLdc && <li>• <strong className="text-[#f59e0b]">Les 2 attaques sont OBLIGATOIRES en LDC</strong></li>}
+                  {!isLdc && <li>• <strong className="text-[#ef4444]">Les 5 meilleurs seront sélectionnés pour la LDC</strong></li>}
+                </>
+              )}
             </ul>
           </div>
         </div>
@@ -157,33 +173,55 @@ function WarningModal({ type, onConfirm, onCancel }) {
 
 // ─── SignupButton ─────────────────────────────────────────────────────────────
 
-function SignupButton({ event, isSignedUp, onSignup }) {
+function SignupButton({ event, signupRole, onSignup }) {
   const { user } = useAuth()
   const [showWarning, setShowWarning] = useState(false)
+  const [showSubWarning, setShowSubWarning] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [loadingSub, setLoadingSub] = useState(false)
   const needsWarning = event.type === 'gdc_selection' || event.type === 'ldc'
 
   if (!user) return null
-  if (isSignedUp) return (
+
+  if (signupRole === 'titulaire') return (
     <span className="px-4 py-2 rounded-xl text-sm font-semibold bg-green-500/10 border border-green-500/30 text-green-400">✓ Inscrit</span>
+  )
+  if (signupRole === 'remplacant') return (
+    <span className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-500/10 border border-blue-500/30 text-blue-400">🔄 Remplaçant</span>
   )
   if (event.status !== 'open') return null
 
-  const handleClick = () => needsWarning ? setShowWarning(true) : confirmSignup()
   const confirmSignup = async () => {
     setLoading(true)
-    await onSignup(event.id)
+    await onSignup(event.id, 'titulaire')
     setShowWarning(false)
     setLoading(false)
+  }
+  const confirmSubstitute = async () => {
+    setLoadingSub(true)
+    await onSignup(event.id, 'remplacant')
+    setShowSubWarning(false)
+    setLoadingSub(false)
   }
 
   return (
     <>
-      <button onClick={handleClick} disabled={loading}
-        className="px-5 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-[#dc2626]/20">
-        {loading ? 'Inscription...' : "S'inscrire"}
-      </button>
-      {showWarning && <WarningModal type={event.type} onConfirm={confirmSignup} onCancel={() => setShowWarning(false)} />}
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => needsWarning ? setShowWarning(true) : confirmSignup()}
+          disabled={loading}
+          className="px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-wide bg-[#dc2626] hover:bg-[#b91c1c] text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg shadow-[#dc2626]/20">
+          {loading ? '...' : "S'inscrire"}
+        </button>
+        <button
+          onClick={() => needsWarning ? setShowSubWarning(true) : confirmSubstitute()}
+          disabled={loadingSub}
+          className="px-3 py-2 rounded-xl text-sm font-semibold uppercase tracking-wide bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#555] hover:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200">
+          {loadingSub ? '...' : 'Remplaçant'}
+        </button>
+      </div>
+      {showWarning && <WarningModal type={event.type} isSubstitute={false} onConfirm={confirmSignup} onCancel={() => setShowWarning(false)} />}
+      {showSubWarning && <WarningModal type={event.type} isSubstitute={true} onConfirm={confirmSubstitute} onCancel={() => setShowSubWarning(false)} />}
     </>
   )
 }
@@ -191,64 +229,64 @@ function SignupButton({ event, isSignedUp, onSignup }) {
 // ─── SignupsList ──────────────────────────────────────────────────────────────
 
 function SignupsList({ signups, canManage, eventId, eventType, onRemove }) {
-  const [confirmRemove, setConfirmRemove] = useState(null) // { id, name, userId }
+  const [confirmRemove, setConfirmRemove] = useState(null)
 
-  if (!signups || signups.length === 0) {
+  const titulaires = signups ? signups.filter(s => s.role !== 'remplacant') : []
+  const remplacants = signups ? signups.filter(s => s.role === 'remplacant') : []
+  const currentTier = getCurrentTier(titulaires.length, eventType)
+
+  const renderRow = (s, i, showStatus) => {
+    const isInTier = showStatus && i < currentTier
     return (
-      <div className="mt-2">
-        <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-2">Joueurs inscrits</p>
-        <p className="text-xs text-gray-700 py-2">Aucune inscription pour le moment</p>
+      <div key={s.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-all duration-300 ${
+        isInTier ? 'bg-green-500/5 border-green-500/20' : 'bg-[#0a0a0a] border-[#1a1a1a]'
+      }`}>
+        <span className={`text-xs font-bold w-5 text-center ${isInTier ? 'text-green-400' : 'text-[#dc2626]'}`}>
+          {String(i + 1).padStart(2, '0')}
+        </span>
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border ${
+          isInTier ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-[#dc2626]/20 border-[#dc2626]/30 text-[#dc2626]'
+        }`}>
+          {s.coc_name?.charAt(0).toUpperCase()}
+        </div>
+        <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black flex-shrink-0 ${
+          s.clan_tag === '#2RCGG9YR9'
+            ? 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30'
+            : 'bg-[#dc2626]/20 text-[#dc2626] border border-[#dc2626]/30'
+        }`}>
+          {s.clan_tag === '#2RCGG9YR9' ? 'DR2' : 'DR1'}
+        </span>
+        <span className={`text-sm font-medium flex-1 ${isInTier ? 'text-green-300' : 'text-gray-200'}`}>
+          {s.coc_name}
+        </span>
+        {showStatus && (isInTier ? (
+          <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full uppercase">✓ Confirmé</span>
+        ) : (
+          <span className="text-[10px] bg-[#1a1a1a] border border-[#2a2a2a] text-gray-600 px-2 py-0.5 rounded-full uppercase">En attente</span>
+        ))}
+        <span className="text-[10px] text-gray-600">{formatCocRole(s.coc_role)}</span>
+        <span className="text-[10px] text-gray-700">{formatDateTime(s.signed_up_at)}</span>
+        {canManage && (
+          <button onClick={() => setConfirmRemove({ id: s.id, name: s.coc_name, userId: s.user_id })}
+            className="ml-1 text-[11px] text-gray-700 hover:text-red-400 transition-colors leading-none">
+            ✕
+          </button>
+        )}
       </div>
     )
   }
 
-  const currentTier = getCurrentTier(signups.length, eventType)
-
   return (
     <div className="mt-2">
+      {/* ── Titulaires ── */}
       <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-2">Joueurs inscrits</p>
       <div className="space-y-1 max-h-52 overflow-y-auto">
-        {signups.map((s, i) => {
-          const isInTier = i < currentTier
-          return (
-            <div key={s.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg border transition-all duration-300 ${
-              isInTier ? 'bg-green-500/5 border-green-500/20' : 'bg-[#0a0a0a] border-[#1a1a1a]'
-            }`}>
-              <span className={`text-xs font-bold w-5 text-center ${isInTier ? 'text-green-400' : 'text-[#dc2626]'}`}>
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border ${
-                isInTier ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-[#dc2626]/20 border-[#dc2626]/30 text-[#dc2626]'
-              }`}>
-                {s.coc_name?.charAt(0).toUpperCase()}
-              </div>
-              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black flex-shrink-0 ${
-                s.clan_tag === '#2RCGG9YR9'
-                  ? 'bg-[#f59e0b]/20 text-[#f59e0b] border border-[#f59e0b]/30'
-                  : 'bg-[#dc2626]/20 text-[#dc2626] border border-[#dc2626]/30'
-              }`}>
-                {s.clan_tag === '#2RCGG9YR9' ? 'DR2' : 'DR1'}
-              </span>
-              <span className={`text-sm font-medium flex-1 ${isInTier ? 'text-green-300' : 'text-gray-200'}`}>
-                {s.coc_name}
-              </span>
-              {isInTier ? (
-                <span className="text-[10px] bg-green-500/10 border border-green-500/20 text-green-400 px-2 py-0.5 rounded-full uppercase">✓ Confirmé</span>
-              ) : (
-                <span className="text-[10px] bg-[#1a1a1a] border border-[#2a2a2a] text-gray-600 px-2 py-0.5 rounded-full uppercase">En attente</span>
-              )}
-              <span className="text-[10px] text-gray-600">{formatCocRole(s.coc_role)}</span>
-              <span className="text-[10px] text-gray-700">{formatDateTime(s.signed_up_at)}</span>
-              {canManage && (
-                <button onClick={() => setConfirmRemove({ id: s.id, name: s.coc_name, userId: s.user_id })}
-                  className="ml-1 text-[11px] text-gray-700 hover:text-red-400 transition-colors leading-none">
-                  ✕
-                </button>
-              )}
-            </div>
-          )
-        })}
-        {signups.length > currentTier && currentTier > 0 && (
+        {titulaires.length === 0 ? (
+          <p className="text-xs text-gray-700 py-2">Aucune inscription pour le moment</p>
+        ) : (
+          titulaires.map((s, i) => renderRow(s, i, true))
+        )}
+        {titulaires.length > currentTier && currentTier > 0 && (
           <div className="flex items-center gap-2 py-1">
             <div className="flex-1 h-px bg-[#1a1a1a]" />
             <span className="text-[10px] text-gray-700 uppercase tracking-wide">En attente du prochain palier</span>
@@ -256,6 +294,20 @@ function SignupsList({ signups, canManage, eventId, eventType, onRemove }) {
           </div>
         )}
       </div>
+
+      {/* ── Remplaçants ── */}
+      {(remplacants.length > 0 || canManage) && (
+        <div className="mt-3">
+          <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-2">Remplaçants</p>
+          <div className="space-y-1 max-h-40 overflow-y-auto">
+            {remplacants.length === 0 ? (
+              <p className="text-xs text-gray-700 py-2">Aucun remplaçant inscrit</p>
+            ) : (
+              remplacants.map((s, i) => renderRow(s, i, false))
+            )}
+          </div>
+        </div>
+      )}
 
       {confirmRemove && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
@@ -327,9 +379,15 @@ function AdminActions({ event, onValidate, onClose, onReopen, onEnd, onEdit, onA
         </button>
       )}
       {canManage && event.status !== 'ended' && (
-        <button onClick={() => onAddSignup(event)}
+        <button onClick={() => onAddSignup(event, 'titulaire')}
           className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#6366f1]/50 hover:text-[#818cf8] transition-colors">
           ➕ Inscrire un joueur
+        </button>
+      )}
+      {canManage && event.status !== 'ended' && (
+        <button onClick={() => onAddSignup(event, 'remplacant')}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold uppercase bg-[#1a1a1a] border border-[#333] text-gray-400 hover:border-[#3b82f6]/50 hover:text-[#60a5fa] transition-colors">
+          🔄 Inscrire un remplaçant
         </button>
       )}
     </div>
@@ -338,14 +396,14 @@ function AdminActions({ event, onValidate, onClose, onReopen, onEnd, onEdit, onA
 
 // ─── EventCard ────────────────────────────────────────────────────────────────
 
-function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate, onClose, onReopen, onEnd, onEdit, onAddSignup, onRemoveSignup, canManage, onSendDiscord }) {
+function EventCard({ event, signups, userSignupMap, onSignup, onValidate, onClose, onReopen, onEnd, onEdit, onAddSignup, onRemoveSignup, canManage, onSendDiscord }) {
   const { user } = useAuth()
   const isCyberAlf = user?.coc_name === 'CyberAlf' || user?.site_role === 'superadmin'
   const [sending, setSending] = useState(false)
   const [sendOk, setSendOk] = useState(false)
   const [sendErr, setSendErr] = useState(null)
 
-  const isSignedUp = userSignedUpEventIds.has(event.id)
+  const signupRole = userSignupMap?.get(event.id) || null
 
   async function handleSendDiscord() {
     setSending(true)
@@ -413,7 +471,7 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
               </span>
             )}
             <div className="ml-auto">
-              <SignupButton event={event} isSignedUp={isSignedUp} onSignup={onSignup} />
+              <SignupButton event={event} signupRole={signupRole} onSignup={onSignup} />
             </div>
           </div>
 
@@ -459,7 +517,7 @@ function EventCard({ event, signups, userSignedUpEventIds, onSignup, onValidate,
 
 // ─── AddSignupModal ───────────────────────────────────────────────────────────
 
-function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
+function AddSignupModal({ event, currentSignups, role = 'titulaire', onClose, onAdded }) {
   const [dr1Members, setDr1Members] = useState([])
   const [dr2Members, setDr2Members] = useState([])
   const [allMembers, setAllMembers] = useState([])
@@ -527,7 +585,7 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
     setError(null)
     try {
       const { tag: coc_tag, clan_tag } = JSON.parse(selectedValue)
-      await api.post(`/api/war-events/${event.id}/signup-admin`, { coc_tag, clan_tag })
+      await api.post(`/api/war-events/${event.id}/signup-admin`, { coc_tag, clan_tag, role })
       onAdded()
       onClose()
     } catch (err) {
@@ -541,7 +599,9 @@ function AddSignupModal({ event, currentSignups, onClose, onAdded }) {
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4"
          style={{ backgroundColor: 'rgba(0,0,0,0.85)' }} onClick={onClose}>
       <div className="bg-[#111111] border border-[#1f1f1f] rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-        <h3 className="text-base font-bold text-white uppercase tracking-wide mb-1">Inscrire un joueur</h3>
+        <h3 className="text-base font-bold text-white uppercase tracking-wide mb-1">
+          {role === 'remplacant' ? 'Inscrire un remplaçant' : 'Inscrire un joueur'}
+        </h3>
         <p className="text-xs text-gray-500 mb-4">{event.title}</p>
 
         {fetchError ? (
@@ -1170,8 +1230,8 @@ export default function Inscriptions({ embedded = false }) {
   const [loading, setLoading] = useState(true)
   const [createModal, setCreateModal] = useState(null)
   const [editModal, setEditModal] = useState(null)
-  const [addSignupModal, setAddSignupModal] = useState(null) // event object
-  const [userSignedUpEventIds, setUserSignedUpEventIds] = useState(new Set())
+  const [addSignupModal, setAddSignupModal] = useState(null) // { event, role }
+  const [userSignupRoleMap, setUserSignupRoleMap] = useState(new Map()) // eventId → 'titulaire' | 'remplacant'
 
   const canManage = user && (
     ['superadmin', 'admin'].includes(user.site_role) ||
@@ -1194,11 +1254,12 @@ export default function Inscriptions({ embedded = false }) {
       setSignups(signupMap)
 
       if (user) {
-        const signedIds = new Set()
+        const roleMap = new Map()
         for (const [evId, sups] of Object.entries(signupMap)) {
-          if (sups.some(s => s.user_id === user.id)) signedIds.add(evId)
+          const mine = sups.find(s => s.user_id === user.id)
+          if (mine) roleMap.set(evId, mine.role || 'titulaire')
         }
-        setUserSignedUpEventIds(signedIds)
+        setUserSignupRoleMap(roleMap)
       }
     } catch (err) {
       console.error('Erreur chargement inscriptions:', err.message)
@@ -1209,9 +1270,9 @@ export default function Inscriptions({ embedded = false }) {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  const handleSignup = async (eventId) => {
+  const handleSignup = async (eventId, role = 'titulaire') => {
     try {
-      await api.post(`/api/war-events/${eventId}/signup`)
+      await api.post(`/api/war-events/${eventId}/signup`, { role })
       await fetchAll()
     } catch (err) {
       console.error(err.response?.data?.error || err.message)
@@ -1314,14 +1375,14 @@ export default function Inscriptions({ embedded = false }) {
                 key={ev.id}
                 event={ev}
                 signups={signups}
-                userSignedUpEventIds={userSignedUpEventIds}
+                userSignupMap={userSignupRoleMap}
                 onSignup={handleSignup}
                 onValidate={handleValidate}
                 onClose={handleClose}
                 onReopen={handleReopen}
                 onEnd={handleEndEvent}
                 onEdit={setEditModal}
-                onAddSignup={setAddSignupModal}
+                onAddSignup={(event, role) => setAddSignupModal({ event, role })}
                 onRemoveSignup={handleRemoveSignup}
                 canManage={canManage}
                 onSendDiscord={handleSendDiscord}
@@ -1342,8 +1403,9 @@ export default function Inscriptions({ embedded = false }) {
       )}
       {addSignupModal && (
         <AddSignupModal
-          event={addSignupModal}
-          currentSignups={signups[addSignupModal.id] || []}
+          event={addSignupModal.event}
+          currentSignups={signups[addSignupModal.event.id] || []}
+          role={addSignupModal.role}
           onClose={() => setAddSignupModal(null)}
           onAdded={fetchAll}
         />

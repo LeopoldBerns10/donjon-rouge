@@ -140,6 +140,7 @@ router.get('/', async (req, res) => {
           .from('war_signups')
           .select('*', { count: 'exact', head: true })
           .eq('event_id', ev.id)
+          .eq('role', 'titulaire')
         return { ...ev, signup_count: count || 0 }
       })
     )
@@ -166,6 +167,7 @@ router.get('/history', async (req, res) => {
           .from('war_signups')
           .select('*', { count: 'exact', head: true })
           .eq('event_id', ev.id)
+          .eq('role', 'titulaire')
         return { ...ev, signup_count: count || 0 }
       })
     )
@@ -244,6 +246,8 @@ router.post('/:id/signup', requireAuth, async (req, res) => {
     if (evErr || !event) return res.status(404).json({ error: 'Événement introuvable' })
     if (event.status !== 'open') return res.status(400).json({ error: 'Cet événement n\'est plus ouvert aux inscriptions' })
 
+    const role = req.body.role === 'remplacant' ? 'remplacant' : 'titulaire'
+
     const { data: userData } = await supabase
       .from('users')
       .select('id, coc_name, coc_tag, coc_role')
@@ -257,7 +261,8 @@ router.post('/:id/signup', requireAuth, async (req, res) => {
         user_id: req.user.id,
         coc_name: userData.coc_name,
         coc_tag: userData.coc_tag,
-        coc_role: userData.coc_role
+        coc_role: userData.coc_role,
+        role
       })
       .select()
       .single()
@@ -277,7 +282,8 @@ router.post('/:id/signup-admin', requireAuth, async (req, res) => {
   try {
     if (!canManageEvent(req.user)) return res.status(403).json({ error: 'Non autorisé' })
 
-    const { coc_tag, clan_tag } = req.body
+    const { coc_tag, clan_tag, role: rawRole } = req.body
+    const role = rawRole === 'remplacant' ? 'remplacant' : 'titulaire'
     if (!coc_tag) return res.status(400).json({ error: 'coc_tag requis' })
 
     const { data: event, error: evErr } = await supabase
@@ -302,7 +308,8 @@ router.post('/:id/signup-admin', requireAuth, async (req, res) => {
         coc_name: userData.coc_name,
         coc_tag: userData.coc_tag,
         coc_role: userData.coc_role,
-        clan_tag: clan_tag || userData.clan_tag || 'DR1'
+        clan_tag: clan_tag || userData.clan_tag || 'DR1',
+        role
       })
       .select()
       .single()
@@ -558,16 +565,16 @@ router.post('/:id/send-discord', requireAuth, async (req, res) => {
 
     const { data: signups, error: signErr } = await supabase
       .from('war_signups')
-      .select('coc_name, coc_role, clan_tag, signed_up_at, users(clan_tag)')
+      .select('coc_name, coc_role, clan_tag, role, signed_up_at, users(clan_tag)')
       .eq('event_id', req.params.id)
       .order('signed_up_at', { ascending: true })
     if (signErr) throw signErr
 
     const typeLabels = { gdc: '⚔️ GDC Classique', gdc_selection: '🏆 GDC Sélection', ldc: '👑 Ligue de Guerre' }
 
-    function formatRole(role) {
+    function formatRole(r) {
       const map = { leader: 'Chef', coLeader: 'Co-Chef', admin: 'Ancien', member: 'Membre' }
-      return map[role] || role || '—'
+      return map[r] || r || '—'
     }
 
     function resolveClan(signup) {
@@ -582,28 +589,38 @@ router.post('/:id/send-discord', requireAuth, async (req, res) => {
       return new Date(d).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
     }
 
-    const lines = signups.length === 0
-      ? ['_Aucun inscrit_']
-      : signups.map((s, i) =>
-          `\`${String(i + 1).padStart(2, '0')}.\` **${s.coc_name}** · ${formatRole(s.coc_role)} · ${resolveClan(s)}`
-        )
-
-    // Découper en chunks de 1024 chars max (limite Discord field value)
-    const chunks = []
-    let current = ''
-    for (const line of lines) {
-      const next = current ? current + '\n' + line : line
-      if (next.length > 1020) { chunks.push(current); current = line }
-      else { current = next }
+    function buildChunks(list) {
+      const lines = list.length === 0
+        ? ['_Aucun_']
+        : list.map((s, i) =>
+            `\`${String(i + 1).padStart(2, '0')}.\` **${s.coc_name}** · ${formatRole(s.coc_role)} · ${resolveClan(s)}`
+          )
+      const chunks = []
+      let current = ''
+      for (const line of lines) {
+        const next = current ? current + '\n' + line : line
+        if (next.length > 1020) { chunks.push(current); current = line }
+        else { current = next }
+      }
+      if (current) chunks.push(current)
+      return chunks
     }
-    if (current) chunks.push(current)
+
+    const titulaires = signups.filter(s => s.role !== 'remplacant')
+    const remplacants = signups.filter(s => s.role === 'remplacant')
+    const titChunks = buildChunks(titulaires)
+    const remChunks = buildChunks(remplacants)
 
     const fields = [
       { name: 'Type', value: typeLabels[event.type] || event.type, inline: true },
       { name: '📅 Date début', value: fmtDate(event.proposed_date), inline: true },
       { name: '🔒 Clôture inscriptions', value: fmtDate(event.close_date), inline: true },
-      { name: `👥 Inscrits — ${signups.length} joueur${signups.length !== 1 ? 's' : ''}`, value: chunks[0] || '_Aucun inscrit_' },
-      ...chunks.slice(1).map((c, i) => ({ name: `(suite ${i + 2})`, value: c })),
+      { name: `👥 Titulaires — ${titulaires.length} joueur${titulaires.length !== 1 ? 's' : ''}`, value: titChunks[0] || '_Aucun_' },
+      ...titChunks.slice(1).map((c, i) => ({ name: `(suite titulaires ${i + 2})`, value: c })),
+      ...(remplacants.length > 0 ? [
+        { name: `🔄 Remplaçants — ${remplacants.length} joueur${remplacants.length !== 1 ? 's' : ''}`, value: remChunks[0] },
+        ...remChunks.slice(1).map((c, i) => ({ name: `(suite remplaçants ${i + 2})`, value: c })),
+      ] : []),
     ]
 
     const embed = {

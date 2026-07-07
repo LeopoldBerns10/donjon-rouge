@@ -1,0 +1,1556 @@
+{
+  "exported_at": "2026-07-07T19:31:21.091Z",
+  "count": 155,
+  "rows": [
+    {
+      "id": "fb3c67b0-2f13-4e3f-8385-d7ab6bb1dddf",
+      "event_id": "6e559a28-7225-4dff-ba92-1335d9653ef0",
+      "user_id": "b43f3bc0-99c3-4ee2-8c82-1079c86a4f40",
+      "coc_name": "OryxBattel",
+      "coc_tag": "#J2222JCU",
+      "coc_role": "admin",
+      "signed_up_at": "2026-04-13T08:05:03.450855+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "942e6932-cead-4140-a11a-a36b93d8f332",
+      "event_id": "5404425b-4ba7-43ac-a2ba-d77b3fd6d62b",
+      "user_id": "b43f3bc0-99c3-4ee2-8c82-1079c86a4f40",
+      "coc_name": "OryxBattel",
+      "coc_tag": "#J2222JCU",
+      "coc_role": "admin",
+      "signed_up_at": "2026-04-13T08:05:08.198526+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "0a67451a-b0f7-404c-8e9b-39a39b619189",
+      "event_id": "5404425b-4ba7-43ac-a2ba-d77b3fd6d62b",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-04-13T08:05:35.394419+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "a7fe203e-e8d3-4c68-b57f-d82b1f2212d5",
+      "event_id": "6e559a28-7225-4dff-ba92-1335d9653ef0",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-04-13T08:05:41.811297+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "20795437-79f6-47c3-b1bd-4190e6fe05e0",
+      "event_id": "15289c11-327e-44ec-bc15-0f49d9678dff",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-04-13T08:10:34.62495+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "dff6fc79-c6f4-458d-882c-18597f1e7a75",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "67cb17f4-9070-4bcc-b939-1d15975f8338",
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-19T11:20:00.508615+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "78c0abd0-9037-4582-910a-76f65e8f5e40",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "22dec456-eace-4db9-ad2b-feed0bed839c",
+      "coc_name": "Didousse",
+      "coc_tag": "#2VR220C8",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-19T12:36:27.349526+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "bfaf29cf-aa1e-4e80-bd7e-f8aa9abd64ab",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "2cfd54eb-0b33-4edf-97b4-2e2e513a1be7",
+      "coc_name": "SkunK",
+      "coc_tag": "#JPJ8L2PG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-19T18:38:29.496727+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "452c3314-7da6-4689-9d11-5c9483d339a3",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "e726bb7b-150e-4742-90b2-6cfd512e751d",
+      "coc_name": "KD2L",
+      "coc_tag": "#YL2GVUVLC",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-19T21:08:55.514204+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "56680da5-c005-42cb-8ed8-403c573f308e",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "dfb7b373-10f9-47e1-ab22-3977865f376a",
+      "coc_name": "San Andreas",
+      "coc_tag": "#G9V9C9088",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-21T08:13:30.165825+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "912fa341-e4bf-4852-8b6b-d37bf9b987f3",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "37522f58-dcbf-404d-9b8f-46dca880af91",
+      "coc_name": "Ayreon",
+      "coc_tag": "#Q8UQ00VPG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-21T08:36:34.110334+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "cd4baf46-f5c4-481f-b4d9-f388515d8f18",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-05-21T08:54:25.76967+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "5593bc70-c801-4f5c-82f3-a5eeb99c177c",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "c23faee6-9062-4316-86a4-bf38345ad6d8",
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-21T08:54:38.630072+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "a1290b0c-8a6c-42bc-b62e-cd498af380f4",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "67cb17f4-9070-4bcc-b939-1d15975f8338",
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-21T08:54:50.517217+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "16f991a1-bb9b-484c-acfd-e3693fe163ad",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "dfb7b373-10f9-47e1-ab22-3977865f376a",
+      "coc_name": "San Andreas",
+      "coc_tag": "#G9V9C9088",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-21T08:54:58.335416+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "0263037c-9446-429e-a8ca-6387b1c23da9",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "4f378e02-6b97-4b5e-b1b2-8b0e67cb2a8c",
+      "coc_name": "Hisoka",
+      "coc_tag": "#222G00YJP",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-21T13:27:49.061617+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "d092e0a7-8041-4676-888d-70d964aa3b5c",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "4f378e02-6b97-4b5e-b1b2-8b0e67cb2a8c",
+      "coc_name": "Hisoka",
+      "coc_tag": "#222G00YJP",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-21T13:27:58.025304+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "f53fb329-4da8-48f5-a6cd-3a6ecb184a98",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "c0b54594-5c9b-49a3-b4ce-4f50f01b5913",
+      "coc_name": "le gg",
+      "coc_tag": "#P9RLU8QGG",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-21T15:37:01.910792+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "50d83cd9-6f3c-44b1-a800-9098806dcbac",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "34950ba3-da21-45f9-b471-ea57aab3d015",
+      "coc_name": "Inglo_D",
+      "coc_tag": "#2J2Q8R2R9",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-21T18:42:53.997703+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "688c705a-a26a-4b9a-9447-69cd47d0417c",
+      "event_id": "8b5569af-1df3-4f65-b36e-7a3898fcaa51",
+      "user_id": "f2367142-16b3-428b-a4ff-3dd46fcb1e98",
+      "coc_name": "wArmUp",
+      "coc_tag": "#YYC2G8R9Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-21T18:44:42.705388+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "e3cdde31-a5a7-441e-8934-53dba3ede786",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "c23faee6-9062-4316-86a4-bf38345ad6d8",
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-24T18:33:34.100049+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "38eb23bb-4be7-4941-b869-442cdc2e1155",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "fac2e8e4-215d-412c-a09f-8bf487f6f099",
+      "coc_name": "natou le boss",
+      "coc_tag": "#RGYV02UY",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-24T18:44:31.224381+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "dd27106d-f5be-46fb-8868-00842b2504c7",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "d27ba683-dcb6-4625-a01a-f7c4efbf5b41",
+      "coc_name": "Pogeiwa",
+      "coc_tag": "#YU9CJC08Q",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-24T19:04:52.826442+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "8a9ce85e-ea0f-4cb9-8eb0-79f1a84bcd72",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "f06bd884-739c-405a-9f06-2312e93239ba",
+      "coc_name": "Barbar",
+      "coc_tag": "#G9CJU9UP0",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-24T19:39:01.093592+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "be73e4b2-05f2-439e-b2b5-26ed417fd954",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "6b67f8b4-0d0a-4150-a09a-6c1bd25e6360",
+      "coc_name": "un mec qui te b",
+      "coc_tag": "#QGQRPG9LR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-24T20:07:48.046281+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "a0ef89e8-f190-4d0f-88c0-ed8e96b2ab1a",
+      "event_id": "185aa297-a06a-4255-b19a-254199c35920",
+      "user_id": "d0564113-89af-4619-9332-99c136791f74",
+      "coc_name": "youles",
+      "coc_tag": "#P22QJVVJY",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-25T08:53:37.845744+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "5fef2c49-8d80-431b-b396-e6b4bc23f484",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-05-25T22:12:18.155928+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "a2f92574-fbda-44ca-b38f-c135e2060da8",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "386020af-763e-4fcc-863d-e2388598c445",
+      "coc_name": "jeremie0411",
+      "coc_tag": "#99CVVR0QQ",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-25T22:12:28.062838+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "5e57b3e8-0d8d-4a1c-acfe-8e1bfac5eeab",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "c23faee6-9062-4316-86a4-bf38345ad6d8",
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-25T22:12:36.298828+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "f70079ae-8947-4713-8d9d-91a39d45bf69",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "2cfd54eb-0b33-4edf-97b4-2e2e513a1be7",
+      "coc_name": "SkunK",
+      "coc_tag": "#JPJ8L2PG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-25T22:12:54.629957+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "72503671-2eb8-461f-aff7-870a5ab19cf2",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "d27ba683-dcb6-4625-a01a-f7c4efbf5b41",
+      "coc_name": "Pogeiwa",
+      "coc_tag": "#YU9CJC08Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-25T22:13:05.337692+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "42f72602-4ff2-49be-9138-ce8894884f02",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "67cb17f4-9070-4bcc-b939-1d15975f8338",
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-25T22:13:16.390941+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "330865a9-5323-4403-a4b8-5d3248bdf400",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "fac2e8e4-215d-412c-a09f-8bf487f6f099",
+      "coc_name": "natou le boss",
+      "coc_tag": "#RGYV02UY",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-25T22:13:27.446214+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "42748edc-4bf3-4662-9ad0-a2de458fbc5b",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "b06df8e4-51f9-4f72-8c9e-6bdc38fe7efa",
+      "coc_name": "cookie",
+      "coc_tag": "#CG0RL8QQ",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-25T22:13:45.63706+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "33e7f203-6f2a-40dc-87f6-cd911bd45e58",
+      "event_id": "340e4dc0-4f0d-440b-8e3a-d5910c77824f",
+      "user_id": "71ca69a4-95bd-4bf4-a216-5d6096f80f36",
+      "coc_name": "carla",
+      "coc_tag": "#LVRYGJ802",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-25T22:14:01.557889+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "773d5fbc-9727-4d45-ab2a-3a61198b597f",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-05-28T18:05:00.812811+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "e2833424-c846-430a-8871-ed6ca4417c62",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "386020af-763e-4fcc-863d-e2388598c445",
+      "coc_name": "jeremie0411",
+      "coc_tag": "#99CVVR0QQ",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-28T18:05:14.037989+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "24c4588f-09db-46c5-a301-683daec41a2d",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "c23faee6-9062-4316-86a4-bf38345ad6d8",
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T18:05:21.806231+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "7182c504-2fdf-4b0e-8e81-c709db5f5503",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "2cfd54eb-0b33-4edf-97b4-2e2e513a1be7",
+      "coc_name": "SkunK",
+      "coc_tag": "#JPJ8L2PG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T18:05:32.094127+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "dc1132e7-0ac7-490e-a10f-2de3c5d45685",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "d27ba683-dcb6-4625-a01a-f7c4efbf5b41",
+      "coc_name": "Pogeiwa",
+      "coc_tag": "#YU9CJC08Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T18:05:44.847349+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "9f469837-6fb4-4992-a65e-abd5409cee0b",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "67cb17f4-9070-4bcc-b939-1d15975f8338",
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-28T18:05:54.778498+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "2dbaa529-01e2-4ccc-82b6-76ddfdadbc07",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "e726bb7b-150e-4742-90b2-6cfd512e751d",
+      "coc_name": "KD2L",
+      "coc_tag": "#YL2GVUVLC",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-28T19:31:30.236603+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "cad860b9-7f4a-40cc-a987-ac60686ff25b",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "4f378e02-6b97-4b5e-b1b2-8b0e67cb2a8c",
+      "coc_name": "Hisoka",
+      "coc_tag": "#222G00YJP",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-28T20:11:58.158668+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "7341356d-a5b1-481f-a424-90c5394953f9",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "f06bd884-739c-405a-9f06-2312e93239ba",
+      "coc_name": "Barbar",
+      "coc_tag": "#G9CJU9UP0",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:12:04.979463+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "f35d7345-4900-4040-bb6d-7b9979500f58",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "22dec456-eace-4db9-ad2b-feed0bed839c",
+      "coc_name": "Didousse",
+      "coc_tag": "#2VR220C8",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:12:11.894105+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "277c0d72-836e-4a7d-b5e5-da8c0ee92aac",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "fac2e8e4-215d-412c-a09f-8bf487f6f099",
+      "coc_name": "natou le boss",
+      "coc_tag": "#RGYV02UY",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:12:24.342626+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "5c5c120d-1405-4185-a58e-4189c51c1544",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "b06df8e4-51f9-4f72-8c9e-6bdc38fe7efa",
+      "coc_name": "cookie",
+      "coc_tag": "#CG0RL8QQ",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:12:33.397104+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "b7910fcf-fc8f-49fb-ad34-0b5e034c1138",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "b43f3bc0-99c3-4ee2-8c82-1079c86a4f40",
+      "coc_name": "OryxBattel",
+      "coc_tag": "#J2222JCU",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:12:42.961626+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "90cca7c0-e421-4743-801c-31ed99fb084d",
+      "event_id": "dd179db4-1288-4594-8201-f7e43868060e",
+      "user_id": "054ef342-b2be-4964-9bd6-7d8091486741",
+      "coc_name": "Hibou.KD",
+      "coc_tag": "#2QPP2RQ9J",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:15:47.161728+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "fc52a68b-ce21-46ab-8de2-543b6f482fa1",
+      "event_id": "dd179db4-1288-4594-8201-f7e43868060e",
+      "user_id": "f2367142-16b3-428b-a4ff-3dd46fcb1e98",
+      "coc_name": "wArmUp",
+      "coc_tag": "#YYC2G8R9Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:16:04.096979+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "17d856cb-7b0f-427d-a5d7-2f99d9010073",
+      "event_id": "dd179db4-1288-4594-8201-f7e43868060e",
+      "user_id": "db30e065-ec02-48bf-8d76-fe897ed846ad",
+      "coc_name": "●Savior●",
+      "coc_tag": "#2QJG0CLVC",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:35:29.644613+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "a1577cb6-8de7-4b6d-a1c5-809314c09cf1",
+      "event_id": "dd179db4-1288-4594-8201-f7e43868060e",
+      "user_id": "37522f58-dcbf-404d-9b8f-46dca880af91",
+      "coc_name": "Ayreon",
+      "coc_tag": "#Q8UQ00VPG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:35:44.091602+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "6f032595-c991-44db-ae09-d0b5fbac95dc",
+      "event_id": "dd179db4-1288-4594-8201-f7e43868060e",
+      "user_id": "71ca69a4-95bd-4bf4-a216-5d6096f80f36",
+      "coc_name": "carla",
+      "coc_tag": "#LVRYGJ802",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-28T20:35:52.329446+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "11f0fade-d9c5-4f26-a4dc-eda96256797a",
+      "event_id": "06e966af-7a2d-49a0-996f-98e6ca399110",
+      "user_id": "87d3627c-a74d-492b-9073-a7bb4c0b740a",
+      "coc_name": "꧁ORYX꧂",
+      "coc_tag": "#2CP089GL0",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-29T13:10:28.924338+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "91ddabcb-4f81-481e-b575-5d2475881092",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "37522f58-dcbf-404d-9b8f-46dca880af91",
+      "coc_name": "Ayreon",
+      "coc_tag": "#Q8UQ00VPG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-29T17:16:48.266817+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "abf19b8a-6fed-4c31-af57-46d888c5fbeb",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "71ca69a4-95bd-4bf4-a216-5d6096f80f36",
+      "coc_name": "carla",
+      "coc_tag": "#LVRYGJ802",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-29T17:16:59.747031+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "38ae251d-6c5f-45d6-b6f2-fe4bea105db7",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "54b24092-91c2-4246-ae5a-208229488235",
+      "coc_name": "Dina_Malefika",
+      "coc_tag": "#GG9YPJ999",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-29T17:56:37.466401+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "95c0317e-c0ed-4142-8080-15885640b85f",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "6b67f8b4-0d0a-4150-a09a-6c1bd25e6360",
+      "coc_name": "un mec qui te b",
+      "coc_tag": "#QGQRPG9LR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-29T17:59:49.873099+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "24dc3d92-9fc2-4879-8bb7-01d770c1cb08",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "4e992a5e-7022-468f-bbc1-82feb6fea64b",
+      "coc_name": "Jiraqix",
+      "coc_tag": "#YPJ9GYLQV",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-29T19:25:38.738638+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "36474fee-df25-416c-b206-5196da8d373b",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "d0564113-89af-4619-9332-99c136791f74",
+      "coc_name": "youles",
+      "coc_tag": "#P22QJVVJY",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-29T19:25:56.985891+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "f33a9421-30c2-4592-8fa1-1b8eb2a1acbb",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "87d3627c-a74d-492b-9073-a7bb4c0b740a",
+      "coc_name": "꧁ORYX꧂",
+      "coc_tag": "#2CP089GL0",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-29T19:27:04.084996+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "5463ea8b-4420-4066-b6e8-9e49ba661169",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "fa1c6559-b12f-4991-bc0e-71271e5dbfa2",
+      "coc_name": "KD2L 2nd",
+      "coc_tag": "#YRR9LUPJP",
+      "coc_role": "leader",
+      "signed_up_at": "2026-05-29T19:41:09.898602+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "dffa7460-12d4-4387-b41a-09a62fdbd258",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "ba8ed554-87ae-47d2-8391-876cff400610",
+      "coc_name": "Theman6",
+      "coc_tag": "#GV02R22CG",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-29T20:35:52.045895+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "ab5f69c2-9f8f-4135-8264-e30c8bb5ea49",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "db30e065-ec02-48bf-8d76-fe897ed846ad",
+      "coc_name": "●Savior●",
+      "coc_tag": "#2QJG0CLVC",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-29T22:11:50.10792+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "74663839-2445-43c4-845e-c722998aefa6",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-05-31T16:34:42.302113+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "04e12062-3d34-4140-99c3-01b8136cb61a",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "ba8ed554-87ae-47d2-8391-876cff400610",
+      "coc_name": "Theman6",
+      "coc_tag": "#GV02R22CG",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-31T16:38:13.213439+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "d33f258c-eb80-4337-bad3-0edd959c940a",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "c23faee6-9062-4316-86a4-bf38345ad6d8",
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-31T16:49:37.455497+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "c87424ea-40cf-44c5-9417-2a540fbe4389",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "e726bb7b-150e-4742-90b2-6cfd512e751d",
+      "coc_name": "KD2L",
+      "coc_tag": "#YL2GVUVLC",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-05-31T18:16:01.532266+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "907d01cb-1e54-47da-a80c-ec539533c354",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "b43f3bc0-99c3-4ee2-8c82-1079c86a4f40",
+      "coc_name": "OryxBattel",
+      "coc_tag": "#J2222JCU",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-31T18:47:07.745219+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "dd8c5748-0172-43a0-b05b-e8c48a62b47d",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "2cfd54eb-0b33-4edf-97b4-2e2e513a1be7",
+      "coc_name": "SkunK",
+      "coc_tag": "#JPJ8L2PG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-05-31T21:10:49.160072+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "e5971f30-8ae5-406e-a805-66aec5651de5",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "37522f58-dcbf-404d-9b8f-46dca880af91",
+      "coc_name": "Ayreon",
+      "coc_tag": "#Q8UQ00VPG",
+      "coc_role": "member",
+      "signed_up_at": "2026-05-31T23:59:22.739089+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "646982d1-fa21-4436-b8d1-4ac2d9679dbb",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "dfb7b373-10f9-47e1-ab22-3977865f376a",
+      "coc_name": "San Andreas",
+      "coc_tag": "#G9V9C9088",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-03T04:10:57.51542+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "e2fa04a4-707a-4c79-89b8-47f57f95175d",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "67cb17f4-9070-4bcc-b939-1d15975f8338",
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-03T05:58:44.328416+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "15f41c41-9b19-453e-8de9-70e3d91771ee",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "0c65fd44-4c67-4a39-945a-51aa6111395f",
+      "coc_name": "RoтaтoЯ™",
+      "coc_tag": "#QPPUVJQGL",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-06T12:35:40.900162+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "ea7736f4-9765-48c0-a0b4-47bde3bee09d",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "054ef342-b2be-4964-9bd6-7d8091486741",
+      "coc_name": "Hibou.KD",
+      "coc_tag": "#2QPP2RQ9J",
+      "coc_role": "leader",
+      "signed_up_at": "2026-06-08T23:09:53.601456+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "f4f32fb3-6e54-4a6a-b043-f4c3a28e3db5",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "386020af-763e-4fcc-863d-e2388598c445",
+      "coc_name": "jeremie0411",
+      "coc_tag": "#99CVVR0QQ",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-09T04:56:58.171885+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "58a2ae9d-1ba8-4f0a-a556-c2f81a1bad2f",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "71ca69a4-95bd-4bf4-a216-5d6096f80f36",
+      "coc_name": "carla",
+      "coc_tag": "#LVRYGJ802",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-10T09:30:53.531392+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "bca6c285-9419-4d73-803d-1aabed377154",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "d0564113-89af-4619-9332-99c136791f74",
+      "coc_name": "youles",
+      "coc_tag": "#P22QJVVJY",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-11T16:04:05.412695+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "9c5d972f-0f21-4b8f-ba96-20456c9526ae",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "d27ba683-dcb6-4625-a01a-f7c4efbf5b41",
+      "coc_name": "Pogeiwa",
+      "coc_tag": "#YU9CJC08Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-12T14:46:11.249856+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "06ab68e1-0b92-4b50-9515-07c730816860",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "054ef342-b2be-4964-9bd6-7d8091486741",
+      "coc_name": "Hibou.KD",
+      "coc_tag": "#2QPP2RQ9J",
+      "coc_role": "leader",
+      "signed_up_at": "2026-06-12T14:46:45.97074+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "d73d5caf-9ea6-4158-83ee-2988d97deb58",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "dfb7b373-10f9-47e1-ab22-3977865f376a",
+      "coc_name": "San Andreas",
+      "coc_tag": "#G9V9C9088",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-12T14:47:16.370559+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "83bf53c6-914e-45bb-9df6-9b4fed3d88ef",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "4f378e02-6b97-4b5e-b1b2-8b0e67cb2a8c",
+      "coc_name": "Hisoka",
+      "coc_tag": "#222G00YJP",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-13T08:27:15.3254+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "02db02c7-390f-4d32-b97b-c090bf24179c",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "f2367142-16b3-428b-a4ff-3dd46fcb1e98",
+      "coc_name": "wArmUp",
+      "coc_tag": "#YYC2G8R9Q",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-13T10:22:56.099826+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "0b63ccb0-8f47-42d0-b091-fa589fdec33a",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "22dec456-eace-4db9-ad2b-feed0bed839c",
+      "coc_name": "Didousse",
+      "coc_tag": "#2VR220C8",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-13T11:47:32.551909+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "ce8f52ea-e846-4d83-a757-3638c829cf5d",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "db30e065-ec02-48bf-8d76-fe897ed846ad",
+      "coc_name": "●Savior●",
+      "coc_tag": "#2QJG0CLVC",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-13T11:49:40.063192+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "b9aae5d9-9d77-4f1c-940d-f8d208b78d69",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "be10c6c6-e4f0-4eda-82cd-952db8a2043f",
+      "coc_name": "404_mike",
+      "coc_tag": "#YUQ9UUYV9",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-14T22:41:50.849812+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "15914a1b-94f3-4a11-9f77-1a1b0251ad4b",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "fac2e8e4-215d-412c-a09f-8bf487f6f099",
+      "coc_name": "natou le boss",
+      "coc_tag": "#RGYV02UY",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-14T22:42:23.804463+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "8d70816e-4e63-4f3a-aa9d-7fd6a398eddc",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "8a728f30-076e-43a5-95a1-099a1d5485ce",
+      "coc_name": "team leduc",
+      "coc_tag": "#LLGY0GY2",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-15T12:03:07.276246+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "32246cc7-878c-485f-b907-7ea5f0f2afa0",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "519c204b-e95d-41c6-8a36-1ccbc41b3101",
+      "coc_name": "DrayZ",
+      "coc_tag": "#20Q9G0RV",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-15T19:12:48.376927+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "6878064d-a1d3-45f3-96d8-fe0d93b9964b",
+      "event_id": "6f4ccd96-21a4-4e5f-a901-854c8df40c98",
+      "user_id": "519c204b-e95d-41c6-8a36-1ccbc41b3101",
+      "coc_name": "DrayZ",
+      "coc_tag": "#20Q9G0RV",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-15T19:17:13.005552+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "fbfc5ece-df4f-4f44-b96e-3622f303e635",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "54b24092-91c2-4246-ae5a-208229488235",
+      "coc_name": "Dina_Malefika",
+      "coc_tag": "#GG9YPJ999",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-15T19:29:39.150035+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "6504664e-9d3b-4a09-b9b9-cb6d16fa0e0f",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "34950ba3-da21-45f9-b471-ea57aab3d015",
+      "coc_name": "Inglo_D",
+      "coc_tag": "#2J2Q8R2R9",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-16T14:49:07.457724+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "91dd232e-7e27-420e-ab53-0568c38920c3",
+      "event_id": "37ff63b4-d796-4354-aa9a-7b96d48b246d",
+      "user_id": "f2367142-16b3-428b-a4ff-3dd46fcb1e98",
+      "coc_name": "wArmUp",
+      "coc_tag": "#YYC2G8R9Q",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-16T18:01:53.501234+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "80a3ef95-9f52-4fe2-96e7-e19722032241",
+      "event_id": "dc1b1faf-6dde-46ff-8426-5e17d7179e0f",
+      "user_id": "b06df8e4-51f9-4f72-8c9e-6bdc38fe7efa",
+      "coc_name": "cookie",
+      "coc_tag": "#CG0RL8QQ",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-24T16:49:57.661429+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "82f5a9b6-d624-4c4a-92e8-7fd8e1429a31",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "c23faee6-9062-4316-86a4-bf38345ad6d8",
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:11:33.0407+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "f6997fc1-0e47-42c7-844e-d2006f705672",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "e726bb7b-150e-4742-90b2-6cfd512e751d",
+      "coc_name": "KD2L",
+      "coc_tag": "#YL2GVUVLC",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-28T10:11:42.276702+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "1af705a7-cd7c-4a87-bf3f-37f19a6971a8",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "386020af-763e-4fcc-863d-e2388598c445",
+      "coc_name": "jeremie0411",
+      "coc_tag": "#99CVVR0QQ",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-28T10:11:52.081719+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "fd6391da-9deb-487b-a656-4a1dbd0931d7",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "054ef342-b2be-4964-9bd6-7d8091486741",
+      "coc_name": "Hibou.KD",
+      "coc_tag": "#2QPP2RQ9J",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-28T10:11:59.360005+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "937fd61b-c0ee-4d48-8703-1b17830e1e8a",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-06-28T10:12:13.730094+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "8bf101cf-965c-4eb5-82dd-cee3c3bd8322",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "67cb17f4-9070-4bcc-b939-1d15975f8338",
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:12:25.67547+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "b617bbba-ba65-4b02-ba3b-e728d38ae886",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "2cfd54eb-0b33-4edf-97b4-2e2e513a1be7",
+      "coc_name": "SkunK",
+      "coc_tag": "#JPJ8L2PG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:12:34.324397+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "bf656902-45de-49c0-8ceb-489d908b082d",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "d27ba683-dcb6-4625-a01a-f7c4efbf5b41",
+      "coc_name": "Pogeiwa",
+      "coc_tag": "#YU9CJC08Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:12:42.994355+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "a8adc774-f70c-4e9e-9a45-804d2a36a4eb",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "4f378e02-6b97-4b5e-b1b2-8b0e67cb2a8c",
+      "coc_name": "Hisoka",
+      "coc_tag": "#222G00YJP",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:12:50.387795+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "eb4f31a7-1218-4e26-b83d-c33cb9d31e24",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "f2367142-16b3-428b-a4ff-3dd46fcb1e98",
+      "coc_name": "wArmUp",
+      "coc_tag": "#YYC2G8R9Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:13:04.62943+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "a714ab59-bdc9-4f12-b0df-a50a04687b1f",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "dfb7b373-10f9-47e1-ab22-3977865f376a",
+      "coc_name": "San Andreas",
+      "coc_tag": "#G9V9C9088",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:13:12.393344+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "425e9907-44b5-4ae0-9692-275a2e15e363",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "22dec456-eace-4db9-ad2b-feed0bed839c",
+      "coc_name": "Didousse",
+      "coc_tag": "#2VR220C8",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:14:54.209773+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "3d2cc840-dbb9-477f-83fd-5565d4a863ed",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "519c204b-e95d-41c6-8a36-1ccbc41b3101",
+      "coc_name": "DrayZ",
+      "coc_tag": "#20Q9G0RV",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T10:15:06.145438+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "d96e4a4c-ba94-4a05-8d79-ed14c52aea46",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "jeremie0411",
+      "coc_tag": "#99CVVR0QQ",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "63d5c5de-1bb5-47a5-afb3-a58f14999e23",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "KD2L",
+      "coc_tag": "#YL2GVUVLC",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "dcca9f77-404f-45d3-8d34-7230e2b9c547",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Hibou.KD",
+      "coc_tag": "#2QPP2RQ9J",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "65f4cfe8-3c5d-49a0-b614-c50e88a8de1a",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "7f54176b-a593-4c25-b050-deecfd23b90d",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Pogeiwa",
+      "coc_tag": "#YU9CJC08Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "867b6331-a319-4293-aeff-1ec2c5ab919e",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "62c338bf-698d-4d89-b483-8fa86b2ca0aa",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "San Andreas",
+      "coc_tag": "#G9V9C9088",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "f05329e0-23ab-4f3d-8b62-6b563ba00475",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "SkunK",
+      "coc_tag": "#JPJ8L2PG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "8767803b-b807-49ec-b552-9f4f9423e37d",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "wArmUp",
+      "coc_tag": "#YYC2G8R9Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "b0db11f5-15a9-48eb-9d65-d466b3a4b451",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Didousse",
+      "coc_tag": "#2VR220C8",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "0482039a-7ac3-4e05-8d66-7537d34bfcf3",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "DrayZ",
+      "coc_tag": "#20Q9G0RV",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "754ecd79-bfd0-4d3c-b480-713d3c117600",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "●Savior●",
+      "coc_tag": "#2QJG0CLVC",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "6190f9fa-31c4-4a42-9e76-675d1e8cd90f",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "youles",
+      "coc_tag": "#P22QJVVJY",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "63d832a5-2b3d-4fd5-aa69-7cf9020151b3",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "OryxBattel",
+      "coc_tag": "#J2222JCU",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "ef24e65a-db1f-4d98-ae72-986bad8abcc1",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "cookie",
+      "coc_tag": "#CG0RL8QQ",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "902a57d3-1fe2-43e5-bf6b-362170fba6b9",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Dina_Malefika",
+      "coc_tag": "#GG9YPJ999",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "452e300e-e8fa-4f25-a120-c4cf025e67c0",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "404_mike",
+      "coc_tag": "#YUQ9UUYV9",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "736202bc-0009-46c2-9f19-0c52a0844b75",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Ayreon",
+      "coc_tag": "#Q8UQ00VPG",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "2f910bf6-7e5b-434e-93ab-4a659547a14b",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "ae3288c9-947f-42b5-9eca-fe4ad3c2c2c3",
+      "event_id": "57f2937b-0804-458b-8f8b-461758c10c25",
+      "user_id": null,
+      "coc_name": "Hisoka",
+      "coc_tag": "#222G00YJP",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:39:04.216385+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "3b5c4f24-f04b-48dc-b274-abba3e8c6eae",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "b06df8e4-51f9-4f72-8c9e-6bdc38fe7efa",
+      "coc_name": "cookie",
+      "coc_tag": "#CG0RL8QQ",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:44:06.679169+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "16687132-15f7-445f-8aa4-c75754a770a6",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "be10c6c6-e4f0-4eda-82cd-952db8a2043f",
+      "coc_name": "404_mike",
+      "coc_tag": "#YUQ9UUYV9",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T11:44:43.812281+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "044cbb97-460e-49a7-9bcc-2e00a4262e2b",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "37522f58-dcbf-404d-9b8f-46dca880af91",
+      "coc_name": "Ayreon",
+      "coc_tag": "#Q8UQ00VPG",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-28T11:44:55.10816+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "72591ad5-60a0-421e-9396-0b6bf0015939",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "4e992a5e-7022-468f-bbc1-82feb6fea64b",
+      "coc_name": "Jiraqix",
+      "coc_tag": "#YPJ9GYLQV",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-28T12:16:30.469775+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "d914547a-37a3-44ef-9e83-3eaaa0dce7e1",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "87d3627c-a74d-492b-9073-a7bb4c0b740a",
+      "coc_name": "꧁ORYX꧂",
+      "coc_tag": "#2CP089GL0",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-28T12:16:37.962772+00:00",
+      "clan_tag": "#2RCGG9YR9"
+    },
+    {
+      "id": "9f1e2a2f-0f3e-49b3-b640-051d1b843553",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "34950ba3-da21-45f9-b471-ea57aab3d015",
+      "coc_name": "Inglo_D",
+      "coc_tag": "#2J2Q8R2R9",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T12:16:57.306615+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "4d7576bb-9ab3-4c20-871f-ad420de2fa99",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "628dd69e-510e-4fac-9f58-cbb4c929d8ed",
+      "coc_name": "YOULES2RUSH",
+      "coc_tag": "#LVLYUC2QG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T12:17:04.286717+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "0de17e1d-5e26-4297-a5b3-141c834ea064",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "71ca69a4-95bd-4bf4-a216-5d6096f80f36",
+      "coc_name": "carla",
+      "coc_tag": "#LVRYGJ802",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T12:17:30.935358+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "5108cc72-39c7-4fe6-ad93-d3a571d9766a",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "ba8ed554-87ae-47d2-8391-876cff400610",
+      "coc_name": "Theman6",
+      "coc_tag": "#GV02R22CG",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T12:17:41.39835+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "1996217f-9ec1-4405-8c53-4b6869f108f4",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "94c0b2f1-63f5-44aa-a1cd-01d0833af978",
+      "coc_name": "zaabdel",
+      "coc_tag": "#GUYP0CPQC",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T12:17:49.54565+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "ab3b8708-765f-4baf-8b9f-e250a4b1060e",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "8a728f30-076e-43a5-95a1-099a1d5485ce",
+      "coc_name": "team leduc",
+      "coc_tag": "#LLGY0GY2",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T12:18:30.310483+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "8d73e30b-44ec-4cac-8d9a-14b3b184e875",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "fac2e8e4-215d-412c-a09f-8bf487f6f099",
+      "coc_name": "natou le boss",
+      "coc_tag": "#RGYV02UY",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T12:19:10.271599+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "35da9c76-c457-4750-885f-34627c26b63a",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "b43f3bc0-99c3-4ee2-8c82-1079c86a4f40",
+      "coc_name": "OryxBattel",
+      "coc_tag": "#J2222JCU",
+      "coc_role": "member",
+      "signed_up_at": "2026-06-28T18:36:17.714439+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "6555f364-81c3-4dda-9dfd-c1744bd87147",
+      "event_id": "6eb6e28e-f5bc-4f45-a72e-ad3ee517b3d1",
+      "user_id": "d0564113-89af-4619-9332-99c136791f74",
+      "coc_name": "youles",
+      "coc_tag": "#P22QJVVJY",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-28T18:56:59.418656+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "e0d335ef-b33b-4fb1-88d3-e5cc705ee820",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "6b67f8b4-0d0a-4150-a09a-6c1bd25e6360",
+      "coc_name": "un mec qui te b",
+      "coc_tag": "#QGQRPG9LR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-06-29T09:42:13.618681+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "ab0bf653-6360-4328-92dc-a47f92b2c4a1",
+      "event_id": "564349fb-4982-42a1-90a7-1aa11f7f07d0",
+      "user_id": "f4afaf3b-7513-41e3-b7ea-ba6d9d5c53c2",
+      "coc_name": "Cénation",
+      "coc_tag": "#9YVP0YV",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-02T11:08:57.313999+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "59bbf2e7-2432-46e9-85be-cee6daccbc28",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "c23faee6-9062-4316-86a4-bf38345ad6d8",
+      "coc_name": "Peklenc",
+      "coc_tag": "#GPJG9LJCR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-07T14:17:35.472422+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "fc53c9f5-a40b-4f4e-af20-14e437c93a03",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "b43f3bc0-99c3-4ee2-8c82-1079c86a4f40",
+      "coc_name": "OryxBattel",
+      "coc_tag": "#J2222JCU",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-07T14:19:31.23399+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "2946739b-6123-4458-8c4e-63c209e9e0b0",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "cace4dc9-f92a-400b-bb64-c9546134db3a",
+      "coc_name": "CyberAlf",
+      "coc_tag": "#YQCULYQ90",
+      "coc_role": "leader",
+      "signed_up_at": "2026-07-07T14:19:32.908588+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "7691c04f-b77b-4aab-99e9-dcaee483d75c",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "d27ba683-dcb6-4625-a01a-f7c4efbf5b41",
+      "coc_name": "Pogeiwa",
+      "coc_tag": "#YU9CJC08Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-07T14:19:39.93488+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "7d98c336-76c2-49f3-a660-d20f9d2b6dd7",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "f2367142-16b3-428b-a4ff-3dd46fcb1e98",
+      "coc_name": "wArmUp",
+      "coc_tag": "#YYC2G8R9Q",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-07T14:20:16.575243+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "26eaf753-d60d-41cc-827f-f7e77c9a82a8",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "db30e065-ec02-48bf-8d76-fe897ed846ad",
+      "coc_name": "●Savior●",
+      "coc_tag": "#2QJG0CLVC",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-07T14:20:32.634457+00:00",
+      "clan_tag": "#29292QPRC"
+    },
+    {
+      "id": "235e48aa-3a7f-4009-8cf2-35b9842019af",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "e726bb7b-150e-4742-90b2-6cfd512e751d",
+      "coc_name": "KD2L",
+      "coc_tag": "#YL2GVUVLC",
+      "coc_role": "coLeader",
+      "signed_up_at": "2026-07-07T14:32:31.61478+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "9e0bf50e-fbd3-422b-b560-d78d367cd575",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "54b24092-91c2-4246-ae5a-208229488235",
+      "coc_name": "Dina_Malefika",
+      "coc_tag": "#GG9YPJ999",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-07T14:40:56.181672+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "e91332f1-f930-4005-b428-8c5629e42b9e",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "ba8ed554-87ae-47d2-8391-876cff400610",
+      "coc_name": "Theman6",
+      "coc_tag": "#GV02R22CG",
+      "coc_role": "member",
+      "signed_up_at": "2026-07-07T15:07:09.471098+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "2380cb40-cc32-4280-9bf7-973a692128f7",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "67cb17f4-9070-4bcc-b939-1d15975f8338",
+      "coc_name": "Inglo",
+      "coc_tag": "#88VU8RYR",
+      "coc_role": "admin",
+      "signed_up_at": "2026-07-07T15:15:21.977087+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "bd8d8178-052b-4b41-8d74-153f282ef1dc",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "8a728f30-076e-43a5-95a1-099a1d5485ce",
+      "coc_name": "team leduc",
+      "coc_tag": "#LLGY0GY2",
+      "coc_role": "member",
+      "signed_up_at": "2026-07-07T15:16:50.821923+00:00",
+      "clan_tag": "DR1"
+    },
+    {
+      "id": "a8836721-9aa8-4ad9-a156-8bf44e049fab",
+      "event_id": "df7f49c6-3962-49a7-bd66-423aae8809a8",
+      "user_id": "b06df8e4-51f9-4f72-8c9e-6bdc38fe7efa",
+      "coc_name": "cookie",
+      "coc_tag": "#CG0RL8QQ",
+      "coc_role": "member",
+      "signed_up_at": "2026-07-07T19:09:15.395384+00:00",
+      "clan_tag": "DR1"
+    }
+  ]
+}
