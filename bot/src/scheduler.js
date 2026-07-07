@@ -678,11 +678,19 @@ async function cleanupReminderChannel(client) {
 // ─── Point d'entrée ───────────────────────────────────────────────────────────
 
 function startScheduler(client) {
+  let isRunning = false
   const run = async () => {
+    if (isRunning) {
+      console.log('[Scheduler] Tick ignoré — tick précédent encore en cours')
+      return
+    }
+    isRunning = true
     try { await checkAndUpdate(client) }
     catch (e) {
       console.error('[Scheduler] Erreur:', e)
       log(client, 'ERREUR', `scheduler.js: ${e.message}`, true).catch(() => {})
+    } finally {
+      isRunning = false
     }
   }
   cleanupReminderChannel(client)

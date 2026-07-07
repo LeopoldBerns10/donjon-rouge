@@ -92,7 +92,7 @@ async function ensureRaidEvent(client) {
     const title       = '💎 Raid Capital — Donjon Rouge'
     const description = 'Le Raid Capital commence ! Participez pour contribuer au clan et gagner des ressources Capital.'
     const eventId     = await createDiscordEvent(client, { title, description, startTime: raidStart, endTime: raidEnd })
-    await supabase.from('discord_events').insert({
+    const { error } = await supabase.from('discord_events').insert({
       discord_event_id: eventId,
       type: 'raid',
       title,
@@ -100,6 +100,12 @@ async function ensureRaidEvent(client) {
       start_time: raidStart.toISOString(),
       end_time:   raidEnd.toISOString(),
     })
+    if (error?.code === '23505') {
+      console.log(`[Events] Raid doublon intercepté — suppression discord_event ${eventId}`)
+      await deleteDiscordEvent(client, eventId)
+      return
+    }
+    if (error) throw new Error(error.message)
     console.log(`[Events] Raid créé — ${raidStart.toISOString()}`)
     log(client, 'EVENT', `Raid Capital créé — ${raidStart.toISOString()}`).catch(() => {})
     return
@@ -143,7 +149,7 @@ async function ensureJdcEvent(client) {
     const title       = '🎮 Jeux de Clan — Donjon Rouge'
     const description = 'Les Jeux de Clan sont lancés ! Objectif minimum : 5 000 pts pour les membres DR.'
     const eventId     = await createDiscordEvent(client, { title, description, startTime: jdcStart, endTime: jdcEnd })
-    await supabase.from('discord_events').insert({
+    const { error } = await supabase.from('discord_events').insert({
       discord_event_id: eventId,
       type: 'jdc',
       title,
@@ -151,6 +157,12 @@ async function ensureJdcEvent(client) {
       start_time: jdcStart.toISOString(),
       end_time:   jdcEnd.toISOString(),
     })
+    if (error?.code === '23505') {
+      console.log(`[Events] JDC doublon intercepté — suppression discord_event ${eventId}`)
+      await deleteDiscordEvent(client, eventId)
+      return
+    }
+    if (error) throw new Error(error.message)
     console.log(`[Events] JDC créé — ${jdcStart.toISOString()}`)
     log(client, 'EVENT', `Jeux de Clan créé — ${jdcStart.toISOString()}`).catch(() => {})
     return
@@ -414,7 +426,7 @@ async function ensureNextMonthEvents(client) {
     }
     try {
       const eventId = await createDiscordEvent(client, { title, description, startTime, endTime })
-      await supabase.from('discord_events').insert({
+      const { error } = await supabase.from('discord_events').insert({
         discord_event_id: eventId,
         type,
         title,
@@ -423,6 +435,12 @@ async function ensureNextMonthEvents(client) {
         end_time:    endTime.toISOString(),
         announced:   false,
       })
+      if (error?.code === '23505') {
+        console.log(`[Events/NextMonth] ⚠️  Doublon intercepté — suppression discord_event ${eventId}`)
+        await deleteDiscordEvent(client, eventId)
+        return
+      }
+      if (error) throw new Error(error.message)
       console.log(`[Events/NextMonth] ✅ Créé : "${title}" (${startTime.toISOString()})`)
       created++
     } catch (e) {
