@@ -188,9 +188,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Roulette casino */}
-          <Roulette />
-
           {/* War status */}
           {clan.isWarLogPublic !== undefined && (
             <div className="mt-6 p-4 rounded-2xl bg-[#111111] border border-[#1f1f1f] hover:border-[#dc2626]/30 transition-all duration-200">
@@ -215,6 +212,9 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* Roulette casino */}
+          <Roulette />
         </section>
       )}
 

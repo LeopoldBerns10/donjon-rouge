@@ -259,7 +259,8 @@ export function Roulette() {
       {event?.active && !event.isWon && (
         <div className="relative rounded-3xl overflow-hidden
                         bg-gradient-to-b from-[#1a0000] via-[#111111] to-[#0d0d0d]
-                        border border-[#dc2626]/30 shadow-2xl shadow-[#dc2626]/10">
+                        border border-[#dc2626]/50 shadow-2xl shadow-[#dc2626]/20
+                        ring-1 ring-[#dc2626]/10">
 
           {/* Trait brillant haut */}
           <div className="absolute top-0 left-0 right-0 h-px
@@ -268,13 +269,14 @@ export function Roulette() {
           {/* Header */}
           <div className="px-6 pt-6 pb-4 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full
-                            bg-[#dc2626]/10 border border-[#dc2626]/30 mb-3">
+                            bg-[#dc2626]/15 border border-[#dc2626]/50 mb-3">
               <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626] animate-pulse" />
               <span className="text-[10px] uppercase tracking-widest text-[#dc2626] font-bold">
                 Événement Spécial
               </span>
             </div>
-            <h3 className="text-2xl font-black text-white uppercase tracking-wide mb-1">
+            <h3 className="text-2xl font-black uppercase tracking-wide mb-1"
+                style={{ background: 'linear-gradient(90deg, #dc2626, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               ROULETTE
             </h3>
             <p className="text-sm text-gray-400">{event.title}</p>
@@ -289,7 +291,8 @@ export function Roulette() {
 
             {/* Lot */}
             <div className="text-center px-6 py-3 rounded-2xl
-                            bg-[#111111] border border-[#f59e0b]/20 w-full max-w-xs">
+                            bg-[#111111] border border-[#f59e0b]/40
+                            shadow-lg shadow-[#f59e0b]/10 w-full max-w-xs">
               <p className="text-[10px] uppercase tracking-widest text-gray-600 mb-1">
                 Lot à gagner
               </p>
@@ -308,8 +311,12 @@ export function Roulette() {
                 </p>
                 <div className="w-full bg-[#1a1a1a] rounded-full h-1 mt-1.5">
                   <div
-                    className="bg-[#dc2626] h-1 rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min((event.currentClicks / event.targetClicks) * 100, 100)}%` }}
+                    className="h-1.5 rounded-full transition-all duration-500"
+                    style={{
+                      width: `${Math.min((event.currentClicks / event.targetClicks) * 100, 100)}%`,
+                      background: 'linear-gradient(90deg, #dc2626, #f59e0b)',
+                      boxShadow: '0 0 6px rgba(220,38,38,0.5)',
+                    }}
                   />
                 </div>
               </div>
