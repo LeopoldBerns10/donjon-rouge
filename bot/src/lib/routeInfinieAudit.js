@@ -14,12 +14,16 @@ function markBotDeleted(messageId) {
 }
 
 async function logMessageEdit(discordId, originalContent, newContent, action) {
-  await supabase.from('route_infinie_message_edits').insert({
-    discord_id:       discordId,
-    original_content: originalContent ?? null,
-    new_content:      newContent ?? null,
-    action,
-  }).catch(() => {})
+  try {
+    await supabase.from('route_infinie_message_edits').insert({
+      discord_id:       discordId,
+      original_content: originalContent ?? null,
+      new_content:      newContent ?? null,
+      action,
+    })
+  } catch (e) {
+    console.error('[logMessageEdit] Supabase insert échoué:', e)
+  }
 }
 
 async function handleMessageDelete(message, client) {

@@ -14,13 +14,17 @@ const { markBotDeleted } = require('./routeInfinieAudit.js')
 let isProcessing = false
 
 async function logRefusal(discordId, username, attemptedValue, reason, expectedValue = null) {
-  await supabase.from('route_infinie_refused_attempts').insert({
-    discord_id:      discordId,
-    coc_name:        username,
-    attempted_value: String(attemptedValue),
-    reason,
-    expected_value:  expectedValue,
-  }).catch(() => {})
+  try {
+    await supabase.from('route_infinie_refused_attempts').insert({
+      discord_id:      discordId,
+      coc_name:        username,
+      attempted_value: String(attemptedValue),
+      reason,
+      expected_value:  expectedValue,
+    })
+  } catch (e) {
+    console.error('[logRefusal] Supabase insert échoué:', e)
+  }
 }
 
 const ROUTE_CHANNEL_ID = '1520108333846233098'
