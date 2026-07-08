@@ -9,6 +9,8 @@ import {
   enableUser,
   deleteUser,
   triggerSync,
+  getPerformanceAll,
+  getPerformanceDetail,
 } from '../controllers/adminController.js'
 
 const router = Router()
@@ -21,5 +23,7 @@ router.post('/disable', verifyToken, requireSuperAdmin, disableUser)
 router.post('/enable', verifyToken, requireSuperAdmin, enableUser)
 router.delete('/users/:userId', verifyToken, requireSuperAdmin, deleteUser)
 router.post('/sync-members', verifyToken, requireSuperAdmin, triggerSync)
+router.get('/performance', verifyToken, requireSuperAdmin, getPerformanceAll)
+router.get('/performance/:coc_tag', verifyToken, requireSuperAdmin, getPerformanceDetail)
 
 export default router

@@ -7,6 +7,240 @@ import { AnimatedBackground } from '../components/AnimatedBackground.jsx'
 import SectionHeader from '../components/SectionHeader.jsx'
 import { formatCocRole } from '../utils/roles.js'
 
+// ── Barre de score colorée ────────────────────────────────────────────────────
+
+function ScoreBar({ value }) {
+  const color = value >= 75 ? '#22c55e' : value >= 50 ? '#f59e0b' : '#dc2626'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 bg-[#1a1a1a] rounded-full h-1.5 overflow-hidden min-w-[40px]">
+        <div style={{ width: `${value}%`, background: color }} className="h-full rounded-full" />
+      </div>
+      <span className="text-xs font-bold w-8 text-right" style={{ color }}>{value}%</span>
+    </div>
+  )
+}
+
+// ── Modal de détail d'un membre (performance) ─────────────────────────────────
+
+function DetailModal({ coc_tag, onClose }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.get(`/api/admin/performance/${encodeURIComponent(coc_tag)}`)
+      .then(r => setData(r.data))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false))
+  }, [coc_tag])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
+  const gdcHistory = data?.history?.filter(r => r.event_type === 'gdc') || []
+  const jdcHistory = data?.history?.filter(r => r.event_type === 'jdc') || []
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-[#111] border border-[#1f1f1f] rounded-xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+           onClick={e => e.stopPropagation()}>
+        <div className="px-6 py-4 border-b border-[#1f1f1f] flex items-center justify-between sticky top-0 bg-[#111] z-10">
+          <h3 className="font-cinzel text-base font-bold uppercase tracking-wide"
+              style={{ background: 'linear-gradient(90deg, #dc2626, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            {loading ? '…' : data?.coc_name}
+          </h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors text-2xl leading-none">×</button>
+        </div>
+
+        {loading && <p className="text-ash font-cinzel animate-pulse text-center py-10">Chargement…</p>}
+
+        {!loading && data && (
+          <div className="px-6 py-5 space-y-6">
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Score activité', value: `${data.activityScore}%` },
+                { label: 'Double perfs GDC', value: data.gdc.doublePerfs },
+                { label: `GDC — ${data.gdc.guerresJouees} guerres`, value: `${data.gdc.taux}%` },
+                { label: `JDC — ${data.jdc.sessionsJouees} sessions`, value: `${data.jdc.taux}%` },
+                ...(data.gdc.avgAttackPercent != null ? [{ label: 'Moy. attaques GDC', value: `${data.gdc.avgAttackPercent}%` }] : []),
+              ].map(s => (
+                <div key={s.label} className="rounded-lg p-3 border border-fog/30" style={{ background: '#0d0d0d' }}>
+                  <div className="text-xs text-ash font-cinzel uppercase tracking-widest mb-1">{s.label}</div>
+                  <div className="text-lg font-bold font-cinzel text-gold-light">{s.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {gdcHistory.length > 0 && (
+              <div>
+                <h4 className="font-cinzel text-xs uppercase tracking-widest text-gold mb-2">Historique GDC</h4>
+                <div className="overflow-x-auto rounded border border-fog/20">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="font-cinzel uppercase text-ash tracking-wider border-b border-fog/30" style={{ background: '#1a1a1a' }}>
+                        <th className="py-2 px-3 text-left">Date</th>
+                        <th className="py-2 px-3 text-center">Participé</th>
+                        <th className="py-2 px-3 text-center">Attaques</th>
+                        <th className="py-2 px-3 text-center">Double perf</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gdcHistory.map((r, i) => (
+                        <tr key={i} className="border-b border-fog/10" style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                          <td className="py-2 px-3 text-ash">{new Date(r.event_date).toLocaleDateString('fr-FR')}</td>
+                          <td className="py-2 px-3 text-center">{r.participated ? '✅' : '❌'}</td>
+                          <td className="py-2 px-3 text-center text-ash">{r.attack_percentage != null ? `${r.attack_percentage}%` : '—'}</td>
+                          <td className="py-2 px-3 text-center">{r.double_perf ? '⭐' : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {jdcHistory.length > 0 && (
+              <div>
+                <h4 className="font-cinzel text-xs uppercase tracking-widest text-gold mb-2">Historique JDC</h4>
+                <div className="overflow-x-auto rounded border border-fog/20">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="font-cinzel uppercase text-ash tracking-wider border-b border-fog/30" style={{ background: '#1a1a1a' }}>
+                        <th className="py-2 px-3 text-left">Date</th>
+                        <th className="py-2 px-3 text-center">Participé</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {jdcHistory.map((r, i) => (
+                        <tr key={i} className="border-b border-fog/10" style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                          <td className="py-2 px-3 text-ash">{new Date(r.event_date).toLocaleDateString('fr-FR')}</td>
+                          <td className="py-2 px-3 text-center">{r.participated ? '✅' : '❌'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {gdcHistory.length === 0 && jdcHistory.length === 0 && (
+              <p className="text-ash font-cinzel text-sm text-center py-4">Aucune donnée de performance</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+// ── Panel classement performance (superadmin) ─────────────────────────────────
+
+function PerformancePanel() {
+  const [members, setMembers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [sortKey, setSortKey] = useState('activityScore')
+  const [sortDir, setSortDir] = useState('desc')
+  const [selected, setSelected] = useState(null)
+
+  useEffect(() => {
+    api.get('/api/admin/performance')
+      .then(r => setMembers(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  function toggleSort(key) {
+    if (sortKey === key) setSortDir(d => d === 'desc' ? 'asc' : 'desc')
+    else { setSortKey(key); setSortDir('desc') }
+  }
+
+  const sorted = [...members].sort((a, b) => {
+    const dir = sortDir === 'desc' ? -1 : 1
+    const getVal = m => {
+      if (sortKey === 'coc_name') return m.coc_name
+      if (sortKey === 'gdcTaux') return m.gdc.taux
+      if (sortKey === 'jdcTaux') return m.jdc.taux
+      if (sortKey === 'doublePerfs') return m.gdc.doublePerfs
+      return m.activityScore
+    }
+    const aVal = getVal(a), bVal = getVal(b)
+    if (typeof aVal === 'string') return dir * aVal.localeCompare(bVal)
+    return dir * (aVal - bVal)
+  })
+
+  function thCls(key) {
+    return `py-3 px-4 text-center cursor-pointer select-none hover:text-white transition-colors ${sortKey === key ? 'text-[#dc2626]' : ''}`
+  }
+  function sortArrow(key) { return sortKey === key ? (sortDir === 'desc' ? ' ↓' : ' ↑') : '' }
+
+  if (loading) return <p className="text-ash font-cinzel animate-pulse text-center py-10">Chargement des performances…</p>
+
+  return (
+    <>
+      {selected && <DetailModal coc_tag={selected} onClose={() => setSelected(null)} />}
+      <div className="mb-4 flex items-center justify-between flex-wrap gap-2">
+        <h2 className="font-cinzel text-gold-bright uppercase tracking-wider text-sm">
+          Performance — {members.length} membres
+        </h2>
+        <span className="text-xs text-ash font-cinzel">Clic sur un membre pour le détail complet</span>
+      </div>
+      <div className="overflow-x-auto rounded-lg border border-fog/30">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="font-cinzel uppercase text-xs tracking-widest text-gold border-b border-fog/40" style={{ background: '#1a1a1a' }}>
+              <th className={`py-3 px-4 text-left cursor-pointer select-none hover:text-white transition-colors ${sortKey === 'coc_name' ? 'text-[#dc2626]' : ''}`}
+                  onClick={() => toggleSort('coc_name')}>
+                Joueur{sortArrow('coc_name')}
+              </th>
+              <th className={thCls('gdcTaux')} onClick={() => toggleSort('gdcTaux')}>GDC{sortArrow('gdcTaux')}</th>
+              <th className={thCls('jdcTaux')} onClick={() => toggleSort('jdcTaux')}>JDC{sortArrow('jdcTaux')}</th>
+              <th className={thCls('activityScore')} onClick={() => toggleSort('activityScore')}>Score{sortArrow('activityScore')}</th>
+              <th className={thCls('doublePerfs')} onClick={() => toggleSort('doublePerfs')}>2× Perf{sortArrow('doublePerfs')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((m, i) => (
+              <tr key={m.coc_tag}
+                  onClick={() => setSelected(m.coc_tag)}
+                  className="border-b border-fog/20 cursor-pointer hover:bg-[#1a1a1a] transition-colors"
+                  style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                <td className="py-3 px-4">
+                  <span className="font-semibold text-bone text-sm">{m.coc_name}</span>
+                  <div className="text-xs text-ash/60">{m.coc_tag}</div>
+                </td>
+                <td className="py-3 px-4">
+                  <ScoreBar value={m.gdc.taux} />
+                  <div className="text-xs text-ash/60 text-center mt-0.5">{m.gdc.participated}/{m.gdc.guerresJouees}</div>
+                </td>
+                <td className="py-3 px-4">
+                  <ScoreBar value={m.jdc.taux} />
+                  <div className="text-xs text-ash/60 text-center mt-0.5">{m.jdc.participated}/{m.jdc.sessionsJouees}</div>
+                </td>
+                <td className="py-3 px-4">
+                  <ScoreBar value={m.activityScore} />
+                </td>
+                <td className="py-3 px-4 text-center">
+                  <span className="font-bold text-gold-light">{m.gdc.doublePerfs}</span>
+                </td>
+              </tr>
+            ))}
+            {sorted.length === 0 && (
+              <tr>
+                <td colSpan={5} className="py-10 text-center text-ash font-cinzel text-sm">
+                  Aucune donnée de performance disponible
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )
+}
+
 // ── Formatage de la dernière connexion ────────────────────────────────────────
 
 function formatLastLogin(date) {
@@ -330,6 +564,7 @@ export default function Admin() {
   const [adminFilter, setAdminFilter] = useState('all')
   const [syncing, setSyncing] = useState(false)
   const [syncResult, setSyncResult] = useState(null)
+  const [activeTab, setActiveTab] = useState('membres')
 
   useEffect(() => {
     if (!authLoading && !isAdmin) navigate('/')
@@ -430,41 +665,72 @@ export default function Admin() {
       {error && <p className="text-red-400 font-cinzel text-sm mb-4">{error}</p>}
       {success && <p className="text-green-400 font-cinzel text-sm mb-4">✅ {success}</p>}
 
-      {/* Stats rapides */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { label: 'Membres', value: users.length, icon: '👥' },
-          { label: 'Admins', value: users.filter(u => u.site_role === 'admin' || u.site_role === 'superadmin').length, icon: '🛡️' },
-          { label: 'MDP par défaut', value: users.filter(u => !u.has_custom_password).length, icon: '🔑' },
-        ].map((s) => (
-          <div key={s.label} className="rounded-lg p-4 flex flex-col items-center gap-1 border border-fog/30"
-            style={{ background: '#111' }}>
-            <span className="text-2xl">{s.icon}</span>
-            <span className="text-xl font-bold font-cinzel text-gold-light">{s.value}</span>
-            <span className="text-xs text-ash font-cinzel uppercase tracking-widest text-center">{s.label}</span>
+      {/* Onglets (superadmin uniquement) */}
+      {isSuperAdmin && (
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => setActiveTab('membres')}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase border transition-all font-cinzel ${
+              activeTab === 'membres'
+                ? 'bg-[#1a1a1a] border-[#555] text-white'
+                : 'bg-[#111] border-[#2a2a2a] text-gray-500 hover:border-[#555] hover:text-gray-300'
+            }`}>
+            👥 Membres
+          </button>
+          <button
+            onClick={() => setActiveTab('performance')}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase border transition-all font-cinzel ${
+              activeTab === 'performance'
+                ? 'bg-[#dc2626]/15 border-[#dc2626] text-[#dc2626]'
+                : 'bg-[#111] border-[#2a2a2a] text-gray-500 hover:border-[#dc2626]/40 hover:text-[#dc2626]/60'
+            }`}>
+            📊 Performance
+          </button>
+        </div>
+      )}
+
+      {/* Contenu onglet Membres */}
+      {activeTab === 'membres' && (
+        <>
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            {[
+              { label: 'Membres', value: users.length, icon: '👥' },
+              { label: 'Admins', value: users.filter(u => u.site_role === 'admin' || u.site_role === 'superadmin').length, icon: '🛡️' },
+              { label: 'MDP par défaut', value: users.filter(u => !u.has_custom_password).length, icon: '🔑' },
+            ].map((s) => (
+              <div key={s.label} className="rounded-lg p-4 flex flex-col items-center gap-1 border border-fog/30"
+                style={{ background: '#111' }}>
+                <span className="text-2xl">{s.icon}</span>
+                <span className="text-xl font-bold font-cinzel text-gold-light">{s.value}</span>
+                <span className="text-xs text-ash font-cinzel uppercase tracking-widest text-center">{s.label}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Tableau membres */}
-      <div className="mb-4 flex items-center gap-3">
-        <h2 className="font-cinzel text-gold-bright uppercase tracking-wider text-sm">
-          Membres — {users.length} comptes
-        </h2>
-        {!isSuperAdmin && (
-          <span className="text-xs text-ash font-cinzel">(accès lecture + reset MDP)</span>
-        )}
-      </div>
+          <div className="mb-4 flex items-center gap-3">
+            <h2 className="font-cinzel text-gold-bright uppercase tracking-wider text-sm">
+              Membres — {users.length} comptes
+            </h2>
+            {!isSuperAdmin && (
+              <span className="text-xs text-ash font-cinzel">(accès lecture + reset MDP)</span>
+            )}
+          </div>
 
-      <MembresTable
-        users={users}
-        currentUser={user}
-        isSuperAdmin={isSuperAdmin}
-        onAction={handleAction}
-        loading={usersLoading}
-        adminFilter={adminFilter}
-        setAdminFilter={setAdminFilter}
-      />
+          <MembresTable
+            users={users}
+            currentUser={user}
+            isSuperAdmin={isSuperAdmin}
+            onAction={handleAction}
+            loading={usersLoading}
+            adminFilter={adminFilter}
+            setAdminFilter={setAdminFilter}
+          />
+        </>
+      )}
+
+      {/* Contenu onglet Performance */}
+      {activeTab === 'performance' && isSuperAdmin && <PerformancePanel />}
+
     </div>
     </>
   )
