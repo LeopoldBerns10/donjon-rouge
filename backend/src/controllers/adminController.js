@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs'
 import supabase from '../lib/supabase.js'
+import { syncMembers } from '../services/syncMembers.js'
 
 // Liste tous les utilisateurs actifs (partis depuis moins de 48h inclus)
 export async function getUsers(req, res) {
@@ -113,6 +114,16 @@ export async function enableUser(req, res) {
 
   if (error) return res.status(500).json({ error: error.message })
   return res.json({ success: true })
+}
+
+// Déclencher manuellement la sync CoC (superadmin uniquement)
+export async function triggerSync(req, res) {
+  try {
+    const result = await syncMembers()
+    return res.json(result)
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
 }
 
 // Supprimer définitivement un compte (superadmin uniquement)

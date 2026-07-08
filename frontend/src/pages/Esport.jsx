@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
 
@@ -140,7 +140,6 @@ function ResultModal({ onClose, onSave }) {
 
 export default function Esport() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const isSuperAdmin = user?.site_role === 'superadmin' || user?.coc_name === 'CyberAlf'
 
   const [status, setStatus] = useState({ enabled: null, loading: true })
@@ -165,10 +164,7 @@ export default function Esport() {
 
   useEffect(() => {
     if (status.loading) return
-    if (!status.enabled && !isSuperAdmin) {
-      navigate('/', { replace: true })
-      return
-    }
+    if (!status.enabled && !isSuperAdmin) return
     api.get('/api/esport/clan-info').then(r => setClanData({ clan: r.data.clan, members: r.data.members, warlog: r.data.warlog || [], loading: false })).catch(() => setClanData(d => ({ ...d, loading: false })))
     loadResults()
   }, [status.loading, status.enabled, isSuperAdmin])
@@ -201,6 +197,32 @@ export default function Esport() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-ash font-cinzel animate-pulse">Chargement...</p>
+      </div>
+    )
+  }
+
+  if (!status.enabled && !isSuperAdmin) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: '#0e0e0e' }}>
+        <div className="relative mb-6">
+          <div className="absolute inset-0 bg-[#dc2626]/20 blur-3xl rounded-full scale-150 pointer-events-none" />
+          <img src="/images/logo_2.png" alt="Donjon Rouge" className="relative w-28 h-28 object-contain opacity-70" />
+        </div>
+        <h1 className="font-cinzel-deco font-black text-3xl mb-3"
+            style={{ background: 'linear-gradient(135deg, #dc2626, #f59e0b)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+          DR E-SPORT
+        </h1>
+        <p className="text-gray-400 text-center max-w-xs text-sm leading-relaxed">
+          Le clan E-Sport est actuellement en pause.
+          <br />Revenez bientôt !
+        </p>
+        <Link
+          to="/"
+          className="mt-8 px-6 py-2.5 rounded-xl text-sm font-bold uppercase
+                     border border-[#dc2626]/30 text-[#dc2626]/70
+                     hover:border-[#dc2626] hover:text-[#dc2626] transition-all">
+          ← Retour à l'accueil
+        </Link>
       </div>
     )
   }

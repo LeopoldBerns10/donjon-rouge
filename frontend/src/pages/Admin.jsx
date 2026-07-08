@@ -328,6 +328,8 @@ export default function Admin() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [adminFilter, setAdminFilter] = useState('all')
+  const [syncing, setSyncing] = useState(false)
+  const [syncResult, setSyncResult] = useState(null)
 
   useEffect(() => {
     if (!authLoading && !isAdmin) navigate('/')
@@ -346,6 +348,19 @@ export default function Admin() {
       console.log('ADMIN clan_tag debug:', users.slice(0, 5).map(u => ({ name: u.coc_name, clan_tag: u.clan_tag })))
     }
   }, [users])
+
+  async function handleSync() {
+    setSyncing(true)
+    setSyncResult(null)
+    try {
+      const r = await api.post('/api/admin/sync-members')
+      setSyncResult({ ok: true, ...r.data })
+    } catch (e) {
+      setSyncResult({ ok: false, error: e.response?.data?.error || 'Erreur lors du scan' })
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   async function handleAction(action, userId) {
     setError('')
@@ -388,6 +403,28 @@ export default function Admin() {
           <span className="text-bone font-cinzel text-sm font-bold">{user?.coc_name}</span>
           {roleBadge(userRole)}
         </div>
+        {isSuperAdmin && (
+          <div className="mt-4 flex items-center gap-4 flex-wrap">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold
+                         border border-[#dc2626]/40 text-[#dc2626]/80
+                         hover:border-[#dc2626] hover:text-[#dc2626] hover:bg-[#dc2626]/10
+                         disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              <span className={syncing ? 'animate-spin inline-block' : ''}>🔄</span>
+              {syncing ? 'Scan en cours…' : 'Forcer le scan CoC'}
+            </button>
+            {syncResult && (
+              syncResult.ok
+                ? <span className="text-green-400 font-cinzel text-xs">
+                    ✅ Scan terminé — {syncResult.created} créés · {syncResult.updated} mis à jour · {syncResult.left} partants
+                  </span>
+                : <span className="text-red-400 font-cinzel text-xs">❌ {syncResult.error}</span>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <p className="text-red-400 font-cinzel text-sm mb-4">{error}</p>}
