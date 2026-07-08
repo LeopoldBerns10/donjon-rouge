@@ -16,6 +16,7 @@ function resolveVariables(text, member, channel = null) {
     '{user.id}':                     user.id,
     '{user.username}':               user.username,
     '{user.nickname}':               member.nickname ?? user.username,
+    '{user.displayname}':            member.displayName ?? member.nickname ?? user.username,
     '{user.globalname}':             user.globalName ?? user.username,
     '{user.tag}':                    user.tag ?? user.username,
     '{user.rolecount}':              String(Math.max(0, member.roles.cache.size - 1)),
