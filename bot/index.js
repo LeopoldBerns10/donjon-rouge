@@ -1,5 +1,5 @@
 require('dotenv').config()
-const { Client, GatewayIntentBits, Collection } = require('discord.js')
+const { Client, GatewayIntentBits, Collection, Partials } = require('discord.js')
 const { readdirSync, statSync } = require('fs')
 const { join } = require('path')
 const { startScheduler } = require('./src/scheduler.js')
@@ -14,7 +14,8 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildVoiceStates,
-  ]
+  ],
+  partials: [Partials.Message, Partials.Channel],
 })
 
 client.commands = new Collection()

@@ -10,6 +10,16 @@ const {
 const supabase = require('../supabase.js')
 const { log } = require('./botLogger.js')
 
+async function logRefusal(discordId, username, attemptedValue, reason, expectedValue = null) {
+  await supabase.from('route_infinie_refused_attempts').insert({
+    discord_id:      discordId,
+    coc_name:        username,
+    attempted_value: String(attemptedValue),
+    reason,
+    expected_value:  expectedValue,
+  }).catch(() => {})
+}
+
 const ROUTE_CHANNEL_ID = '1520108333846233098'
 const PANEL_CHANNEL_ID = '1522353459364626625'
 const CYBERALF_ID      = '610765755553939456'
@@ -100,6 +110,7 @@ async function handleRouteMessage(message) {
 
   if (isNaN(num) || num.toString() !== trimmed || num < 1) {
     await message.delete().catch(() => {})
+    logRefusal(message.author.id, message.author.username, trimmed, 'not_numeric')
     return sendError(message, `❌ Tu n'es pas autorisé à écrire du texte ici !`)
   }
 
@@ -108,11 +119,13 @@ async function handleRouteMessage(message) {
 
   if (num !== state.current_number + 1) {
     await message.delete().catch(() => {})
+    logRefusal(message.author.id, message.author.username, num, 'wrong_number', state.current_number + 1)
     return sendError(message, `❌ Ce nombre n'est pas correct ! Le prochain nombre est **${state.current_number + 1}**.`)
   }
 
   if (message.author.id === state.last_discord_id) {
     await message.delete().catch(() => {})
+    logRefusal(message.author.id, message.author.username, num, 'same_player_twice')
     return sendError(message, `❌ Un autre joueur doit d'abord réagir avant toi !`)
   }
 
@@ -123,6 +136,7 @@ async function handleRouteMessage(message) {
     if (remaining > 0) {
       const minutes = Math.ceil(remaining / 60000)
       await message.delete().catch(() => {})
+      logRefusal(message.author.id, message.author.username, num, 'cooldown_active')
       return sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de jouer à nouveau !`)
     }
   }
