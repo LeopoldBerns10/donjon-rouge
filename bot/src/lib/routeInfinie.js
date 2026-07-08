@@ -9,6 +9,7 @@ const {
 } = require('discord.js')
 const supabase = require('../supabase.js')
 const { log } = require('./botLogger.js')
+const { markBotDeleted } = require('./routeInfinieAudit.js')
 
 let isProcessing = false
 
@@ -69,7 +70,9 @@ async function resetGift() {
 // ─── Jeu ─────────────────────────────────────────────────────────────────────
 
 async function sendError(message, content) {
-  const errMsg = await message.channel.send({ content }).catch(() => null)
+  const channel = message.channel ?? await message.client.channels.fetch(message.channelId).catch(() => null)
+  if (!channel) return
+  const errMsg = await channel.send({ content }).catch(() => null)
   if (errMsg) setTimeout(() => errMsg.delete().catch(() => {}), 5000)
 }
 
@@ -108,6 +111,7 @@ async function handleRouteMessage(message) {
   }
 
   if (isProcessing) {
+    markBotDeleted(message.id)
     await message.delete().catch(() => {})
     return sendError(message, `⏳ Une action est déjà en cours, réessaie dans un instant !`)
   }
@@ -118,28 +122,32 @@ async function handleRouteMessage(message) {
     const num     = parseInt(trimmed, 10)
 
     if (isNaN(num) || num.toString() !== trimmed || num < 1) {
+      markBotDeleted(message.id)
       await message.delete().catch(() => {})
       logRefusal(message.author.id, message.author.username, trimmed, 'not_numeric')
-      return sendError(message, `❌ Tu n'es pas autorisé à écrire du texte ici !`)
+      return await sendError(message, `❌ Tu n'es pas autorisé à écrire du texte ici !`)
     }
 
     const state = await getRouteState()
     if (!state) {
+      markBotDeleted(message.id)
       await message.delete().catch(() => {})
       log(message.client, 'ERREUR', `Route de l'Infinie : aucun état actif trouvé en DB (message de ${message.author.username})`, true).catch(() => {})
-      return sendError(message, `❌ Une erreur est survenue, contacte un administrateur.`)
+      return await sendError(message, `❌ Une erreur est survenue, contacte un administrateur.`)
     }
 
     if (num !== state.current_number + 1) {
+      markBotDeleted(message.id)
       await message.delete().catch(() => {})
       logRefusal(message.author.id, message.author.username, num, 'wrong_number', state.current_number + 1)
-      return sendError(message, `❌ Ce nombre n'est pas correct ! Le prochain nombre est **${state.current_number + 1}**.`)
+      return await sendError(message, `❌ Ce nombre n'est pas correct ! Le prochain nombre est **${state.current_number + 1}**.`)
     }
 
     if (message.author.id === state.last_discord_id) {
+      markBotDeleted(message.id)
       await message.delete().catch(() => {})
       logRefusal(message.author.id, message.author.username, num, 'same_player_twice')
-      return sendError(message, `❌ Un autre joueur doit d'abord réagir avant toi !`)
+      return await sendError(message, `❌ Un autre joueur doit d'abord réagir avant toi !`)
     }
 
     const cooldown = await getCooldown(message.author.id)
@@ -148,9 +156,10 @@ async function handleRouteMessage(message) {
       const remaining = 3600000 - elapsed
       if (remaining > 0) {
         const minutes = Math.ceil(remaining / 60000)
+        markBotDeleted(message.id)
         await message.delete().catch(() => {})
         logRefusal(message.author.id, message.author.username, num, 'cooldown_active')
-        return sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de jouer à nouveau !`)
+        return await sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de jouer à nouveau !`)
       }
     }
 
