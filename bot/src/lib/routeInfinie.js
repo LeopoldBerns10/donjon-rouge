@@ -154,6 +154,7 @@ async function handleRouteMessage(message) {
       markBotDeleted(message.id)
       await message.delete().catch(() => {})
       logRefusal(message.author.id, message.author.username, trimmed, 'not_numeric')
+      log(message.client, 'ROUTE', `Refus — **${message.author.username}** : texte non numérique ("${trimmed}")`).catch(() => {})
       return await sendError(message, `❌ Tu n'es pas autorisé à écrire du texte ici !`)
     }
 
@@ -169,6 +170,7 @@ async function handleRouteMessage(message) {
       markBotDeleted(message.id)
       await message.delete().catch(() => {})
       logRefusal(message.author.id, message.author.username, num, 'wrong_number', state.current_number + 1)
+      log(message.client, 'ROUTE', `Refus — **${message.author.username}** : mauvais nombre (attendu ${state.current_number + 1}, écrit ${num})`).catch(() => {})
       return await sendError(message, `❌ Ce nombre n'est pas correct ! Le prochain nombre est **${state.current_number + 1}**.`)
     }
 
@@ -176,6 +178,7 @@ async function handleRouteMessage(message) {
       markBotDeleted(message.id)
       await message.delete().catch(() => {})
       logRefusal(message.author.id, message.author.username, num, 'same_player_twice')
+      log(message.client, 'ROUTE', `Refus — **${message.author.username}** : même joueur deux fois de suite (nombre ${num})`).catch(() => {})
       return await sendError(message, `❌ Un autre joueur doit d'abord réagir avant toi !`)
     }
 
@@ -188,6 +191,7 @@ async function handleRouteMessage(message) {
         markBotDeleted(message.id)
         await message.delete().catch(() => {})
         logRefusal(message.author.id, message.author.username, num, 'cooldown_active')
+        log(message.client, 'ROUTE', `Refus — **${message.author.username}** : cooldown actif, encore ${minutes} min (nombre ${num})`).catch(() => {})
         return await sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de jouer à nouveau !`)
       }
     }
