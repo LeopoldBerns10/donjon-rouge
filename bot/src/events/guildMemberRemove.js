@@ -70,6 +70,20 @@ module.exports = {
     }
 
     try {
+      const { data: link } = await supabase
+        .from('discord_links')
+        .select('coc_tag')
+        .eq('discord_id', member.id)
+        .maybeSingle()
+
+      if (link?.coc_tag) {
+        await supabase
+          .from('users')
+          .update({ left_at: new Date().toISOString() })
+          .eq('coc_tag', link.coc_tag)
+          .is('left_at', null)
+      }
+
       await supabase.from('discord_links').delete().eq('discord_id', member.id)
     } catch {}
 

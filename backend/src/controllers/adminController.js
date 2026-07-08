@@ -1,11 +1,13 @@
 import bcrypt from 'bcryptjs'
 import supabase from '../lib/supabase.js'
 
-// Liste tous les utilisateurs
+// Liste tous les utilisateurs actifs (partis depuis moins de 48h inclus)
 export async function getUsers(req, res) {
+  const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString()
   const { data, error } = await supabase
     .from('users')
     .select('id, coc_name, coc_tag, coc_role, site_role, has_custom_password, is_disabled, last_login, created_at, clan_tag')
+    .or(`left_at.is.null,left_at.gt.${cutoff}`)
     .order('coc_name')
 
   if (error) return res.status(500).json({ error: error.message })

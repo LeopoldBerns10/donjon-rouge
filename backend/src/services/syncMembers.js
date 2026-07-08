@@ -10,11 +10,13 @@ const CLANS = [
 export async function syncMembers() {
   let totalCreated = 0
   let totalUpdated = 0
+  let totalLeft = 0
 
   for (const clan of CLANS) {
     try {
       const data = await getClanMembers(clan.tag)
       const members = data.items || []
+      const rosterTags = new Set(members.map(m => m.tag))
 
       for (const member of members) {
         const { tag, name, role } = member
@@ -43,7 +45,7 @@ export async function syncMembers() {
         } else {
           const { error: updateErr } = await supabase
             .from('users')
-            .update({ coc_name: name, coc_role: role, clan_tag: clan.tag, updated_at: new Date().toISOString() })
+            .update({ coc_name: name, coc_role: role, clan_tag: clan.tag, updated_at: new Date().toISOString(), left_at: null })
             .eq('coc_tag', tag)
           if (updateErr) {
             console.error(`❌ Update échoué pour ${name} (${tag}):`, updateErr.message)
@@ -53,12 +55,31 @@ export async function syncMembers() {
         }
       }
 
+      // Détection des départs CoC : membres actifs en DB pour ce clan absents du roster actuel
+      const { data: activeMembers } = await supabase
+        .from('users')
+        .select('id, coc_tag')
+        .eq('clan_tag', clan.tag)
+        .is('left_at', null)
+
+      const departedIds = (activeMembers || [])
+        .filter(u => !rosterTags.has(u.coc_tag))
+        .map(u => u.id)
+
+      if (departedIds.length > 0) {
+        const { error: leftErr } = await supabase
+          .from('users')
+          .update({ left_at: new Date().toISOString() })
+          .in('id', departedIds)
+        if (!leftErr) totalLeft += departedIds.length
+      }
+
       console.log(`✅ Sync ${clan.name}: ${members.length} membres`)
     } catch (err) {
       console.error(`❌ Erreur sync ${clan.name}:`, err.message)
     }
   }
 
-  console.log(`✅ Sync membres CoC terminée (${totalCreated} créés, ${totalUpdated} mis à jour)`)
-  return { ok: true, created: totalCreated, updated: totalUpdated }
+  console.log(`✅ Sync membres CoC terminée (${totalCreated} créés, ${totalUpdated} mis à jour, ${totalLeft} partants détectés)`)
+  return { ok: true, created: totalCreated, updated: totalUpdated, left: totalLeft }
 }
