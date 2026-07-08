@@ -128,23 +128,30 @@ export async function getPerformanceAll(req, res) {
     const byTag = {}
     for (const row of (rows || [])) {
       if (!byTag[row.coc_tag]) {
-        byTag[row.coc_tag] = { coc_tag: row.coc_tag, coc_name: row.coc_name, gdc: [], jdc: [] }
+        byTag[row.coc_tag] = { coc_tag: row.coc_tag, coc_name: row.coc_name, gdc: [], jdc: [], ldc: [] }
       }
       if (row.event_type === 'gdc') byTag[row.coc_tag].gdc.push(row)
-      else byTag[row.coc_tag].jdc.push(row)
+      else if (row.event_type === 'jdc') byTag[row.coc_tag].jdc.push(row)
+      else if (row.event_type === 'ldc') byTag[row.coc_tag].ldc.push(row)
     }
 
     const result = Object.values(byTag).map(m => {
       const gdcRows = m.gdc
       const jdcRows = m.jdc
+      const ldcRows = m.ldc
       const gdcParticipated = gdcRows.filter(r => r.participated).length
       const withPct = gdcRows.filter(r => r.attack_percentage != null)
       const avgAttack = withPct.length > 0
         ? Math.round(withPct.reduce((s, r) => s + r.attack_percentage, 0) / withPct.length)
         : null
       const jdcParticipated = jdcRows.filter(r => r.participated).length
-      const totalEvents = gdcRows.length + jdcRows.length
-      const totalParticipated = gdcParticipated + jdcParticipated
+      const ldcParticipated = ldcRows.filter(r => r.participated).length
+      const ldcWithPct = ldcRows.filter(r => r.attack_percentage != null)
+      const ldcAvgAttack = ldcWithPct.length > 0
+        ? Math.round(ldcWithPct.reduce((s, r) => s + r.attack_percentage, 0) / ldcWithPct.length)
+        : null
+      const totalEvents = gdcRows.length + jdcRows.length + ldcRows.length
+      const totalParticipated = gdcParticipated + jdcParticipated + ldcParticipated
       const activityScore = totalEvents > 0 ? Math.round((totalParticipated / totalEvents) * 100) : 0
       return {
         coc_tag: m.coc_tag,
@@ -160,6 +167,13 @@ export async function getPerformanceAll(req, res) {
           sessionsJouees: jdcRows.length,
           participated: jdcParticipated,
           taux: jdcRows.length > 0 ? Math.round((jdcParticipated / jdcRows.length) * 100) : 0,
+        },
+        ldc: {
+          roundsJoues: ldcRows.length,
+          participated: ldcParticipated,
+          taux: ldcRows.length > 0 ? Math.round((ldcParticipated / ldcRows.length) * 100) : 0,
+          avgAttackPercent: ldcAvgAttack,
+          doublePerfs: ldcRows.filter(r => r.double_perf).length,
         },
         activityScore,
       }
@@ -185,13 +199,19 @@ export async function getPerformanceDetail(req, res) {
     const events = rows || []
     const gdcRows = events.filter(r => r.event_type === 'gdc')
     const jdcRows = events.filter(r => r.event_type === 'jdc')
+    const ldcRows = events.filter(r => r.event_type === 'ldc')
     const gdcParticipated = gdcRows.filter(r => r.participated).length
     const withPct = gdcRows.filter(r => r.attack_percentage != null)
     const avgAttack = withPct.length > 0
       ? Math.round(withPct.reduce((s, r) => s + r.attack_percentage, 0) / withPct.length)
       : null
     const jdcParticipated = jdcRows.filter(r => r.participated).length
-    const totalParticipated = gdcParticipated + jdcParticipated
+    const ldcParticipated = ldcRows.filter(r => r.participated).length
+    const ldcWithPct = ldcRows.filter(r => r.attack_percentage != null)
+    const ldcAvgAttack = ldcWithPct.length > 0
+      ? Math.round(ldcWithPct.reduce((s, r) => s + r.attack_percentage, 0) / ldcWithPct.length)
+      : null
+    const totalParticipated = gdcParticipated + jdcParticipated + ldcParticipated
     const activityScore = events.length > 0 ? Math.round((totalParticipated / events.length) * 100) : 0
 
     return res.json({
@@ -208,6 +228,13 @@ export async function getPerformanceDetail(req, res) {
         sessionsJouees: jdcRows.length,
         participated: jdcParticipated,
         taux: jdcRows.length > 0 ? Math.round((jdcParticipated / jdcRows.length) * 100) : 0,
+      },
+      ldc: {
+        roundsJoues: ldcRows.length,
+        participated: ldcParticipated,
+        taux: ldcRows.length > 0 ? Math.round((ldcParticipated / ldcRows.length) * 100) : 0,
+        avgAttackPercent: ldcAvgAttack,
+        doublePerfs: ldcRows.filter(r => r.double_perf).length,
       },
       activityScore,
       history: events,

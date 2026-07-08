@@ -12,7 +12,7 @@ function parseWarTime(cocTimeStr) {
 
 // ── Alimentation ──────────────────────────────────────────────────────────────
 
-async function recordGdcParticipation(war) {
+async function recordGdcParticipation(war, eventType = 'gdc') {
   const members = war.clan?.members || []
   if (!members.length) return
 
@@ -40,7 +40,7 @@ async function recordGdcParticipation(war) {
       discord_id:        discordMap[m.tag] ?? null,
       coc_name:          m.name,
       coc_tag:           m.tag,
-      event_type:        'gdc',
+      event_type:        eventType,
       event_date:        eventDate,
       participated,
       attack_percentage: participated ? attackPct : null,

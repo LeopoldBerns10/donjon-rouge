@@ -91,7 +91,7 @@ async function fetchWarData() {
         const activeRound =
           ldc.rounds.find(r => r.war?.state === 'inWar') ||
           ldc.rounds.find(r => r.war?.state === 'preparation') ||
-          ldc.rounds.find(r => r.war?.state === 'warEnded')
+          ldc.rounds.slice().reverse().find(r => r.war?.state === 'warEnded')
         console.log('[fetchWarData] LDC DR1 round trouvé:', activeRound?.war?.state)
         if (activeRound?.war) {
           wars.dr1 = normalizeWar(activeRound.war, DR1_TAG)
@@ -114,7 +114,7 @@ async function fetchWarData() {
         const activeRound2 =
           ldc2.rounds.find(r => r.war?.state === 'inWar') ||
           ldc2.rounds.find(r => r.war?.state === 'preparation') ||
-          ldc2.rounds.find(r => r.war?.state === 'warEnded')
+          ldc2.rounds.slice().reverse().find(r => r.war?.state === 'warEnded')
         console.log('[fetchWarData] LDC DR2 round trouvé:', activeRound2?.war?.state)
         if (activeRound2?.war) {
           wars.dr2 = normalizeWar(activeRound2.war, DR2_TAG)
@@ -395,6 +395,9 @@ async function checkExploits(client, warData) {
 
     if (isLdc && cwl?.season) {
       await postExploit(client, buildLdcRecapMessage(cwl, ourTag), `exploit_ldc_${cwl.season}`)
+      if (war.state === 'warEnded') {
+        await recordGdcParticipation(war, 'ldc').catch(e => console.error('[Participation] LDC:', e))
+      }
     } else if (war.endTime) {
       await postExploit(client, buildGdcRecapMessage(war, clanLabel), `exploit_war_${war.endTime}`)
       await recordGdcParticipation(war).catch(e => console.error('[Participation] GDC:', e))

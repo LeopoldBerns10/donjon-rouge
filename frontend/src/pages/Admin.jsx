@@ -41,6 +41,7 @@ function DetailModal({ coc_tag, onClose }) {
 
   const gdcHistory = data?.history?.filter(r => r.event_type === 'gdc') || []
   const jdcHistory = data?.history?.filter(r => r.event_type === 'jdc') || []
+  const ldcHistory = data?.history?.filter(r => r.event_type === 'ldc') || []
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={onClose}>
@@ -64,7 +65,9 @@ function DetailModal({ coc_tag, onClose }) {
                 { label: 'Double perfs GDC', value: data.gdc.doublePerfs },
                 { label: `GDC — ${data.gdc.guerresJouees} guerres`, value: `${data.gdc.taux}%` },
                 { label: `JDC — ${data.jdc.sessionsJouees} sessions`, value: `${data.jdc.taux}%` },
+                ...(data.ldc?.roundsJoues > 0 ? [{ label: `LDC — ${data.ldc.roundsJoues} rounds`, value: `${data.ldc.taux}%` }] : []),
                 ...(data.gdc.avgAttackPercent != null ? [{ label: 'Moy. attaques GDC', value: `${data.gdc.avgAttackPercent}%` }] : []),
+                ...(data.ldc?.avgAttackPercent != null ? [{ label: 'Moy. attaques LDC', value: `${data.ldc.avgAttackPercent}%` }] : []),
               ].map(s => (
                 <div key={s.label} className="rounded-lg p-3 border border-fog/30" style={{ background: '#0d0d0d' }}>
                   <div className="text-xs text-ash font-cinzel uppercase tracking-widest mb-1">{s.label}</div>
@@ -125,7 +128,35 @@ function DetailModal({ coc_tag, onClose }) {
               </div>
             )}
 
-            {gdcHistory.length === 0 && jdcHistory.length === 0 && (
+            {ldcHistory.length > 0 && (
+              <div>
+                <h4 className="font-cinzel text-xs uppercase tracking-widest text-gold mb-2">Historique LDC</h4>
+                <div className="overflow-x-auto rounded border border-fog/20">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="font-cinzel uppercase text-ash tracking-wider border-b border-fog/30" style={{ background: '#1a1a1a' }}>
+                        <th className="py-2 px-3 text-left">Date</th>
+                        <th className="py-2 px-3 text-center">Participé</th>
+                        <th className="py-2 px-3 text-center">Attaques</th>
+                        <th className="py-2 px-3 text-center">Double perf</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ldcHistory.map((r, i) => (
+                        <tr key={i} className="border-b border-fog/10" style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                          <td className="py-2 px-3 text-ash">{new Date(r.event_date).toLocaleDateString('fr-FR')}</td>
+                          <td className="py-2 px-3 text-center">{r.participated ? '✅' : '❌'}</td>
+                          <td className="py-2 px-3 text-center text-ash">{r.attack_percentage != null ? `${r.attack_percentage}%` : '—'}</td>
+                          <td className="py-2 px-3 text-center">{r.double_perf ? '⭐' : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {gdcHistory.length === 0 && jdcHistory.length === 0 && ldcHistory.length === 0 && (
               <p className="text-ash font-cinzel text-sm text-center py-4">Aucune donnée de performance</p>
             )}
           </div>
@@ -163,6 +194,7 @@ function PerformancePanel() {
       if (sortKey === 'coc_name') return m.coc_name
       if (sortKey === 'gdcTaux') return m.gdc.taux
       if (sortKey === 'jdcTaux') return m.jdc.taux
+      if (sortKey === 'ldcTaux') return m.ldc?.taux ?? 0
       if (sortKey === 'doublePerfs') return m.gdc.doublePerfs
       return m.activityScore
     }
@@ -197,6 +229,7 @@ function PerformancePanel() {
               </th>
               <th className={thCls('gdcTaux')} onClick={() => toggleSort('gdcTaux')}>GDC{sortArrow('gdcTaux')}</th>
               <th className={thCls('jdcTaux')} onClick={() => toggleSort('jdcTaux')}>JDC{sortArrow('jdcTaux')}</th>
+              <th className={thCls('ldcTaux')} onClick={() => toggleSort('ldcTaux')}>LDC{sortArrow('ldcTaux')}</th>
               <th className={thCls('activityScore')} onClick={() => toggleSort('activityScore')}>Score{sortArrow('activityScore')}</th>
               <th className={thCls('doublePerfs')} onClick={() => toggleSort('doublePerfs')}>2× Perf{sortArrow('doublePerfs')}</th>
             </tr>
@@ -220,6 +253,12 @@ function PerformancePanel() {
                   <div className="text-xs text-ash/60 text-center mt-0.5">{m.jdc.participated}/{m.jdc.sessionsJouees}</div>
                 </td>
                 <td className="py-3 px-4">
+                  {m.ldc?.roundsJoues > 0
+                    ? <><ScoreBar value={m.ldc.taux} /><div className="text-xs text-ash/60 text-center mt-0.5">{m.ldc.participated}/{m.ldc.roundsJoues}</div></>
+                    : <span className="text-ash/40 text-xs block text-center">—</span>
+                  }
+                </td>
+                <td className="py-3 px-4">
                   <ScoreBar value={m.activityScore} />
                 </td>
                 <td className="py-3 px-4 text-center">
@@ -229,7 +268,7 @@ function PerformancePanel() {
             ))}
             {sorted.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-10 text-center text-ash font-cinzel text-sm">
+                <td colSpan={6} className="py-10 text-center text-ash font-cinzel text-sm">
                   Aucune donnée de performance disponible
                 </td>
               </tr>
