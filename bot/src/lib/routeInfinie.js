@@ -10,6 +10,8 @@ const {
 const supabase = require('../supabase.js')
 const { log } = require('./botLogger.js')
 
+let isProcessing = false
+
 async function logRefusal(discordId, username, attemptedValue, reason, expectedValue = null) {
   await supabase.from('route_infinie_refused_attempts').insert({
     discord_id:      discordId,
@@ -105,47 +107,61 @@ async function handleRouteMessage(message) {
     return
   }
 
-  const trimmed = message.content.trim()
-  const num     = parseInt(trimmed, 10)
-
-  if (isNaN(num) || num.toString() !== trimmed || num < 1) {
+  if (isProcessing) {
     await message.delete().catch(() => {})
-    logRefusal(message.author.id, message.author.username, trimmed, 'not_numeric')
-    return sendError(message, `❌ Tu n'es pas autorisé à écrire du texte ici !`)
+    return sendError(message, `⏳ Une action est déjà en cours, réessaie dans un instant !`)
   }
 
-  const state = await getRouteState()
-  if (!state) return
+  isProcessing = true
+  try {
+    const trimmed = message.content.trim()
+    const num     = parseInt(trimmed, 10)
 
-  if (num !== state.current_number + 1) {
-    await message.delete().catch(() => {})
-    logRefusal(message.author.id, message.author.username, num, 'wrong_number', state.current_number + 1)
-    return sendError(message, `❌ Ce nombre n'est pas correct ! Le prochain nombre est **${state.current_number + 1}**.`)
-  }
-
-  if (message.author.id === state.last_discord_id) {
-    await message.delete().catch(() => {})
-    logRefusal(message.author.id, message.author.username, num, 'same_player_twice')
-    return sendError(message, `❌ Un autre joueur doit d'abord réagir avant toi !`)
-  }
-
-  const cooldown = await getCooldown(message.author.id)
-  if (cooldown) {
-    const elapsed   = Date.now() - new Date(cooldown).getTime()
-    const remaining = 3600000 - elapsed
-    if (remaining > 0) {
-      const minutes = Math.ceil(remaining / 60000)
+    if (isNaN(num) || num.toString() !== trimmed || num < 1) {
       await message.delete().catch(() => {})
-      logRefusal(message.author.id, message.author.username, num, 'cooldown_active')
-      return sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de jouer à nouveau !`)
+      logRefusal(message.author.id, message.author.username, trimmed, 'not_numeric')
+      return sendError(message, `❌ Tu n'es pas autorisé à écrire du texte ici !`)
     }
-  }
 
-  await updateRouteState(num, message.author.id)
-  await setCooldown(message.author.id)
+    const state = await getRouteState()
+    if (!state) {
+      await message.delete().catch(() => {})
+      log(message.client, 'ERREUR', `Route de l'Infinie : aucun état actif trouvé en DB (message de ${message.author.username})`, true).catch(() => {})
+      return sendError(message, `❌ Une erreur est survenue, contacte un administrateur.`)
+    }
 
-  if (state.gift_number && num === state.gift_number) {
-    await announceGift(message, state)
+    if (num !== state.current_number + 1) {
+      await message.delete().catch(() => {})
+      logRefusal(message.author.id, message.author.username, num, 'wrong_number', state.current_number + 1)
+      return sendError(message, `❌ Ce nombre n'est pas correct ! Le prochain nombre est **${state.current_number + 1}**.`)
+    }
+
+    if (message.author.id === state.last_discord_id) {
+      await message.delete().catch(() => {})
+      logRefusal(message.author.id, message.author.username, num, 'same_player_twice')
+      return sendError(message, `❌ Un autre joueur doit d'abord réagir avant toi !`)
+    }
+
+    const cooldown = await getCooldown(message.author.id)
+    if (cooldown) {
+      const elapsed   = Date.now() - new Date(cooldown).getTime()
+      const remaining = 3600000 - elapsed
+      if (remaining > 0) {
+        const minutes = Math.ceil(remaining / 60000)
+        await message.delete().catch(() => {})
+        logRefusal(message.author.id, message.author.username, num, 'cooldown_active')
+        return sendError(message, `⏳ Tu dois attendre encore **${minutes} minute${minutes > 1 ? 's' : ''}** avant de jouer à nouveau !`)
+      }
+    }
+
+    await updateRouteState(num, message.author.id)
+    await setCooldown(message.author.id)
+
+    if (state.gift_number && num === state.gift_number) {
+      await announceGift(message, state)
+    }
+  } finally {
+    isProcessing = false
   }
 }
 

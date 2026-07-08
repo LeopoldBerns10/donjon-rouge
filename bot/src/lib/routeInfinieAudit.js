@@ -39,6 +39,7 @@ async function handleMessageUpdate(oldMessage, newMessage, client) {
   const pseudo    = newMessage.author?.username ?? 'Inconnu'
 
   await logMessageEdit(discordId, oldContent, newContent, 'edited')
+  await newMessage.delete().catch(() => {})
 
   const oldStr = oldContent ? `"${oldContent}"` : '*(inconnu)*'
   const newStr = newContent ? `"${newContent}"` : '*(inconnu)*'
