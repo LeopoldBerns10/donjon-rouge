@@ -107,6 +107,7 @@ export function Roulette() {
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetTitle, setResetTitle] = useState('')
   const [resetPrize, setResetPrize] = useState('')
+  const [resetPhrase, setResetPhrase] = useState('')
   const [newTarget, setNewTarget] = useState(100)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [wheelRotation, setWheelRotation] = useState(0)
@@ -180,10 +181,12 @@ export function Roulette() {
         title: resetTitle || undefined,
         prize: resetPrize || undefined,
         target_clicks: newTarget || 100,
+        threshold_phrase: resetPhrase || undefined,
       })
       setShowResetModal(false)
       setResetTitle('')
       setResetPrize('')
+      setResetPhrase('')
       setNewTarget(100)
       fetchEvent()
     } catch {}
@@ -280,8 +283,9 @@ export function Roulette() {
               ROULETTE
             </h3>
             <p className="text-sm text-gray-400">{event.title}</p>
-            <p className="text-xs text-gray-600 mt-1">
-              Le 100ème joueur à tourner la roulette remporte le lot !
+            <p className="text-[11px] italic mt-1.5 tracking-wide"
+               style={{ color: 'rgba(245,158,11,0.65)' }}>
+              {event.thresholdPhrase || `Le ${event.targetClicks}ème joueur à tourner la roulette remporte le lot !`}
             </p>
           </div>
 
@@ -534,6 +538,21 @@ export function Roulette() {
               className="w-full px-4 py-3 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a]
                          text-white text-sm mb-3 focus:outline-none focus:border-[#dc2626]/50"
             />
+            <div className="mb-3">
+              <label className="text-xs uppercase tracking-wide text-gray-500 mb-1 block">
+                Phrase de seuil (optionnelle)
+              </label>
+              <input
+                value={resetPhrase}
+                onChange={e => setResetPhrase(e.target.value)}
+                placeholder={`Le ${newTarget}ème joueur à tourner la roulette remporte le lot !`}
+                className="w-full px-4 py-3 rounded-xl bg-[#0d0d0d] border border-[#2a2a2a]
+                           text-white text-sm focus:outline-none focus:border-[#dc2626]/50"
+              />
+              <p className="text-[10px] text-gray-600 mt-1">
+                Affichée sous le titre de la roulette. Laisse vide pour le texte par défaut.
+              </p>
+            </div>
             <div className="mb-3">
               <label className="text-xs uppercase tracking-wide text-gray-500 mb-1 block">
                 Nombre de clics pour gagner

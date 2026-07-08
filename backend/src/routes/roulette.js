@@ -49,6 +49,7 @@ router.get('/current', optionalAuth, async (req, res) => {
       id: event.id,
       title: event.title,
       prize: event.prize,
+      thresholdPhrase: event.threshold_phrase ?? null,
       currentClicks: currentClicks ?? 0,
       targetClicks: event.target_clicks,
       isWon: !!event.winner_id,
@@ -118,7 +119,7 @@ router.post('/reset', verifyToken, async (req, res) => {
     return res.status(403).json({ error: 'Réservé à CyberAlf' })
   }
 
-  const { prize, title, target_clicks } = req.body
+  const { prize, title, target_clicks, threshold_phrase } = req.body
 
   await supabase.from('roulette_events').update({ is_active: false }).eq('is_active', true)
 
@@ -128,6 +129,7 @@ router.post('/reset', verifyToken, async (req, res) => {
       title: title || "Pass d'Or — Offert par CyberAlf",
       prize: prize || "Pass d'Or",
       target_clicks: target_clicks || 100,
+      threshold_phrase: threshold_phrase || null,
       current_clicks: 0,
       is_active: true,
     })
