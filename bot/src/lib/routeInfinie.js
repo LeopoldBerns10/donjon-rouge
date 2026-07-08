@@ -70,10 +70,35 @@ async function resetGift() {
 // ─── Jeu ─────────────────────────────────────────────────────────────────────
 
 async function sendError(message, content) {
-  const channel = message.channel ?? await message.client.channels.fetch(message.channelId).catch(() => null)
-  if (!channel) return
-  const errMsg = await channel.send({ content }).catch(() => null)
-  if (errMsg) setTimeout(() => errMsg.delete().catch(() => {}), 5000)
+  console.log(`[sendError] début — channelId=${message.channelId} messageId=${message.id}`)
+
+  let channel = message.channel
+  if (!channel) {
+    console.warn(`[sendError] message.channel null, tentative fetch channelId=${message.channelId}`)
+    channel = await message.client.channels.fetch(message.channelId).catch(err => {
+      console.error(`[sendError] fetch channel échoué:`, err)
+      return null
+    })
+  }
+
+  if (!channel) {
+    console.error(`[sendError] channel introuvable pour channelId=${message.channelId} — message d'erreur non envoyé`)
+    return
+  }
+
+  console.log(`[sendError] envoi dans #${channel.name ?? channel.id}`)
+  const errMsg = await channel.send({ content }).catch(err => {
+    console.error(`[sendError] channel.send() échoué:`, err)
+    return null
+  })
+
+  if (!errMsg) {
+    console.error(`[sendError] channel.send() a retourné null — message non envoyé`)
+    return
+  }
+
+  console.log(`[sendError] message envoyé (id=${errMsg.id}), suppression dans 5s`)
+  setTimeout(() => errMsg.delete().catch(err => console.error(`[sendError] delete échoué:`, err)), 5000)
 }
 
 async function announceGift(message, state) {
