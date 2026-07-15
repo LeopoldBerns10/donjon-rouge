@@ -25,6 +25,7 @@ function getCategoryEmoji(category) {
     'ERREUR':       '🔴',
     'EVENT':        '📅',
     'GDC':          '✉️',
+    'MODERATION':   '🛡️',
   }
   return emojis[category] ?? '📝'
 }

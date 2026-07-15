@@ -49,7 +49,7 @@ client.once('ready', async () => {
   const dateStr = `${currentYear}-${String(birth_month).padStart(2, '0')}-${String(birth_day).padStart(2, '0')}`
   const sentKey = `birthday_sent_${dateStr}`
   const { error: delErr } = await supabase.from('bot_config').delete().eq('key', sentKey)
-  if (!delErr) console.log(`[testBirthday] Clé anti-doublon supprimée : ${sentKey}`)
+  if (!delErr) console.log(`[testBirthday] Clé anti-doublon supprimée (avant test) : ${sentKey}`)
 
   // 4. Monkey-patch Date.now pour que checkBirthdays voie la bonne date
   const realNow = Date.now
@@ -63,6 +63,10 @@ client.once('ready', async () => {
     console.error('[testBirthday] ❌ Erreur :', e)
   } finally {
     Date.now = realNow
+    // Nettoyage post-test : supprimer la clé écrite par checkBirthdays
+    // pour ne pas bloquer le vrai souhait le jour J.
+    const { error: cleanErr } = await supabase.from('bot_config').delete().eq('key', sentKey)
+    if (!cleanErr) console.log(`[testBirthday] Clé anti-doublon supprimée (après test) : ${sentKey}`)
   }
 
   await client.destroy()

@@ -280,6 +280,143 @@ function PerformancePanel() {
   )
 }
 
+// ── Panel mots interdits (superadmin) ────────────────────────────────────────
+
+function BannedWordsPanel() {
+  const [words, setWords]       = useState([])
+  const [loading, setLoading]   = useState(true)
+  const [newWord, setNewWord]   = useState('')
+  const [adding, setAdding]     = useState(false)
+  const [error, setError]       = useState('')
+  const [success, setSuccess]   = useState('')
+
+  function flash(setter, msg) {
+    setter(msg)
+    setTimeout(() => setter(''), 3000)
+  }
+
+  function fetchWords() {
+    setLoading(true)
+    api.get('/api/admin/banned-words')
+      .then(r => setWords(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { fetchWords() }, [])
+
+  async function handleAdd(e) {
+    e.preventDefault()
+    const w = newWord.trim().toLowerCase()
+    if (!w) return
+    setAdding(true)
+    setError('')
+    try {
+      await api.post('/api/admin/banned-words', { word: w })
+      setNewWord('')
+      fetchWords()
+      flash(setSuccess, `« ${w} » ajouté`)
+    } catch (err) {
+      flash(setError, err.response?.data?.error || 'Erreur')
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  async function handleDelete(id, word) {
+    if (!window.confirm(`Supprimer « ${word} » de la liste ?`)) return
+    try {
+      await api.delete(`/api/admin/banned-words/${id}`)
+      fetchWords()
+      flash(setSuccess, `« ${word} » supprimé`)
+    } catch (err) {
+      flash(setError, err.response?.data?.error || 'Erreur')
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h2 className="font-cinzel text-gold-bright uppercase tracking-wider text-sm">
+          Mots interdits — {words.length} entrée{words.length !== 1 ? 's' : ''}
+        </h2>
+        <span className="text-xs text-ash font-cinzel">Le bot les détecte dans tous les salons (hors Logs bot)</span>
+      </div>
+
+      {error   && <p className="text-red-400   font-cinzel text-sm">❌ {error}</p>}
+      {success && <p className="text-green-400 font-cinzel text-sm">✅ {success}</p>}
+
+      {/* Formulaire ajout */}
+      <form onSubmit={handleAdd} className="flex gap-2">
+        <input
+          type="text"
+          value={newWord}
+          onChange={e => setNewWord(e.target.value)}
+          placeholder="Nouveau mot interdit…"
+          className="flex-1 px-4 py-2 rounded-lg bg-[#0d0d0d] border border-[#2a2a2a] text-bone placeholder-ash/40
+                     font-cinzel text-sm focus:outline-none focus:border-[#dc2626] transition-colors"
+        />
+        <button
+          type="submit"
+          disabled={adding || !newWord.trim()}
+          className="px-4 py-2 rounded-lg text-sm font-bold uppercase font-cinzel border transition-all
+                     bg-[#dc2626]/10 border-[#dc2626]/60 text-[#dc2626]
+                     hover:bg-[#dc2626]/20 hover:border-[#dc2626]
+                     disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {adding ? '…' : 'Ajouter'}
+        </button>
+      </form>
+
+      {/* Liste */}
+      {loading
+        ? <p className="text-ash font-cinzel animate-pulse text-center py-8">Chargement…</p>
+        : words.length === 0
+          ? <p className="text-ash font-cinzel text-sm text-center py-8">Aucun mot interdit configuré</p>
+          : (
+            <div className="rounded-lg border border-fog/30 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="font-cinzel uppercase text-xs tracking-widest text-gold border-b border-fog/40"
+                      style={{ background: '#1a1a1a' }}>
+                    <th className="py-3 px-4 text-left">Mot</th>
+                    <th className="py-3 px-4 text-center hidden md:table-cell">Ajouté par</th>
+                    <th className="py-3 px-4 text-center hidden md:table-cell">Date</th>
+                    <th className="py-3 px-4 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {words.map((w, i) => (
+                    <tr key={w.id} className="border-b border-fog/20"
+                        style={{ background: i % 2 === 0 ? '#0d0d0d' : '#111' }}>
+                      <td className="py-3 px-4 font-mono text-bone text-sm">{w.word}</td>
+                      <td className="py-3 px-4 text-center text-ash text-xs hidden md:table-cell">
+                        {w.added_by || '—'}
+                      </td>
+                      <td className="py-3 px-4 text-center text-ash text-xs hidden md:table-cell">
+                        {new Date(w.created_at).toLocaleDateString('fr-FR')}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          onClick={() => handleDelete(w.id, w.word)}
+                          className="px-3 py-1.5 text-xs font-semibold uppercase font-cinzel rounded-lg border
+                                     bg-red-950 border-red-800 text-red-400
+                                     hover:bg-red-900 hover:text-red-300 transition-all"
+                        >
+                          Supprimer
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+      }
+    </div>
+  )
+}
+
 // ── Formatage de la dernière connexion ────────────────────────────────────────
 
 function formatLastLogin(date) {
@@ -725,6 +862,15 @@ export default function Admin() {
             }`}>
             📊 Performance
           </button>
+          <button
+            onClick={() => setActiveTab('moderation')}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase border transition-all font-cinzel ${
+              activeTab === 'moderation'
+                ? 'bg-[#f59e0b]/15 border-[#f59e0b] text-[#f59e0b]'
+                : 'bg-[#111] border-[#2a2a2a] text-gray-500 hover:border-[#f59e0b]/40 hover:text-[#f59e0b]/60'
+            }`}>
+            🛡️ Modération
+          </button>
         </div>
       )}
 
@@ -769,6 +915,9 @@ export default function Admin() {
 
       {/* Contenu onglet Performance */}
       {activeTab === 'performance' && isSuperAdmin && <PerformancePanel />}
+
+      {/* Contenu onglet Modération */}
+      {activeTab === 'moderation' && isSuperAdmin && <BannedWordsPanel />}
 
     </div>
     </>

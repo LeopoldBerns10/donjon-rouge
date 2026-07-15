@@ -1,4 +1,5 @@
 const { handleRouteMessage } = require('../lib/routeInfinie.js')
+const { checkAndModerate }  = require('../lib/automod.js')
 
 const ROUTE_CHANNEL_ID = '1520108333846233098'
 const PREFIX = '!'
@@ -7,6 +8,8 @@ module.exports = {
   name: 'messageCreate',
   async execute(message, client) {
     if (message.author.bot) return
+
+    if (await checkAndModerate(message, client)) return
 
     if (message.channelId === ROUTE_CHANNEL_ID) {
       await handleRouteMessage(message)

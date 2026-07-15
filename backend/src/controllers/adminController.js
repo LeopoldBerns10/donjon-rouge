@@ -254,7 +254,44 @@ export async function triggerSync(req, res) {
   }
 }
 
-// Supprimer définitivement un compte (superadmin uniquement)
+// ── Mots interdits (automodération) ──────────────────────────────────────────
+
+export async function getBannedWords(req, res) {
+  const { data, error } = await supabase
+    .from('mod_banned_words')
+    .select('id, word, added_by, created_at')
+    .order('word')
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json(data || [])
+}
+
+export async function addBannedWord(req, res) {
+  const word = req.body.word?.trim().toLowerCase()
+  if (!word) return res.status(400).json({ error: 'Mot requis' })
+
+  const { data, error } = await supabase
+    .from('mod_banned_words')
+    .insert({ word, added_by: req.user.coc_name })
+    .select()
+    .single()
+
+  if (error?.code === '23505') return res.status(409).json({ error: 'Ce mot est déjà dans la liste' })
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json(data)
+}
+
+export async function deleteBannedWord(req, res) {
+  const { wordId } = req.params
+  const { error } = await supabase
+    .from('mod_banned_words')
+    .delete()
+    .eq('id', wordId)
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+}
+
+// ── Supprimer définitivement un compte (superadmin uniquement) ────────────────
+
 export async function deleteUser(req, res) {
   const { userId } = req.params
   if (!userId) return res.status(400).json({ error: 'userId requis' })
