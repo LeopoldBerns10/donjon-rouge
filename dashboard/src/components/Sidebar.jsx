@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, Users, DoorOpen, MessageSquare, Cake, BarChart2, Map, Settings, FileText, CalendarDays } from 'lucide-react'
+import { Home, Users, DoorOpen, MessageSquare, Cake, BarChart2, Map, Settings, FileText, CalendarDays, Shield } from 'lucide-react'
 
 const navItems = [
   {
@@ -23,8 +23,9 @@ const navItems = [
   {
     section: 'SYSTÈME',
     items: [
-      { to: '/config', icon: Settings, label: 'Configuration bot' },
-      { to: '/logs', icon: FileText, label: 'Logs' },
+      { to: '/config',     icon: Settings,  label: 'Configuration bot' },
+      { to: '/logs',       icon: FileText,  label: 'Logs' },
+      { to: '/moderation', icon: Shield,    label: 'Modération' },
     ],
   },
 ]

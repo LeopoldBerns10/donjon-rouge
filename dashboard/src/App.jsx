@@ -13,6 +13,7 @@ import Members from './pages/Members'
 import Config from './pages/Config'
 import Logs from './pages/Logs'
 import Events from './pages/Events'
+import Moderation from './pages/Moderation'
 
 // ── ErrorBoundary (debug) ─────────────────────────────────────────────────────
 class ErrorBoundary extends Component {
@@ -100,6 +101,7 @@ export default function App() {
               <Route path="events" element={<Events />} />
               <Route path="config" element={<Config />} />
               <Route path="logs" element={<Logs />} />
+              <Route path="moderation" element={<Moderation />} />
             </Route>
           </Routes>
         </BrowserRouter>

@@ -18,6 +18,15 @@ import {
   getSnapshots,
   getNotifications,
 } from '../controllers/dashboardController.js'
+import {
+  getAutomodConfig,
+  updateAutomodConfig,
+  getAutomodWarnings,
+  deleteAutomodWarning,
+  purgeAutomodMemberWarnings,
+  getDiscordChannels,
+  getDiscordRoles,
+} from '../controllers/adminController.js'
 
 const router = Router()
 
@@ -39,5 +48,13 @@ router.put('/events/:id', updateEvent)
 router.delete('/events/:id', deleteEvent)
 router.get('/snapshots', getSnapshots)
 router.get('/notifications', getNotifications)
+
+router.get('/automod/config',                         getAutomodConfig)
+router.put('/automod/config',                         updateAutomodConfig)
+router.get('/automod/warnings',                       getAutomodWarnings)
+router.delete('/automod/warnings/member/:discord_id', purgeAutomodMemberWarnings)
+router.delete('/automod/warnings/:id',                deleteAutomodWarning)
+router.get('/automod/channels',                       getDiscordChannels)
+router.get('/automod/roles',                          getDiscordRoles)
 
 export default router

@@ -254,40 +254,94 @@ export async function triggerSync(req, res) {
   }
 }
 
-// ── Mots interdits (automodération) ──────────────────────────────────────────
+// ── Automodération v2 ─────────────────────────────────────────────────────────
 
-export async function getBannedWords(req, res) {
+export async function getAutomodConfig(req, res) {
   const { data, error } = await supabase
-    .from('mod_banned_words')
-    .select('id, word, added_by, created_at')
-    .order('word')
+    .from('mod_config')
+    .select('key, value, updated_at, updated_by')
   if (error) return res.status(500).json({ error: error.message })
-  return res.json(data || [])
+  const config = {}
+  for (const row of (data || [])) config[row.key] = row.value
+  return res.json(config)
 }
 
-export async function addBannedWord(req, res) {
-  const word = req.body.word?.trim().toLowerCase()
-  if (!word) return res.status(400).json({ error: 'Mot requis' })
-
-  const { data, error } = await supabase
-    .from('mod_banned_words')
-    .insert({ word, added_by: req.user.coc_name })
-    .select()
-    .single()
-
-  if (error?.code === '23505') return res.status(409).json({ error: 'Ce mot est déjà dans la liste' })
-  if (error) return res.status(500).json({ error: error.message })
-  return res.json(data)
-}
-
-export async function deleteBannedWord(req, res) {
-  const { wordId } = req.params
-  const { error } = await supabase
-    .from('mod_banned_words')
-    .delete()
-    .eq('id', wordId)
+export async function updateAutomodConfig(req, res) {
+  const updates = req.body
+  if (!updates || typeof updates !== 'object' || Array.isArray(updates)) {
+    return res.status(400).json({ error: 'Body invalide' })
+  }
+  const now       = new Date().toISOString()
+  const updatedBy = req.user?.coc_name || req.discordUser?.global_name || req.discordUser?.username || 'unknown'
+  const upserts   = Object.entries(updates).map(([key, value]) => ({ key, value, updated_at: now, updated_by: updatedBy }))
+  const { error } = await supabase.from('mod_config').upsert(upserts, { onConflict: 'key' })
   if (error) return res.status(500).json({ error: error.message })
   return res.json({ success: true })
+}
+
+export async function getAutomodWarnings(req, res) {
+  const limit  = Math.min(parseInt(req.query.limit)  || 50, 200)
+  const offset = parseInt(req.query.offset) || 0
+  const { data, error, count } = await supabase
+    .from('mod_warnings')
+    .select('*', { count: 'exact' })
+    .order('warned_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ data: data || [], total: count || 0 })
+}
+
+export async function deleteAutomodWarning(req, res) {
+  const { id } = req.params
+  const { error } = await supabase.from('mod_warnings').delete().eq('id', id)
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+}
+
+export async function purgeAutomodMemberWarnings(req, res) {
+  const { discord_id } = req.params
+  if (!discord_id) return res.status(400).json({ error: 'discord_id requis' })
+  const { error } = await supabase.from('mod_warnings').delete().eq('discord_id', discord_id)
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+}
+
+export async function getDiscordChannels(req, res) {
+  const guildId = process.env.DISCORD_GUILD_ID
+  const token   = process.env.DISCORD_BOT_TOKEN
+  if (!guildId || !token) return res.json([])
+  try {
+    const r = await fetch(`https://discord.com/api/v10/guilds/${guildId}/channels`, {
+      headers: { Authorization: `Bot ${token}` },
+    })
+    if (!r.ok) return res.json([])
+    const channels = await r.json()
+    return res.json(
+      channels
+        .filter(c => c.type === 0 || c.type === 5)
+        .map(c => ({ id: c.id, name: c.name, parent_id: c.parent_id }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+    )
+  } catch { return res.json([]) }
+}
+
+export async function getDiscordRoles(req, res) {
+  const guildId = process.env.DISCORD_GUILD_ID
+  const token   = process.env.DISCORD_BOT_TOKEN
+  if (!guildId || !token) return res.json([])
+  try {
+    const r = await fetch(`https://discord.com/api/v10/guilds/${guildId}/roles`, {
+      headers: { Authorization: `Bot ${token}` },
+    })
+    if (!r.ok) return res.json([])
+    const roles = await r.json()
+    return res.json(
+      roles
+        .filter(r => !r.managed && r.name !== '@everyone')
+        .map(r => ({ id: r.id, name: r.name, color: r.color }))
+        .sort((a, b) => b.position - a.position)
+    )
+  } catch { return res.json([]) }
 }
 
 // ── Supprimer définitivement un compte (superadmin uniquement) ────────────────

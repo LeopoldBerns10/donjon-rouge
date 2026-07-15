@@ -11,9 +11,13 @@ import {
   triggerSync,
   getPerformanceAll,
   getPerformanceDetail,
-  getBannedWords,
-  addBannedWord,
-  deleteBannedWord,
+  getAutomodConfig,
+  updateAutomodConfig,
+  getAutomodWarnings,
+  deleteAutomodWarning,
+  purgeAutomodMemberWarnings,
+  getDiscordChannels,
+  getDiscordRoles,
 } from '../controllers/adminController.js'
 
 const router = Router()
@@ -29,8 +33,12 @@ router.post('/sync-members', verifyToken, requireSuperAdmin, triggerSync)
 router.get('/performance', verifyToken, requireSuperAdmin, getPerformanceAll)
 router.get('/performance/:coc_tag', verifyToken, requireSuperAdmin, getPerformanceDetail)
 
-router.get('/banned-words',          verifyToken, requireSuperAdmin, getBannedWords)
-router.post('/banned-words',         verifyToken, requireSuperAdmin, addBannedWord)
-router.delete('/banned-words/:wordId', verifyToken, requireSuperAdmin, deleteBannedWord)
+router.get('/automod/config',                       verifyToken, requireSuperAdmin, getAutomodConfig)
+router.put('/automod/config',                       verifyToken, requireSuperAdmin, updateAutomodConfig)
+router.get('/automod/warnings',                     verifyToken, requireSuperAdmin, getAutomodWarnings)
+router.delete('/automod/warnings/member/:discord_id', verifyToken, requireSuperAdmin, purgeAutomodMemberWarnings)
+router.delete('/automod/warnings/:id',              verifyToken, requireSuperAdmin, deleteAutomodWarning)
+router.get('/automod/channels',                     verifyToken, requireSuperAdmin, getDiscordChannels)
+router.get('/automod/roles',                        verifyToken, requireSuperAdmin, getDiscordRoles)
 
 export default router

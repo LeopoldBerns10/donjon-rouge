@@ -40,4 +40,12 @@ export const deleteEvent = (id) => api.delete(`/api/dashboard/events/${id}`)
 export const getSnapshots = () => api.get('/api/dashboard/snapshots')
 export const getNotifications = () => api.get('/api/dashboard/notifications')
 
+export const getAutomodConfig  = ()       => api.get('/api/dashboard/automod/config')
+export const updateAutomodConfig = (data) => api.put('/api/dashboard/automod/config', data)
+export const getAutomodWarnings  = (params = '') => api.get(`/api/dashboard/automod/warnings${params}`)
+export const deleteAutomodWarning = (id)  => api.delete(`/api/dashboard/automod/warnings/${id}`)
+export const purgeAutomodWarnings = (discordId) => api.delete(`/api/dashboard/automod/warnings/member/${encodeURIComponent(discordId)}`)
+export const getAutomodChannels  = ()     => api.get('/api/dashboard/automod/channels').catch(() => ({ data: [] }))
+export const getAutomodRoles     = ()     => api.get('/api/dashboard/automod/roles').catch(() => ({ data: [] }))
+
 export default api
