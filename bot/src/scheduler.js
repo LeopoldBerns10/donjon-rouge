@@ -131,8 +131,11 @@ async function fetchWarData() {
   try {
     const raidData = await apiGet('/clan/raids')
     const latest = raidData?.items?.[0] || null
+    console.log('[fetchWarData] Raid state reçu:', latest?.state, '| startTime:', latest?.startTime, '| endTime:', latest?.endTime)
     if (latest?.state === 'ongoing') currentRaid = latest
-  } catch {}
+  } catch (e) {
+    console.error('[fetchWarData] Raid API error:', e.message)
+  }
 
   return { wars, dr1IsLdc, dr2IsLdc, dr1LdcBetweenRounds, dr2LdcBetweenRounds, dr1Cwl, dr2Cwl, currentRaid }
 }

@@ -426,8 +426,11 @@ async function updateWarChannels(client) {
     try {
       const raidData = await apiGet('/clan/raids')
       const latest   = raidData?.items?.[0] || null
+      console.log('[updateWarChannels] Raid state reçu:', latest?.state, '| startTime:', latest?.startTime, '| endTime:', latest?.endTime)
       if (latest?.state === 'ongoing') currentRaid = latest
-    } catch {}
+    } catch (e) {
+      console.error('[updateWarChannels] Raid API error:', e.message)
+    }
 
     const raidEmbed = await buildRaidEmbed(currentRaid)
     await getOrCreateWarMessage(raidChannel, 'raid_msg', { embeds: [raidEmbed], components: [RAID_REFRESH_ROW] })
