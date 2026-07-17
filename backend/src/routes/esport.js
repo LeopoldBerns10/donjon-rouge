@@ -1,7 +1,6 @@
 import { Router } from 'express'
 import supabase from '../lib/supabase.js'
 import { getCached } from '../services/cacheService.js'
-import { getClanInfo, getClanMembers, getClanWarLog } from '../services/cocApiService.js'
 import verifyToken, { requireSuperAdmin } from '../middleware/auth.js'
 
 const router = Router()
@@ -23,7 +22,7 @@ router.get('/status', async (req, res) => {
     let memberCount = 0
     if (enabled) {
       try {
-        const clan = await getCached(`clan:${ESPORT_TAG}`, () => getClanInfo(ESPORT_TAG))
+        const clan = await getCached(`clan:${ESPORT_TAG}`)
         memberCount = clan?.members || 0
       } catch {}
     }
@@ -41,9 +40,9 @@ router.get('/clan-info', verifyToken, async (req, res) => {
       return res.status(403).json({ error: 'Feature E-Sport désactivée' })
     }
     const [clan, membersData, warlogData] = await Promise.all([
-      getCached(`clan:${ESPORT_TAG}`, () => getClanInfo(ESPORT_TAG)),
-      getCached(`members:${ESPORT_TAG}`, () => getClanMembers(ESPORT_TAG)),
-      getCached(`warlog:${ESPORT_TAG}`, () => getClanWarLog(ESPORT_TAG)).catch(() => null),
+      getCached(`clan:${ESPORT_TAG}`),
+      getCached(`members:${ESPORT_TAG}`),
+      getCached(`warlog:${ESPORT_TAG}`).catch(() => null),
     ])
     const members = membersData?.items || membersData || []
     const warlog = warlogData?.items || []

@@ -1,8 +1,8 @@
 const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
 const supabase = require('../supabase.js')
+const { apiGet } = require('../cocApi.js')
 
 const EVENTS_CHANNEL_ID = '1441176254769401969'
-const BASE = process.env.BACKEND_URL
 
 let eventsMsgCache = null
 
@@ -112,11 +112,10 @@ function jeuxDeClan(now) {
 // ─── Statut GDC via API ───────────────────────────────────────────────────────
 
 async function getWarStatus() {
-  if (!BASE) return null
   try {
     const [r1, r2] = await Promise.allSettled([
-      fetch(`${BASE}/api/coc/clan/dr1/war`).then(r => r.ok ? r.json() : null),
-      fetch(`${BASE}/api/coc/clan/dr2/war`).then(r => r.ok ? r.json() : null),
+      apiGet('/clan/dr1/war'),
+      apiGet('/clan/dr2/war'),
     ])
     const wars = [r1, r2]
       .filter(r => r.status === 'fulfilled' && r.value)

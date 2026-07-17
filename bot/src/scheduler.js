@@ -45,6 +45,7 @@ const { checkBirthdays } = require('./lib/birthdayManager.js')
 const { checkExpiredPolls } = require('./lib/pollManager.js')
 const { ensureRaidEvent, ensureJdcEvent, ensureNextMonthEvents, checkEventAnnouncements, fetchSupercellEvents } = require('./lib/discordEvents.js')
 const { getPlayer, apiGet, parseWarTime, normalizeWar } = require('./cocApi.js')
+const { refreshCoreData } = require('./cocDirectApi.js')
 const { assignLeagueRole } = require('./utils/assignLeagueRole.js')
 const { assignHdvRole } = require('./utils/assignHdvRole.js')
 
@@ -581,6 +582,8 @@ async function checkLogsPurge(client) {
 // ─── Boucle principale ────────────────────────────────────────────────────────
 
 async function checkAndUpdate(client) {
+  await refreshCoreData().catch(e => console.error('[Scheduler] CoC core refresh:', e))
+
   const warData = await fetchWarData()
   await checkExploits(client, warData).catch(e => console.error('[Scheduler] Exploits:', e))
   await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))

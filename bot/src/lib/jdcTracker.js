@@ -368,19 +368,6 @@ async function ensureJdcMessage(channel, key, embed, buttonRows = null) {
   return msg
 }
 
-// ─── Flush cache joueurs backend ──────────────────────────────────────────────
-
-async function flushPlayersCache() {
-  try {
-    const res = await fetch(`${process.env.BACKEND_URL}/api/cache/flush/players`, {
-      method: 'POST',
-      headers: { 'x-bot-secret': process.env.BOT_SECRET ?? '' },
-    })
-    if (!res.ok) console.warn('[JDC] flushPlayersCache HTTP', res.status, await res.text())
-  } catch (e) {
-    console.warn('[JDC] flushPlayersCache:', e.message)
-  }
-}
 
 // ─── Mise à jour embeds live ──────────────────────────────────────────────────
 
@@ -391,7 +378,7 @@ async function updateJdcEmbeds(client) {
   const [startStr, endStr] = await Promise.all([getConfig('jdc_start'), getConfig('jdc_end')])
   const season = startStr ? startStr.slice(0, 7) : new Date().toISOString().slice(0, 7)
 
-  await flushPlayersCache()
+  await flushCocCache()
 
   try {
     const members     = await fetchAllMembersWithPoints(season)

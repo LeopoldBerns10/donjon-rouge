@@ -1,6 +1,9 @@
 import supabase from '../lib/supabase.js'
 
-const COC_CACHE_TTL = 60 * 60 * 1000 // 1 heure
+// Cache mémoire court (5 min) pour éviter des lectures Supabase répétées.
+// Source de vérité : table coc_stats_cache, hydratée par le bot toutes les 30 min.
+// Le backend ne fait plus aucun appel direct à l'API CoC.
+const MEMORY_CACHE_TTL = 5 * 60 * 1000
 
 const memoryCache = new Map()
 
@@ -14,35 +17,24 @@ export async function flushJdcCaches() {
   await supabase.from('coc_stats_cache').delete().like('coc_tag', 'members:%')
 }
 
-export async function getCached(key, fetchFn) {
-  // 1. Cache mémoire (évite même les requêtes Supabase)
+// Lecture seule depuis Supabase. Le second paramètre fetchFn est conservé pour
+// compatibilité avec les appelants existants mais n'est jamais invoqué.
+export async function getCached(key, _fetchFn) {
   const mem = memoryCache.get(key)
-  if (mem && Date.now() - mem.time < COC_CACHE_TTL) {
+  if (mem && Date.now() - mem.time < MEMORY_CACHE_TTL) {
     return mem.data
   }
 
-  // 2. Cache Supabase
   const { data } = await supabase
     .from('coc_stats_cache')
     .select('data, updated_at')
     .eq('coc_tag', key)
     .single()
 
-  if (data) {
-    const age = Date.now() - new Date(data.updated_at).getTime()
-    if (age < COC_CACHE_TTL) {
-      memoryCache.set(key, { data: data.data, time: new Date(data.updated_at).getTime() })
-      return data.data
-    }
+  if (data?.data) {
+    memoryCache.set(key, { data: data.data, time: Date.now() })
+    return data.data
   }
 
-  // 3. Fetch API CoC
-  const fresh = await fetchFn()
-
-  await supabase
-    .from('coc_stats_cache')
-    .upsert({ coc_tag: key, data: fresh, updated_at: new Date().toISOString() })
-
-  memoryCache.set(key, { data: fresh, time: Date.now() })
-  return fresh
+  throw new Error(`Données CoC non disponibles pour "${key}" — bot non démarré ou cache vide`)
 }

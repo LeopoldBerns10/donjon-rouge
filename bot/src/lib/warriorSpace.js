@@ -2,12 +2,11 @@
   EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, PermissionsBitField,
 } = require('discord.js')
 const supabase = require('../supabase.js')
-const { getPlayer, getRaidSeasons, getLdcCurrent, getLdcCurrentDR2 } = require('../cocApi.js')
+const { getPlayer, getRaidSeasons, getLdcCurrent, getLdcCurrentDR2, apiGet } = require('../cocApi.js')
 const { buildPlayerEmbed, buildNavComponents } = require('../utils/performances.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
 const { ACCOUNT_CHANNEL_ID } = require('../config/reminders.js')
 
-const BASE = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
 const DR2_TAG = '#2RCGG9YR9'
 
@@ -58,10 +57,8 @@ function normalizeWar(war, ourTag) {
 }
 
 async function fetchWarForClan(clanKey) {
-  if (!BASE) return null
   try {
-    const res = await fetch(`${BASE}/api/coc/clan/${clanKey}/war`)
-    return res.ok ? res.json() : null
+    return await apiGet(`/clan/${clanKey}/war`)
   } catch { return null }
 }
 

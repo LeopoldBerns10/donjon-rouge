@@ -1,6 +1,5 @@
 import supabase from '../lib/supabase.js'
 import { getCached } from '../services/cacheService.js'
-import { getClanInfo, getCurrentWar, getClanRaidSeasons } from '../services/cocApiService.js'
 
 const DR1 = process.env.COC_CLAN_TAG_DR1 || '#29292QPRC'
 const DR2 = process.env.COC_CLAN_TAG_DR2 || '#2RCGG9YR9'
@@ -20,11 +19,11 @@ export async function getStats(req, res) {
       activePolls,
       routeState,
     ] = await Promise.allSettled([
-      getCached(`clan:${DR1}`, () => getClanInfo(DR1)),
-      getCached(`clan:${DR2}`, () => getClanInfo(DR2)),
-      getCached(`war:${DR1}`, () => getCurrentWar(DR1)),
-      getCached(`war:${DR2}`, () => getCurrentWar(DR2)),
-      getCached(`raids:${DR1}`, () => getClanRaidSeasons(DR1)),
+      getCached(`clan:${DR1}`),
+      getCached(`clan:${DR2}`),
+      getCached(`war:${DR1}`),
+      getCached(`war:${DR2}`),
+      getCached(`raids:${DR1}`),
       supabase.from('discord_links').select('*', { count: 'exact', head: true }),
       _getBirthdaysToday(),
       _getActivePolls(),

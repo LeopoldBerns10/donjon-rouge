@@ -33,3 +33,5 @@ services:
         sync: false
       - key: BACKEND_URL
         sync: false
+      - key: COC_API_TOKEN
+        sync: false

@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs'
-import { getClanMembers } from './cocApiService.js'
+import { getCached } from './cacheService.js'
 import supabase from '../lib/supabase.js'
 
 const CLANS = [
@@ -14,7 +14,7 @@ export async function syncMembers() {
 
   for (const clan of CLANS) {
     try {
-      const data = await getClanMembers(clan.tag)
+      const data = await getCached(`members:${clan.tag}`)
       const members = data.items || []
       const rosterTags = new Set(members.map(m => m.tag))
 

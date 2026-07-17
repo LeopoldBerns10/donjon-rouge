@@ -4,10 +4,9 @@ const {
 } = require('discord.js')
 const supabase = require('../supabase.js')
 const { AUTHORIZED_USERS, MESSAGING_CHANNEL_ID } = require('../config/messaging.js')
-const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
+const { getCurrentWar, getLdcCurrent, getLdcCurrentDR2, getRaidSeasons, getClanMembers, getClanMembersDR2, apiGet } = require('../cocApi.js')
 const { fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
 
-const BASE    = process.env.BACKEND_URL
 const DR1_TAG = '#29292QPRC'
 const DR2_TAG = '#2RCGG9YR9'
 const CHEF_ROLE_ID = '611123759864348672'
@@ -66,8 +65,7 @@ async function fetchWarMembersNoAttack() {
 
   // DR2
   try {
-    const res = await fetch(`${BASE}/api/coc/clan/dr2/war`)
-    let war = res.ok ? await res.json() : null
+    let war = await apiGet('/clan/dr2/war').catch(() => null)
     if (!war || war.state === 'notInWar' || war.state === 'warEnded') {
       const ldc2 = await getLdcCurrentDR2()
       const round2 = findActiveRound(ldc2)

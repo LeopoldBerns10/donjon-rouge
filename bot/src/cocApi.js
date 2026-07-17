@@ -1,34 +1,55 @@
-const BASE = process.env.BACKEND_URL
+'use strict'
+
+const coc = require('./cocDirectApi.js')
+
+const DR1_TAG = '#29292QPRC'
+const DR2_TAG = '#2RCGG9YR9'
+
+// ─── Mapper chemin → appel direct API CoC ────────────────────────────────────
+// Reproduit l'ancienne interface apiGet(path) qui appelait le backend,
+// mais appelle désormais cocDirectApi directement et écrit dans Supabase.
 
 async function apiGet(path) {
-  const res = await fetch(`${BASE}/api/coc${path}`)
-  if (!res.ok) throw new Error(`Backend ${res.status}: ${await res.text()}`)
-  return res.json()
-}
+  const playerMatch = path.match(/^\/player\/(.+)$/)
+  if (playerMatch) return coc.getPlayerInfo(decodeURIComponent(playerMatch[1]))
 
-async function flushCocCache() {
-  try {
-    const res = await fetch(`${BASE}/api/cache/flush/players`, {
-      method: 'POST',
-      headers: { 'x-bot-secret': process.env.BOT_SECRET ?? '' },
-    })
-    if (!res.ok) console.warn('[JDC] flushCocCache HTTP', res.status, await res.text())
-  } catch (e) {
-    console.warn('[JDC] flushCocCache:', e.message)
+  const ldcWarMatch = path.match(/^\/ldc\/war\/(.+)$/)
+  if (ldcWarMatch) return coc.getLdcWarDetail(decodeURIComponent(ldcWarMatch[1]))
+
+  switch (path) {
+    case '/clan':               return coc.getClanInfo(DR1_TAG)
+    case '/clan/members':
+    case '/clan/dr1/members':   return coc.getClanMembers(DR1_TAG)
+    case '/clan/dr2/members':   return coc.getClanMembers(DR2_TAG)
+    case '/clan/war':
+    case '/clan/dr1/war':       return coc.getCurrentWar(DR1_TAG)
+    case '/clan/dr2/war':       return coc.getCurrentWar(DR2_TAG)
+    case '/clan/warlog':        return coc.getClanWarLog(DR1_TAG)
+    case '/clan/raids':         return coc.getClanRaidSeasons(DR1_TAG)
+    case '/clan/cwl':           return coc.getClanLeagueGroup(DR1_TAG)
+    case '/ldc/current':        return coc.buildLdcAssembled(DR1_TAG)
+    case '/ldc/dr2/current':    return coc.buildLdcAssembled(DR2_TAG)
+    default:
+      throw new Error(`apiGet: chemin non supporté — ${path}`)
   }
 }
 
-const getClanInfo    = ()    => apiGet('/clan')
-const getClanMembers    = ()    => apiGet('/clan/members')
-const getClanMembersDR2 = ()    => apiGet('/clan/dr2/members')
-const getCurrentWar  = ()    => apiGet('/clan/war')
-const getWarLog      = ()    => apiGet('/clan/warlog')
-const getRaidSeasons = ()    => apiGet('/clan/raids')
-const getCwl         = ()    => apiGet('/clan/cwl')
-const getPlayer      = (tag) => apiGet(`/player/${encodeURIComponent(tag)}`)
-const getLdcCurrent    = ()    => apiGet('/ldc/current')
-const getLdcCurrentDR2 = ()    => apiGet('/ldc/dr2/current')
-const getLdcWar        = (warTag) => apiGet(`/ldc/war/${encodeURIComponent(warTag)}`)
+// ─── Exports nommés (compatibilité avec tous les imports existants) ───────────
+
+const getClanInfo       = ()       => coc.getClanInfo(DR1_TAG)
+const getClanMembers    = ()       => coc.getClanMembers(DR1_TAG)
+const getClanMembersDR2 = ()       => coc.getClanMembers(DR2_TAG)
+const getCurrentWar     = ()       => coc.getCurrentWar(DR1_TAG)
+const getWarLog         = ()       => coc.getClanWarLog(DR1_TAG)
+const getRaidSeasons    = ()       => coc.getClanRaidSeasons(DR1_TAG)
+const getCwl            = ()       => coc.getClanLeagueGroup(DR1_TAG)
+const getPlayer         = (tag)    => coc.getPlayerInfo(tag)
+const getLdcCurrent     = ()       => coc.buildLdcAssembled(DR1_TAG)
+const getLdcCurrentDR2  = ()       => coc.buildLdcAssembled(DR2_TAG)
+const getLdcWar         = (warTag) => coc.getLdcWarDetail(warTag)
+const flushCocCache     = ()       => coc.flushPlayerAndMembersCache()
+
+// ─── Helpers inchangés ────────────────────────────────────────────────────────
 
 function parseWarTime(str) {
   if (!str) return null
@@ -60,4 +81,22 @@ async function getPlayerClanGamePoints(playerTag) {
   return extractClanGamePoints(data)
 }
 
-module.exports = { apiGet, parseWarTime, normalizeWar, getClanInfo, getClanMembers, getClanMembersDR2, getCurrentWar, getWarLog, getRaidSeasons, getCwl, getPlayer, getPlayerClanGamePoints, extractClanGamePoints, getLdcCurrent, getLdcCurrentDR2, getLdcWar, flushCocCache }
+module.exports = {
+  apiGet,
+  parseWarTime,
+  normalizeWar,
+  getClanInfo,
+  getClanMembers,
+  getClanMembersDR2,
+  getCurrentWar,
+  getWarLog,
+  getRaidSeasons,
+  getCwl,
+  getPlayer,
+  getPlayerClanGamePoints,
+  extractClanGamePoints,
+  getLdcCurrent,
+  getLdcCurrentDR2,
+  getLdcWar,
+  flushCocCache,
+}
