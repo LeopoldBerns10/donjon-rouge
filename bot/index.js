@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, Collection, Partials } = require('discord.js'
 const { readdirSync, statSync } = require('fs')
 const { join } = require('path')
 const { startScheduler } = require('./src/scheduler.js')
+const { initialize: initCoc } = require('./src/cocDirectApi.js')
 const { getOrCreateAccountMessage, getAccountMessageId } = require('./src/accountMessage.js')
 const { ACCOUNT_CHANNEL_ID } = require('./src/config/reminders.js')
 
@@ -48,6 +49,13 @@ for (const file of readdirSync(eventsPath).filter(f => f.endsWith('.js'))) {
 client.once('ready', async () => {
   const guild = client.guilds.cache.first()
   if (guild) await guild.members.fetch().catch(e => console.error('[Ready] Erreur fetch membres:', e))
+
+  try {
+    await initCoc()
+  } catch (e) {
+    console.error('[CoC] Échec initialisation API CoC:', e.message)
+    console.error('[CoC] Vérifiez COC_EMAIL et COC_PASSWORD dans les variables d\'env')
+  }
 
   startScheduler(client)
   getOrCreateAccountMessage(client).catch(e => console.error('[AccountMessage] Erreur démarrage:', e))

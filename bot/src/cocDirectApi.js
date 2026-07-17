@@ -1,26 +1,33 @@
 'use strict'
 
+const { Client } = require('clashofclans.js')
 const supabase = require('./supabase.js')
 
-const COC_BASE = 'https://api.clashofclans.com/v1'
-const DR1_TAG  = '#29292QPRC'
-const DR2_TAG  = '#2RCGG9YR9'
+const DR1_TAG = '#29292QPRC'
+const DR2_TAG = '#2RCGG9YR9'
 
-function cocHeaders() {
-  return {
-    Authorization: `Bearer ${process.env.COC_API_TOKEN}`,
-    Accept: 'application/json',
+// Singleton client — géré par clashofclans.js (token + IP automatiques)
+const cocClient = new Client()
+
+// ─── Initialisation (à appeler une fois au démarrage avant le scheduler) ───────
+// Se connecte au portail developer.clashofclans.com avec les credentials,
+// détecte l'IP courante du serveur et crée/met à jour la clé API en conséquence.
+// En cas de 403 invalidIp en cours de session, la lib re-valide automatiquement.
+
+async function initialize() {
+  if (!process.env.COC_EMAIL || !process.env.COC_PASSWORD) {
+    throw new Error('COC_EMAIL et COC_PASSWORD sont requis dans les variables d\'env')
   }
+  await cocClient.login({
+    email:    process.env.COC_EMAIL,
+    password: process.env.COC_PASSWORD,
+    keyName:  'donjon-rouge-bot',
+    keyCount: 1,
+  })
+  console.log('[CoC] Connexion developer portal OK — clé API mise à jour avec l\'IP courante')
 }
 
-async function cocFetch(path) {
-  const res = await fetch(`${COC_BASE}${path}`, { headers: cocHeaders() })
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`CoC API ${res.status}: ${text}`)
-  }
-  return res.json()
-}
+// ─── Cache Supabase ────────────────────────────────────────────────────────────
 
 async function writeCache(key, data) {
   await supabase
@@ -35,60 +42,59 @@ async function flushPlayerAndMembersCache() {
   console.log('[CoC] Cache joueurs et membres vidé (Supabase)')
 }
 
-// ─── Fonctions de fetch direct + écriture cache Supabase ─────────────────────
+// ─── Appels API via client.rest (JSON brut CoC API, sans transformation) ───────
+// client.rest.METHOD() retourne { body: <JSON brut> } — identique à l'ancienne
+// cocFetch(), aucun changement de structure pour le reste du code.
 
 async function getClanInfo(tag) {
-  const data = await cocFetch(`/clans/${encodeURIComponent(tag)}`)
-  await writeCache(`clan:${tag}`, data)
-  return data
+  const { body } = await cocClient.rest.getClan(tag)
+  await writeCache(`clan:${tag}`, body)
+  return body
 }
 
 async function getClanMembers(tag) {
-  const data = await cocFetch(`/clans/${encodeURIComponent(tag)}/members`)
-  await writeCache(`members:${tag}`, data)
-  return data
+  const { body } = await cocClient.rest.getClanMembers(tag)
+  await writeCache(`members:${tag}`, body)
+  return body
 }
 
 async function getPlayerInfo(tag) {
-  const data = await cocFetch(`/players/${encodeURIComponent(tag)}`)
-  await writeCache(`player:${tag}`, data)
-  return data
+  const { body } = await cocClient.rest.getPlayer(tag)
+  await writeCache(`player:${tag}`, body)
+  return body
 }
 
 async function getClanWarLog(tag) {
-  const data = await cocFetch(`/clans/${encodeURIComponent(tag)}/warlog`)
-  await writeCache(`warlog:${tag}`, data)
-  return data
+  const { body } = await cocClient.rest.getClanWarLog(tag)
+  await writeCache(`warlog:${tag}`, body)
+  return body
 }
 
 async function getCurrentWar(tag) {
-  const data = await cocFetch(`/clans/${encodeURIComponent(tag)}/currentwar`)
-  await writeCache(`war:${tag}`, data)
-  return data
+  const { body } = await cocClient.rest.getCurrentWar(tag)
+  await writeCache(`war:${tag}`, body)
+  return body
 }
 
 async function getClanRaidSeasons(tag) {
-  const data = await cocFetch(`/clans/${encodeURIComponent(tag)}/capitalraidseasons?limit=3`)
-  await writeCache(`raids:${tag}`, data)
-  return data
+  const { body } = await cocClient.rest.getCapitalRaidSeasons(tag, { limit: 3 })
+  await writeCache(`raids:${tag}`, body)
+  return body
 }
 
 async function getClanLeagueGroup(tag) {
-  const data = await cocFetch(`/clans/${encodeURIComponent(tag)}/currentwar/leaguegroup`)
-  await writeCache(`ldc:group:${tag}`, data)
-  return data
+  const { body } = await cocClient.rest.getClanWarLeagueGroup(tag)
+  await writeCache(`ldc:group:${tag}`, body)
+  return body
 }
 
 async function getLdcWarDetail(warTag) {
-  const data = await cocFetch(`/clanwarleagues/wars/${encodeURIComponent(warTag)}`)
-  await writeCache(`ldc:war:${warTag}`, data)
-  return data
+  const { body } = await cocClient.rest.getClanWarLeagueRound(warTag)
+  await writeCache(`ldc:war:${warTag}`, body)
+  return body
 }
 
 // ─── LDC assemblé (miroir exact du contrôleur backend ldcCurrent) ─────────────
-// Fetchs le groupe LDC + tous les détails de guerre de chaque round.
-// Effet de bord : écrit toutes les clés ldc:group:* et ldc:war:* dans Supabase
-// pour que le backend puisse les servir sans appeler l'API CoC.
 
 async function buildLdcAssembled(clanTag) {
   let group
@@ -118,8 +124,6 @@ async function buildLdcAssembled(clanTag) {
 }
 
 // ─── Refresh core (appelé par le scheduler toutes les 30 min) ─────────────────
-// Hydrate clan info, listes membres, données joueurs et warlogs dans Supabase.
-// La guerre / LDC / raids sont déjà pris en charge par fetchWarData() du scheduler.
 
 async function refreshCoreData() {
   for (const tag of [DR1_TAG, DR2_TAG]) {
@@ -145,6 +149,7 @@ async function refreshCoreData() {
 }
 
 module.exports = {
+  initialize,
   getClanInfo,
   getClanMembers,
   getPlayerInfo,
