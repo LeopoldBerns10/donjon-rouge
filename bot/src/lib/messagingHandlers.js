@@ -15,6 +15,7 @@ const CHEF_ROLE_ID = '611123759864348672'
 const pendingRappels = new Map()
 const pendingCustom  = new Map()
 const pendingJdc     = new Map()
+const pendingGlobal  = new Map()
 
 // ─── Autorisation ─────────────────────────────────────────────────────────────
 
@@ -325,14 +326,15 @@ async function handleMsgJdcReminder(interaction) {
 
   pendingJdc.set(interaction.user.id, { zero, partial, tagMap, daysLeft })
 
+  const zeroLines    = zero.map(m    => tagMap[m.tag] ? `❌ <@${tagMap[m.tag]}> (${m.name}) — 0 pts`    : `❌ ${m.name} *(non lié)* — 0 pts`)
+  const partialLines = partial.map(m => tagMap[m.tag] ? `⚡ <@${tagMap[m.tag]}> (${m.name}) — ${m.points.toLocaleString('fr-FR')} pts` : `⚡ ${m.name} *(non lié)* — ${m.points.toLocaleString('fr-FR')} pts`)
+  const linkedCount  = allUnder.filter(m => tagMap[m.tag]).length
+
   const preview = new EmbedBuilder()
     .setColor(0x8B0000)
     .setTitle('🎮 Rappel Jeux de Clan')
-    .setDescription([
-      `Membres à contacter : **${allUnder.length}** (DR1 + DR2)`,
-      `→ Membres à 0 pts : **${zero.length}**`,
-      `→ Membres entre 1 et 4 999 pts : **${partial.length}**`,
-    ].join('\n'))
+    .setDescription([...zeroLines, ...partialLines].join('\n').slice(0, 2000) || '—')
+    .setFooter({ text: `${linkedCount} DM seront envoyés · ${allUnder.length - linkedCount} non liés ignorés` })
 
   const row = new ActionRowBuilder().addComponents(
     new ButtonBuilder().setCustomId('msg_jdc_reminder_confirm').setLabel('✅ Confirmer l\'envoi').setStyle(ButtonStyle.Success),
@@ -557,13 +559,6 @@ async function handleModalMsgGlobal(interaction) {
 
   await interaction.deferReply({ ephemeral: true })
 
-  const embed = new EmbedBuilder()
-    .setColor(0x8B0000)
-    .setTitle(subject)
-    .setDescription(body)
-    .setFooter({ text: `Message de ${interaction.user.username} • Donjon Rouge` })
-    .setTimestamp()
-
   const { data } = await supabase.from('discord_links').select('discord_id, coc_name, is_primary')
 
   const byUser = new Map()
@@ -572,13 +567,59 @@ async function handleModalMsgGlobal(interaction) {
   }
 
   const targets = [...byUser.values()].map(r => ({ discordId: r.discord_id, name: r.coc_name }))
-  const { sent, closedDm } = await sendDMs(interaction.client, targets, embed)
+
+  if (!targets.length) {
+    return interaction.editReply('❌ Aucun membre lié trouvé.')
+  }
+
+  pendingGlobal.set(interaction.user.id, { subject, body, targets })
+
+  const shown    = targets.slice(0, 15).map(t => `<@${t.discordId}>`).join(', ')
+  const moreText = targets.length > 15 ? `\n_+ ${targets.length - 15} autres..._` : ''
+
+  const preview = new EmbedBuilder()
+    .setColor(0x8B0000)
+    .setTitle(`📨 Aperçu — ${subject}`)
+    .setDescription(body)
+    .addFields({ name: `👥 Destinataires (${targets.length})`, value: `${shown}${moreText}`.slice(0, 1024), inline: false })
+    .setFooter({ text: `${targets.length} DM seront envoyés à tous les membres liés` })
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder().setCustomId('msg_global_confirm').setLabel('✅ Confirmer l\'envoi').setStyle(ButtonStyle.Success),
+    new ButtonBuilder().setCustomId('msg_global_cancel').setLabel('❌ Annuler').setStyle(ButtonStyle.Secondary),
+  )
+  await interaction.editReply({ embeds: [preview], components: [row] })
+}
+
+async function handleMsgGlobalConfirm(interaction) {
+  await interaction.deferUpdate()
+  const pending = pendingGlobal.get(interaction.user.id)
+  if (!pending) {
+    return interaction.followUp({ content: '❌ Session expirée, relance la commande.', ephemeral: true })
+  }
+  pendingGlobal.delete(interaction.user.id)
+  await interaction.editReply({ components: [] })
+
+  const embed = new EmbedBuilder()
+    .setColor(0x8B0000)
+    .setTitle(pending.subject)
+    .setDescription(pending.body)
+    .setFooter({ text: 'Message envoyé par le staff Donjon Rouge' })
+    .setTimestamp()
+
+  const { sent, closedDm } = await sendDMs(interaction.client, pending.targets, embed)
 
   let summary = `✅ **${sent}** DM envoyés | ❌ **${closedDm.length}** DMs fermés`
   if (closedDm.length) {
     summary += ` : ${closedDm.join(', ')} — Contacter <@610765755553939456> si problème`
   }
-  await interaction.editReply(summary.slice(0, 1900))
+  await interaction.followUp({ content: summary.slice(0, 1900), ephemeral: true })
+}
+
+async function handleMsgGlobalCancel(interaction) {
+  await interaction.deferUpdate()
+  pendingGlobal.delete(interaction.user.id)
+  await interaction.editReply({ content: '❌ Message global annulé.', embeds: [], components: [] })
 }
 
 // ─── Accusé de réception / réponse aux DMs ───────────────────────────────────
@@ -646,6 +687,8 @@ module.exports = {
   handleMsgCustomCancel,
   handleMsgGlobal,
   handleModalMsgGlobal,
+  handleMsgGlobalConfirm,
+  handleMsgGlobalCancel,
   handleDmAck,
   handleDmReply,
   handleModalDmReply,

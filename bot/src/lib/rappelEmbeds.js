@@ -37,16 +37,18 @@ async function buildRappelWarEmbed(clanKey) {
   let war   = null
   let isLdc = false
 
+  // GDC : accepte inWar ET preparation
   try {
     const gdcWar = await apiGet(`/clan/${clanKey}/war`)
-    if (gdcWar?.state === 'inWar') war = gdcWar
+    if (gdcWar?.state === 'inWar' || gdcWar?.state === 'preparation') war = gdcWar
   } catch {}
 
   if (!war) {
+    // LDC : accepte inWar ET preparation
     const ldcPath = clanKey === 'dr1' ? '/ldc/current' : '/ldc/dr2/current'
     try {
       const ldc         = await apiGet(ldcPath)
-      const activeRound = ldc?.rounds?.find(r => r.war?.state === 'inWar')
+      const activeRound = ldc?.rounds?.find(r => r.war?.state === 'inWar' || r.war?.state === 'preparation')
       if (activeRound) {
         war   = normalizeWar(activeRound.war, ourTag)
         isLdc = true
@@ -58,6 +60,23 @@ async function buildRappelWarEmbed(clanKey) {
     return inactiveEmbed(`⚔️ Rappel Guerre — ${label}`, `Donjon Rouge • Guerre ${label}`)
   }
 
+  const typeLabel = isLdc ? 'LDC' : 'GDC'
+  const title     = isLdc ? `🏆 Rappel LDC — ${label}` : `⚔️ Rappel GDC — ${label}`
+  const oppName   = war.opponent?.name || '?'
+
+  // État : préparation — aucune attaque possible encore
+  if (war.state === 'preparation') {
+    const startTime   = war.startTime ? parseWarTime(war.startTime) : null
+    const hoursToStart = startTime ? Math.max(0, Math.ceil((startTime - Date.now()) / 3600000)) : '?'
+    return new EmbedBuilder()
+      .setColor(0x1565C0)
+      .setTitle(title)
+      .setDescription(`vs **${oppName}**\n\n⏳ **En préparation** — début dans **${hoursToStart}h**\n_Aucune attaque pour le moment._`)
+      .setFooter({ text: `Donjon Rouge • ${typeLabel} ${label} • Aujourd'hui à ${parisTime()}` })
+      .setTimestamp()
+  }
+
+  // État : inWar — affichage des attaques
   const attacksPerMember = isLdc ? 1 : 2
   const members          = war.clan?.members || []
 
@@ -66,7 +85,8 @@ async function buildRappelWarEmbed(clanKey) {
   const done    = members.filter(m => (m.attacks?.length ?? 0) >= attacksPerMember)
 
   const allTags    = [...late, ...partial].map(m => m.tag)
-  const discordMap = allTags.length > 0 ? await getDiscordIds(allTags) : {}
+  let discordMap = {}
+  try { discordMap = allTags.length > 0 ? await getDiscordIds(allTags) : {} } catch {}
 
   const lines = [
     ...late.map(m    => `❌ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — 0/${attacksPerMember}`),
@@ -76,13 +96,12 @@ async function buildRappelWarEmbed(clanKey) {
 
   const endTime   = war.endTime ? parseWarTime(war.endTime) : null
   const hoursLeft = endTime ? Math.max(0, Math.ceil((endTime - Date.now()) / 3600000)) : '?'
-  const title     = isLdc ? `🏆 Rappel LDC — ${label}` : `⚔️ Rappel GDC — ${label}`
 
   return new EmbedBuilder()
     .setColor(late.length === 0 ? 0x2E7D32 : (isLdc ? 0xFFD700 : 0xFF6600))
     .setTitle(title)
-    .setDescription(`vs **${war.opponent?.name || '?'}** | ⏳ ${hoursLeft}h restantes\n\n${lines.join('\n')}`.slice(0, 4096))
-    .setFooter({ text: `Donjon Rouge • ${isLdc ? 'LDC' : 'GDC'} ${label} • Aujourd'hui à ${parisTime()}` })
+    .setDescription(`vs **${oppName}** | ⏳ ${hoursLeft}h restantes\n\n${lines.join('\n')}`.slice(0, 4096))
+    .setFooter({ text: `Donjon Rouge • ${typeLabel} ${label} • Aujourd'hui à ${parisTime()}` })
     .setTimestamp()
 }
 

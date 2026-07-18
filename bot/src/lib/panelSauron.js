@@ -7,11 +7,28 @@ function buildSauronEmbed() {
   return new EmbedBuilder()
     .setColor(0x8B0000)
     .setTitle('👁️ Panel Sauron — Administration Guerre')
-    .setDescription('Utilise les boutons ci-dessous pour gérer les embeds et résultats.')
+    .setDescription('Utilise les boutons ci-dessous pour gérer les embeds et résultats de guerre.')
     .addFields(
-      { name: '🔄 Ligne 1', value: 'Actualiser les embeds infos guerre (sans ping)', inline: false },
-      { name: '📣 Ligne 2', value: 'Actualiser les embeds rappels (avec ping membres Liés)', inline: false },
-      { name: '📊 Lignes 3-4', value: 'Poster manuellement les résultats dans le salon résultats', inline: false },
+      {
+        name: '━━━━━━  🔄 Ligne 1  ━━━━━━',
+        value: '🔄 Actualiser les embeds infos guerre (sans ping) — Guerre DR1, Guerre DR2, Raid Capital, JDC',
+        inline: false,
+      },
+      {
+        name: '━━━━━━  📣 Ligne 2  ━━━━━━',
+        value: '📣 Actualiser les rappels (avec ping membres Liés) — DR1, DR2, Raids, JDC',
+        inline: false,
+      },
+      {
+        name: '━━━━━━  📊 Lignes 3-4  ━━━━━━',
+        value: '📊 Poster manuellement les résultats dans le salon résultats',
+        inline: false,
+      },
+      {
+        name: '━━━━━━  📩 Ligne 5  ━━━━━━',
+        value: '📩 Envoyer des DMs ciblés aux membres (guerre, raid, JDC, personnalisé, global)',
+        inline: false,
+      },
     )
     .setFooter({ text: 'Donjon Rouge • Panel Sauron' })
     .setTimestamp()
@@ -22,27 +39,39 @@ function buildSauronComponents() {
     new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style)
 
   return [
+    // Ligne 1 — Actualiser infos en cours
     new ActionRowBuilder().addComponents(
       btn('🔄 Guerre DR1', 'sauron_refresh_war_dr1'),
       btn('🔄 Guerre DR2', 'sauron_refresh_war_dr2'),
-      btn('🔄 Raids',      'sauron_refresh_raids'),
-      btn('🔄 JDC',        'sauron_refresh_jdc'),
+      btn('🔄 Raid Capital', 'sauron_refresh_raids'),
+      btn('🔄 Jeux des Clans', 'sauron_refresh_jdc'),
     ),
+    // Ligne 2 — Actualiser rappels
     new ActionRowBuilder().addComponents(
-      btn('📣 Rappel DR1',   'sauron_rappel_war_dr1',  ButtonStyle.Primary),
-      btn('📣 Rappel DR2',   'sauron_rappel_war_dr2',  ButtonStyle.Primary),
-      btn('📣 Rappel Raids', 'sauron_rappel_raids',    ButtonStyle.Primary),
-      btn('📣 Rappel JDC',   'sauron_rappel_jdc',      ButtonStyle.Primary),
+      btn('📣 Rappel Guerre DR1', 'sauron_rappel_war_dr1', ButtonStyle.Primary),
+      btn('📣 Rappel Guerre DR2', 'sauron_rappel_war_dr2', ButtonStyle.Primary),
+      btn('📣 Rappel Raids',      'sauron_rappel_raids',   ButtonStyle.Primary),
+      btn('📣 Rappel JDC',        'sauron_rappel_jdc',     ButtonStyle.Primary),
     ),
+    // Ligne 3 — Résultats (1/2)
     new ActionRowBuilder().addComponents(
-      btn('📊 GDC DR1', 'sauron_resultats_gdc_dr1', ButtonStyle.Danger),
-      btn('📊 GDC DR2', 'sauron_resultats_gdc_dr2', ButtonStyle.Danger),
-      btn('📊 LDC DR1', 'sauron_resultats_ldc_dr1', ButtonStyle.Danger),
+      btn('📊 Résultats GDC DR1', 'sauron_resultats_gdc_dr1', ButtonStyle.Danger),
+      btn('📊 Résultats GDC DR2', 'sauron_resultats_gdc_dr2', ButtonStyle.Danger),
+      btn('📊 Résultats LDC DR1', 'sauron_resultats_ldc_dr1', ButtonStyle.Danger),
     ),
+    // Ligne 4 — Résultats (2/2)
     new ActionRowBuilder().addComponents(
-      btn('📊 LDC DR2', 'sauron_resultats_ldc_dr2', ButtonStyle.Danger),
-      btn('📊 Raids',   'sauron_resultats_raids',   ButtonStyle.Danger),
-      btn('📊 JDC',     'sauron_resultats_jdc',     ButtonStyle.Danger),
+      btn('📊 Résultats LDC DR2', 'sauron_resultats_ldc_dr2', ButtonStyle.Danger),
+      btn('📊 Résultats Raids',   'sauron_resultats_raids',   ButtonStyle.Danger),
+      btn('📊 Résultats JDC',     'sauron_resultats_jdc',     ButtonStyle.Danger),
+    ),
+    // Ligne 5 — Messagerie DM
+    new ActionRowBuilder().addComponents(
+      btn('📩 DM Guerre',         'msg_rappel_guerre',       ButtonStyle.Secondary),
+      btn('📩 DM Raid',           'msg_rappel_raid',         ButtonStyle.Secondary),
+      btn('📩 DM JDC',            'messaging_jdc_reminder',  ButtonStyle.Secondary),
+      btn('✏️ Message perso',     'msg_custom',              ButtonStyle.Secondary),
+      btn('📢 Message global',    'msg_global',              ButtonStyle.Danger),
     ),
   ]
 }

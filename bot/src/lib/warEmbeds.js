@@ -139,7 +139,8 @@ async function buildRaidsEmbed() {
     allMembers = [...(r1?.items ?? []), ...(r2?.items ?? [])]
   } catch {}
 
-  const discordMap = await getDiscordIds(allMembers.map(m => m.tag))
+  let discordMap = {}
+  try { discordMap = await getDiscordIds(allMembers.map(m => m.tag)) } catch {}
 
   const raidMap  = new Map((raid.members || []).map(m => [m.tag, m]))
   const atksUsed = (raid.members || []).reduce((acc, m) => acc + (m.attacks ?? 0), 0)
@@ -237,4 +238,5 @@ module.exports = {
   isChefOrAdjoint,
   makeRefreshRow,
   getDiscordIds,
+  errEmbed,
 }

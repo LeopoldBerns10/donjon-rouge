@@ -82,6 +82,7 @@ const {
   handleMsgCustom, handleModalMsgCustom,
   handleMsgCustomConfirm, handleMsgCustomCancel,
   handleMsgGlobal, handleModalMsgGlobal,
+  handleMsgGlobalConfirm, handleMsgGlobalCancel,
   handleDmAck, handleDmReply, handleModalDmReply,
 } = require('../lib/messagingHandlers.js')
 const {
@@ -830,6 +831,8 @@ const BUTTON_HANDLERS = {
   msg_custom_confirm:        handleMsgCustomConfirm,
   msg_custom_cancel:         handleMsgCustomCancel,
   msg_global:                handleMsgGlobal,
+  msg_global_confirm:        handleMsgGlobalConfirm,
+  msg_global_cancel:         handleMsgGlobalCancel,
   birthday_register:         handleBirthdayRegister,
   birthday_unregister:       handleBirthdayUnregister,
   birthday_list:             handleBirthdayList,
@@ -897,6 +900,7 @@ module.exports = {
             'msg_rappel_raid_confirm':   `Rappel raid envoyé par ${interaction.user.username}`,
             'msg_jdc_reminder_confirm':  `Rappel JDC envoyé par ${interaction.user.username}`,
             'msg_custom_confirm':        `Message custom envoyé par ${interaction.user.username}`,
+            'msg_global_confirm':        `Message global envoyé par ${interaction.user.username}`,
           }[interaction.customId]
           if (buttonLog) log(interaction.client, 'BOUTON', buttonLog).catch(() => {})
         } else if (prefix === 'stats_profil'  && argTag) {
@@ -1021,7 +1025,6 @@ module.exports = {
 
     if (interaction.isModalSubmit() && interaction.customId === 'modal_msg_global') {
       await handleModalMsgGlobal(interaction)
-      log(interaction.client, 'BOUTON', `Message global envoyé par ${interaction.user.username}`).catch(() => {})
       return
     }
 

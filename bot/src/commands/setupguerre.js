@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const { isAdmin } = require('../lib/isAdmin.js')
-const { buildWarEmbed, buildRaidsEmbed, buildJdcEmbed, makeRefreshRow } = require('../lib/warEmbeds.js')
+const { buildWarEmbed, buildRaidsEmbed, buildJdcEmbed, makeRefreshRow, errEmbed } = require('../lib/warEmbeds.js')
 const { replaceEmbed } = require('../lib/eventChannels.js')
 
 const DR1_WAR_CHANNEL   = '1511988469918994545'
@@ -22,10 +22,10 @@ module.exports = {
 
     try {
       const [warDR1, warDR2, raids, jdc] = await Promise.all([
-        buildWarEmbed('dr1'),
-        buildWarEmbed('dr2'),
-        buildRaidsEmbed(),
-        buildJdcEmbed(),
+        buildWarEmbed('dr1').catch(() => errEmbed('⚔️ Guerre — DR1')),
+        buildWarEmbed('dr2').catch(() => errEmbed('⚔️ Guerre — DR2')),
+        buildRaidsEmbed().catch(() => errEmbed('💎 Raid Capital')),
+        buildJdcEmbed().catch(() => errEmbed('🎖️ Jeux des Clans')),
       ])
 
       await Promise.all([
