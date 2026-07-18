@@ -9,9 +9,16 @@ const {
 const supabase = require('../supabase.js')
 const { resolveChannelId, ensureChannel, ensureMemberChannel } = require('./youtubeTracker.js')
 
+const LIE_ROLE_ID = '1511096527664320655'
+const MSG_LIE_REQUIRED = '❌ Tu dois avoir lié ton compte CoC pour utiliser cette fonctionnalité.'
+
 // ─── Bouton : ouvre la modal "Ajouter suivi" ──────────────────────────────────
 
 async function handleYoutubeAddFollow(interaction) {
+  if (!interaction.member.roles.cache.has(LIE_ROLE_ID)) {
+    return interaction.reply({ content: MSG_LIE_REQUIRED, ephemeral: true })
+  }
+
   const modal = new ModalBuilder()
     .setCustomId('modal_youtube_add_follow')
     .setTitle('Ajouter un suivi YouTube')
@@ -33,6 +40,10 @@ async function handleYoutubeAddFollow(interaction) {
 // ─── Bouton : affiche le menu de suppression ──────────────────────────────────
 
 async function handleYoutubeRemoveFollow(interaction) {
+  if (!interaction.member.roles.cache.has(LIE_ROLE_ID)) {
+    return interaction.reply({ content: MSG_LIE_REQUIRED, ephemeral: true })
+  }
+
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
 
   const { data: follows } = await supabase
