@@ -18,6 +18,10 @@ import {
   purgeAutomodMemberWarnings,
   getDiscordChannels,
   getDiscordRoles,
+  getDashboardAccess,
+  grantDashboardAccess,
+  updateDashboardPermissions,
+  revokeDashboardAccess,
 } from '../controllers/adminController.js'
 
 const router = Router()
@@ -40,5 +44,10 @@ router.delete('/automod/warnings/member/:discord_id', verifyToken, requireSuperA
 router.delete('/automod/warnings/:id',              verifyToken, requireSuperAdmin, deleteAutomodWarning)
 router.get('/automod/channels',                     verifyToken, requireSuperAdmin, getDiscordChannels)
 router.get('/automod/roles',                        verifyToken, requireSuperAdmin, getDiscordRoles)
+
+router.get('/dashboard-access',                   verifyToken, requireSuperAdmin, getDashboardAccess)
+router.post('/dashboard-access',                  verifyToken, requireSuperAdmin, grantDashboardAccess)
+router.put('/dashboard-access/:discord_id',       verifyToken, requireSuperAdmin, updateDashboardPermissions)
+router.delete('/dashboard-access/:discord_id',    verifyToken, requireSuperAdmin, revokeDashboardAccess)
 
 export default router

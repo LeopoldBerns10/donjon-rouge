@@ -74,6 +74,21 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+// ── Route par page (gère les permissions none/read/write) ────────────────────
+function PageRoute({ page, children }) {
+  const { canRead } = useAuth()
+  if (!canRead(page)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-center">
+        <span className="text-5xl">🔐</span>
+        <h2 className="font-cinzel text-xl text-dr-muted uppercase tracking-wider">Accès refusé</h2>
+        <p className="text-dr-muted text-sm font-cinzel">Tu n&apos;as pas accès à cette page.</p>
+      </div>
+    )
+  }
+  return children
+}
+
 // ── App ───────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
@@ -91,17 +106,17 @@ export default function App() {
                 </ProtectedRoute>
               }
             >
-              <Route index element={<Home />} />
-              <Route path="welcome" element={<Welcome />} />
-              <Route path="messages" element={<Messages />} />
-              <Route path="birthdays" element={<Birthdays />} />
-              <Route path="polls" element={<Polls />} />
-              <Route path="route-infinie" element={<RouteInfinie />} />
-              <Route path="members" element={<Members />} />
-              <Route path="events" element={<Events />} />
-              <Route path="config" element={<Config />} />
-              <Route path="logs" element={<Logs />} />
-              <Route path="moderation" element={<Moderation />} />
+              <Route index element={<PageRoute page="home"><Home /></PageRoute>} />
+              <Route path="welcome"      element={<PageRoute page="welcome"><Welcome /></PageRoute>} />
+              <Route path="messages"     element={<PageRoute page="messages"><Messages /></PageRoute>} />
+              <Route path="birthdays"    element={<PageRoute page="birthdays"><Birthdays /></PageRoute>} />
+              <Route path="polls"        element={<PageRoute page="polls"><Polls /></PageRoute>} />
+              <Route path="route-infinie" element={<PageRoute page="route_infinie"><RouteInfinie /></PageRoute>} />
+              <Route path="members"      element={<PageRoute page="members"><Members /></PageRoute>} />
+              <Route path="events"       element={<PageRoute page="events"><Events /></PageRoute>} />
+              <Route path="config"       element={<PageRoute page="config"><Config /></PageRoute>} />
+              <Route path="logs"         element={<PageRoute page="logs"><Logs /></PageRoute>} />
+              <Route path="moderation"   element={<PageRoute page="moderation"><Moderation /></PageRoute>} />
             </Route>
           </Routes>
         </BrowserRouter>

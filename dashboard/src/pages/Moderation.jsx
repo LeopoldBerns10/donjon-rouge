@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Toggle from '../components/Toggle'
 import { SaveBar } from '../components/SaveBar'
+import { useAuth } from '../context/AuthContext'
 import {
   getAutomodConfig,
   updateAutomodConfig,
@@ -106,6 +107,9 @@ function AddInput({ placeholder, onAdd, mono = false }) {
 }
 
 export default function Moderation() {
+  const { canWrite } = useAuth()
+  const readonly = !canWrite('moderation')
+
   const [config,   setConfig]   = useState({})
   const [original, setOriginal] = useState({})
   const [warnings, setWarnings] = useState([])
@@ -181,6 +185,8 @@ export default function Moderation() {
 
       {error   && <div className="bg-red-900/20 border border-red-800/40 text-red-400 px-4 py-3 rounded-lg text-sm">{error}</div>}
       {success && <div className="bg-green-900/20 border border-green-800/40 text-green-400 px-4 py-3 rounded-lg text-sm">{success}</div>}
+
+      <div className={readonly ? 'pointer-events-none opacity-60 select-none' : undefined}>
 
       {/* 1. Activation */}
       <Section title="Activation générale">
@@ -341,6 +347,8 @@ export default function Moderation() {
         </div>
       </Section>
 
+      </div>{/* fin readonly wrapper */}
+
       {/* 10. Historique */}
       <Section title={`Historique des sanctions (${warnings.length} récentes)`}>
         {warnings.length === 0 ? (
@@ -389,7 +397,7 @@ export default function Moderation() {
         )}
       </Section>
 
-      <SaveBar dirty={dirty} onSave={save} onReset={reset} saving={saving} />
+      {!readonly && <SaveBar dirty={dirty} onSave={save} onReset={reset} saving={saving} />}
     </div>
   )
 }

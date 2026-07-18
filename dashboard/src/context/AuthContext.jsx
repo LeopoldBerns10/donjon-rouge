@@ -32,8 +32,20 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  function canWrite(page) {
+    if (!user) return false
+    if (user.dashboard_role === 'chef') return true
+    return user.permissions?.[page] === 'write'
+  }
+
+  function canRead(page) {
+    if (!user) return false
+    if (user.dashboard_role === 'chef') return true
+    return ['write', 'read'].includes(user.permissions?.[page])
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, canWrite, canRead }}>
       {children}
     </AuthContext.Provider>
   )

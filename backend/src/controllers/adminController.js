@@ -344,6 +344,60 @@ export async function getDiscordRoles(req, res) {
   } catch { return res.json([]) }
 }
 
+// ── Accès Dashboard (superadmin uniquement) ───────────────────────────────────
+
+const DEFAULT_DASHBOARD_PERMISSIONS = {
+  home: 'read', welcome: 'none', members: 'read',
+  messages: 'none', birthdays: 'read', polls: 'read',
+  route_infinie: 'read', events: 'read',
+  config: 'none', logs: 'none', moderation: 'write',
+}
+
+export async function getDashboardAccess(req, res) {
+  const { data, error } = await supabase
+    .from('dashboard_access')
+    .select('*')
+    .order('granted_at', { ascending: false })
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json(data || [])
+}
+
+export async function grantDashboardAccess(req, res) {
+  const { discord_id, discord_username, permissions } = req.body
+  if (!discord_id) return res.status(400).json({ error: 'discord_id requis' })
+  const { error } = await supabase.from('dashboard_access').upsert({
+    discord_id,
+    discord_username: discord_username || null,
+    permissions: permissions || DEFAULT_DASHBOARD_PERMISSIONS,
+    granted_by: req.user?.coc_name || 'superadmin',
+    granted_at: new Date().toISOString(),
+  }, { onConflict: 'discord_id' })
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+}
+
+export async function updateDashboardPermissions(req, res) {
+  const { discord_id } = req.params
+  const { permissions } = req.body
+  if (!permissions) return res.status(400).json({ error: 'permissions requis' })
+  const { error } = await supabase
+    .from('dashboard_access')
+    .update({ permissions })
+    .eq('discord_id', discord_id)
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+}
+
+export async function revokeDashboardAccess(req, res) {
+  const { discord_id } = req.params
+  const { error } = await supabase
+    .from('dashboard_access')
+    .delete()
+    .eq('discord_id', discord_id)
+  if (error) return res.status(500).json({ error: error.message })
+  return res.json({ success: true })
+}
+
 // ── Supprimer définitivement un compte (superadmin uniquement) ────────────────
 
 export async function deleteUser(req, res) {

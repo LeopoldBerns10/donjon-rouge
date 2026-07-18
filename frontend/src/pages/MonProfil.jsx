@@ -142,6 +142,26 @@ export default function MonProfil() {
             </Link>
           </div>
 
+          {/* Dashboard admin */}
+          {(user.dashboard_access || user.site_role === 'superadmin') && (
+            <div className="card-stone p-5 border border-crimson/30">
+              <h2 className="font-cinzel text-gold-light text-sm uppercase tracking-wider mb-3">
+                🎛️ Dashboard Admin
+              </h2>
+              <p className="text-ash text-sm mb-3">
+                Tu as accès au dashboard de gestion du clan.
+              </p>
+              <a
+                href="https://donjon-rouge-dashboard.onrender.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block px-4 py-2 text-xs font-cinzel uppercase tracking-wider rounded border border-crimson text-crimson hover:bg-crimson/20 transition-all"
+              >
+                Accéder au dashboard →
+              </a>
+            </div>
+          )}
+
         </div>
       )}
 

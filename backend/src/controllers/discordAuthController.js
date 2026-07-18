@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken'
 import fetch from 'node-fetch'
+import supabase from '../lib/supabase.js'
 
 const GUILD_ID = '610767309031866371'
 const CHEF_ROLE_ID = '611123759864348672'
@@ -58,17 +59,35 @@ export async function discordOAuth(req, res) {
     const isChef = member.roles?.includes(CHEF_ROLE_ID)
     const isCyberAlf = discordUser.id === CYBERALF_ID
 
-    if (!isChef && !isCyberAlf) {
-      return res.status(403).json({ error: 'Accès réservé aux Chefs du clan' })
+    // 4. Détermine le rôle dashboard
+    let dashboardRole = null
+    let permissions = null
+
+    if (isChef || isCyberAlf) {
+      dashboardRole = 'chef'
+    } else {
+      const { data: access } = await supabase
+        .from('dashboard_access')
+        .select('permissions')
+        .eq('discord_id', discordUser.id)
+        .maybeSingle()
+
+      if (!access) {
+        return res.status(403).json({ error: 'Accès réservé aux Chefs du clan' })
+      }
+      dashboardRole = 'moderator'
+      permissions = access.permissions
     }
 
-    // 4. Crée le JWT dashboard (24h)
+    // 5. Crée le JWT dashboard (24h)
     const token = jwt.sign(
       {
         discord_id: discordUser.id,
         username: discordUser.username,
         global_name: discordUser.global_name ?? null,
         avatar: discordUser.avatar ?? null,
+        dashboard_role: dashboardRole,
+        permissions,
       },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
@@ -81,6 +100,8 @@ export async function discordOAuth(req, res) {
         username: discordUser.username,
         global_name: discordUser.global_name ?? null,
         avatar: discordUser.avatar ?? null,
+        dashboard_role: dashboardRole,
+        permissions,
       },
     })
   } catch (err) {

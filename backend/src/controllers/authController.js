@@ -56,6 +56,7 @@ export async function login(req, res) {
       coc_role: user.coc_role,
       site_role: user.site_role || 'member',
       has_custom_password: user.has_custom_password,
+      dashboard_access: await checkDashboardAccess(user),
     },
   })
 }
@@ -102,5 +103,21 @@ export async function me(req, res) {
 
   if (error || !user) return res.status(404).json({ error: 'Utilisateur non trouvé' })
 
-  return res.json(user)
+  return res.json({ ...user, dashboard_access: await checkDashboardAccess(user) })
+}
+
+async function checkDashboardAccess(user) {
+  if (user.site_role === 'superadmin') return true
+  const { data: link } = await supabase
+    .from('discord_links')
+    .select('discord_id')
+    .eq('coc_tag', user.coc_tag)
+    .maybeSingle()
+  if (!link?.discord_id) return false
+  const { data: access } = await supabase
+    .from('dashboard_access')
+    .select('discord_id')
+    .eq('discord_id', link.discord_id)
+    .maybeSingle()
+  return !!access
 }

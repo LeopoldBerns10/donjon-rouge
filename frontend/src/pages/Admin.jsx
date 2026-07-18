@@ -1000,6 +1000,237 @@ function MembresTable({ users, currentUser, isSuperAdmin, onAction, loading, adm
   )
 }
 
+// ── Panel accès Dashboard (superadmin) ───────────────────────────────────────
+
+const DASHBOARD_PAGES = [
+  { key: 'home',          label: 'Accueil' },
+  { key: 'members',       label: 'Membres' },
+  { key: 'welcome',       label: 'Arrivées & Départs' },
+  { key: 'messages',      label: 'Messages' },
+  { key: 'birthdays',     label: 'Anniversaires' },
+  { key: 'polls',         label: 'Sondages' },
+  { key: 'route_infinie', label: 'Route Infinie' },
+  { key: 'events',        label: 'Événements' },
+  { key: 'moderation',    label: 'Modération' },
+  { key: 'config',        label: 'Configuration' },
+  { key: 'logs',          label: 'Logs' },
+]
+
+const DEFAULT_DASHBOARD_PERMISSIONS = {
+  home: 'read', members: 'read', welcome: 'none',
+  messages: 'none', birthdays: 'read', polls: 'read',
+  route_infinie: 'read', events: 'read',
+  moderation: 'write', config: 'none', logs: 'none',
+}
+
+const PERM_LABELS = { none: 'Aucun', read: 'Lecture', write: 'Écriture' }
+const PERM_COLORS = {
+  none:  'bg-gray-900/40 text-gray-400 border-gray-700',
+  read:  'bg-blue-900/40 text-blue-400 border-blue-700',
+  write: 'bg-green-900/40 text-green-400 border-green-700',
+}
+
+function DashboardAccessPanel() {
+  const [members,    setMembers]    = useState([])
+  const [loading,    setLoading]    = useState(true)
+  const [form,       setForm]       = useState({ discord_id: '', discord_username: '' })
+  const [adding,     setAdding]     = useState(false)
+  const [editId,     setEditId]     = useState(null)
+  const [editPerms,  setEditPerms]  = useState(null)
+  const [savingId,   setSavingId]   = useState(null)
+  const [msg,        setMsg]        = useState(null)
+
+  function flash(ok, text) {
+    setMsg({ ok, text })
+    setTimeout(() => setMsg(null), 3000)
+  }
+
+  function load() {
+    setLoading(true)
+    api.get('/api/admin/dashboard-access')
+      .then(r => setMembers(r.data || []))
+      .catch(() => flash(false, 'Erreur de chargement'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => { load() }, [])
+
+  async function handleAdd(e) {
+    e.preventDefault()
+    if (!form.discord_id.trim()) return
+    setAdding(true)
+    try {
+      await api.post('/api/admin/dashboard-access', {
+        discord_id: form.discord_id.trim(),
+        discord_username: form.discord_username.trim() || null,
+        permissions: DEFAULT_DASHBOARD_PERMISSIONS,
+      })
+      setForm({ discord_id: '', discord_username: '' })
+      flash(true, 'Accès accordé')
+      load()
+    } catch (e) {
+      flash(false, e.response?.data?.error || 'Erreur')
+    } finally { setAdding(false) }
+  }
+
+  function startEdit(m) {
+    setEditId(m.discord_id)
+    setEditPerms({ ...(m.permissions || DEFAULT_DASHBOARD_PERMISSIONS) })
+  }
+
+  async function savePerms(discord_id) {
+    setSavingId(discord_id)
+    try {
+      await api.put(`/api/admin/dashboard-access/${encodeURIComponent(discord_id)}`, { permissions: editPerms })
+      setMembers(prev => prev.map(m => m.discord_id === discord_id ? { ...m, permissions: editPerms } : m))
+      setEditId(null)
+      flash(true, 'Permissions sauvegardées')
+    } catch (e) {
+      flash(false, e.response?.data?.error || 'Erreur')
+    } finally { setSavingId(null) }
+  }
+
+  async function handleRevoke(discord_id, username) {
+    if (!window.confirm(`Révoquer l'accès dashboard de ${username || discord_id} ?`)) return
+    try {
+      await api.delete(`/api/admin/dashboard-access/${encodeURIComponent(discord_id)}`)
+      setMembers(prev => prev.filter(m => m.discord_id !== discord_id))
+      flash(true, 'Accès révoqué')
+    } catch (e) {
+      flash(false, e.response?.data?.error || 'Erreur')
+    }
+  }
+
+  return (
+    <div className="space-y-6 pb-10">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="font-cinzel text-gold-bright uppercase tracking-wider text-sm">
+          Accès Dashboard — {members.length} membre{members.length > 1 ? 's' : ''} autorisé{members.length > 1 ? 's' : ''}
+        </h2>
+        {msg && (
+          <p className={`font-cinzel text-sm ${msg.ok ? 'text-green-400' : 'text-red-400'}`}>
+            {msg.ok ? '✅' : '❌'} {msg.text}
+          </p>
+        )}
+      </div>
+
+      {/* Formulaire ajout */}
+      <div className="rounded-lg border border-fog/30 p-5" style={{ background: '#111' }}>
+        <h3 className="font-cinzel text-gold text-xs uppercase tracking-widest mb-4">Ajouter un accès</h3>
+        <form onSubmit={handleAdd} className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[160px]">
+            <label className="text-ash font-cinzel text-xs block mb-1">Discord ID *</label>
+            <input
+              type="text" value={form.discord_id} onChange={e => setForm(f => ({ ...f, discord_id: e.target.value }))}
+              placeholder="ex: 610765755553939456" required
+              className="w-full px-3 py-2 rounded-lg text-sm bg-[#0d0d0d] border border-[#2a2a2a] text-bone font-mono
+                         placeholder-ash/40 focus:outline-none focus:border-[#dc2626] transition-colors"
+            />
+          </div>
+          <div className="flex-1 min-w-[160px]">
+            <label className="text-ash font-cinzel text-xs block mb-1">Pseudo Discord</label>
+            <input
+              type="text" value={form.discord_username} onChange={e => setForm(f => ({ ...f, discord_username: e.target.value }))}
+              placeholder="ex: pseudo123"
+              className="w-full px-3 py-2 rounded-lg text-sm bg-[#0d0d0d] border border-[#2a2a2a] text-bone
+                         placeholder-ash/40 focus:outline-none focus:border-[#dc2626] transition-colors"
+            />
+          </div>
+          <button type="submit" disabled={adding}
+            className="px-4 py-2 rounded-lg text-xs font-bold uppercase font-cinzel border transition-all
+                       bg-[#dc2626]/10 border-[#dc2626]/60 text-[#dc2626]
+                       hover:bg-[#dc2626]/20 hover:border-[#dc2626] disabled:opacity-40">
+            {adding ? 'Ajout…' : 'Accorder l\'accès'}
+          </button>
+        </form>
+        <p className="text-ash/50 font-cinzel text-xs mt-2">
+          Permissions par défaut : modération en écriture, reste en lecture. Modifiables ensuite.
+        </p>
+      </div>
+
+      {/* Liste membres */}
+      {loading ? (
+        <p className="text-ash font-cinzel animate-pulse text-center py-10">Chargement…</p>
+      ) : members.length === 0 ? (
+        <p className="text-ash font-cinzel text-sm text-center py-10">Aucun membre avec accès dashboard</p>
+      ) : (
+        <div className="space-y-4">
+          {members.map(m => {
+            const isEditing = editId === m.discord_id
+            const perms = isEditing ? editPerms : (m.permissions || DEFAULT_DASHBOARD_PERMISSIONS)
+            return (
+              <div key={m.discord_id} className="rounded-lg border border-fog/30 p-5" style={{ background: '#111' }}>
+                {/* Header membre */}
+                <div className="flex items-start justify-between gap-4 mb-4">
+                  <div>
+                    <div className="font-cinzel text-bone text-sm font-semibold">
+                      {m.discord_username || '(pseudo inconnu)'}
+                    </div>
+                    <div className="text-ash/60 text-xs font-mono mt-0.5">{m.discord_id}</div>
+                    <div className="text-ash/40 text-xs font-cinzel mt-1">
+                      Accordé par {m.granted_by || '—'} · {m.granted_at ? new Date(m.granted_at).toLocaleDateString('fr-FR') : '—'}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {isEditing ? (
+                      <>
+                        <button onClick={() => savePerms(m.discord_id)} disabled={savingId === m.discord_id}
+                          className="px-3 py-1.5 text-xs font-cinzel uppercase rounded-lg border bg-green-900/20 border-green-700 text-green-400 hover:bg-green-900/40 disabled:opacity-40 transition-all">
+                          {savingId === m.discord_id ? 'Sauvegarde…' : 'Sauvegarder'}
+                        </button>
+                        <button onClick={() => setEditId(null)}
+                          className="px-3 py-1.5 text-xs font-cinzel uppercase rounded-lg border border-fog/30 text-ash hover:text-bone transition-all">
+                          Annuler
+                        </button>
+                      </>
+                    ) : (
+                      <button onClick={() => startEdit(m)}
+                        className="px-3 py-1.5 text-xs font-cinzel uppercase rounded-lg border border-fog/30 text-ash hover:text-bone hover:border-fog/60 transition-all">
+                        Modifier
+                      </button>
+                    )}
+                    <button onClick={() => handleRevoke(m.discord_id, m.discord_username)}
+                      className="px-3 py-1.5 text-xs font-cinzel uppercase rounded-lg border border-red-800/50 text-red-400 hover:bg-red-900/20 transition-all">
+                      Révoquer
+                    </button>
+                  </div>
+                </div>
+
+                {/* Grille des permissions */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {DASHBOARD_PAGES.map(({ key, label }) => {
+                    const perm = perms[key] || 'none'
+                    return (
+                      <div key={key} className="rounded-lg p-2 border border-fog/20" style={{ background: '#0d0d0d' }}>
+                        <div className="text-ash/60 font-cinzel text-xs mb-1.5">{label}</div>
+                        {isEditing ? (
+                          <select
+                            value={perm}
+                            onChange={e => setEditPerms(p => ({ ...p, [key]: e.target.value }))}
+                            className="w-full text-xs rounded px-2 py-1 bg-[#111] border border-[#2a2a2a] text-bone focus:outline-none focus:border-[#dc2626]"
+                          >
+                            <option value="none">Aucun</option>
+                            <option value="read">Lecture</option>
+                            <option value="write">Écriture</option>
+                          </select>
+                        ) : (
+                          <span className={`text-xs px-2 py-0.5 rounded border ${PERM_COLORS[perm]}`}>
+                            {PERM_LABELS[perm]}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Page Admin ────────────────────────────────────────────────────────────────
 
 export default function Admin() {
@@ -1143,6 +1374,15 @@ export default function Admin() {
             }`}>
             🛡️ Modération
           </button>
+          <button
+            onClick={() => setActiveTab('dashboard')}
+            className={`px-5 py-2 rounded-lg text-xs font-bold uppercase border transition-all font-cinzel ${
+              activeTab === 'dashboard'
+                ? 'bg-[#7c3aed]/15 border-[#7c3aed] text-[#a78bfa]'
+                : 'bg-[#111] border-[#2a2a2a] text-gray-500 hover:border-[#7c3aed]/40 hover:text-[#a78bfa]/60'
+            }`}>
+            🎛️ Dashboard
+          </button>
         </div>
       )}
 
@@ -1190,6 +1430,9 @@ export default function Admin() {
 
       {/* Contenu onglet Modération */}
       {activeTab === 'moderation' && isSuperAdmin && <ModerationPanel />}
+
+      {/* Contenu onglet Dashboard */}
+      {activeTab === 'dashboard' && isSuperAdmin && <DashboardAccessPanel />}
 
     </div>
     </>
