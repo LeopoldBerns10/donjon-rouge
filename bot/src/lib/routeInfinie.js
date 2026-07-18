@@ -28,7 +28,7 @@ async function logRefusal(discordId, username, attemptedValue, reason, expectedV
 }
 
 const ROUTE_CHANNEL_ID = '1520108333846233098'
-const PANEL_CHANNEL_ID = '1522353459364626625'
+const PANEL_CHANNEL_ID = '1510927063891316827'
 const CYBERALF_ID      = '610765755553939456'
 
 // ─── DB helpers ───────────────────────────────────────────────────────────────

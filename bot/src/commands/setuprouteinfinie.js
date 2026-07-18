@@ -2,7 +2,8 @@ const { SlashCommandBuilder } = require('discord.js')
 const supabase = require('../supabase.js')
 const { buildPanelEmbed, buildPanelComponents, PANEL_CHANNEL_ID } = require('../lib/routeInfinie.js')
 
-const CHEF_ROLE_ID = '611123759864348672'
+const CHEF_ROLE_ID         = '611123759864348672'
+const OLD_PANEL_CHANNEL_ID = '1522353459364626625'
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -24,6 +25,22 @@ module.exports = {
 
     if (!state) {
       return interaction.editReply('❌ Aucune ligne active dans route_infinie. Lance la migration SQL d\'abord.')
+    }
+
+    // Supprimer l'ancien message s'il existe (cherche dans le nouveau salon puis l'ancien)
+    const { data: oldConfig } = await supabase
+      .from('bot_config').select('value').eq('key', 'route_panel_msg_id').maybeSingle()
+
+    if (oldConfig?.value) {
+      for (const chId of [PANEL_CHANNEL_ID, OLD_PANEL_CHANNEL_ID]) {
+        try {
+          const ch = await interaction.client.channels.fetch(chId).catch(() => null)
+          if (!ch) continue
+          const oldMsg = await ch.messages.fetch(oldConfig.value).catch(() => null)
+          if (oldMsg) { await oldMsg.delete(); break }
+        } catch {}
+      }
+      await supabase.from('bot_config').delete().eq('key', 'route_panel_msg_id')
     }
 
     const channel = await interaction.client.channels.fetch(PANEL_CHANNEL_ID).catch(() => null)
