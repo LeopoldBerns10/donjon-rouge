@@ -137,7 +137,13 @@ function checkMentions(message, maxMentions) {
 // ── Sanctions progressives ────────────────────────────────────────────────────
 
 async function sendDM(member, content) {
-  try { await member.send(content) } catch { /* DMs fermés */ }
+  console.log('[automod][sendDM] tentative envoi DM à', member.id, `(${member.displayName})`)
+  try {
+    await member.send(content)
+    console.log('[automod][sendDM] DM envoyé avec succès à', member.id)
+  } catch (e) {
+    console.error('[automod][sendDM] ERREUR DM à', member.id, `(${member.displayName}) :`, e.message)
+  }
 }
 
 function fmtDuration(minutes) {
@@ -214,6 +220,7 @@ async function applyModeration(message, member, reason, type, conf, client) {
       .neq('type', 'mute')
       .gt('expires_at', now.toISOString())
 
+    console.log('[automod][mute] warn_dm_enabled =', conf.warn_dm_enabled, '| warnCount =', warnCount, '| threshold =', threshold)
     if (conf.warn_dm_enabled) {
       await sendDM(member, `🔇 Tu as été mis en sourdine **${durLabel}** — ${reason}`)
     }
@@ -223,6 +230,7 @@ async function applyModeration(message, member, reason, type, conf, client) {
 
   } else {
     // Avertissement simple
+    console.log('[automod][warn] warn_dm_enabled =', conf.warn_dm_enabled, '| warnCount =', warnCount, '| threshold =', threshold)
     if (conf.warn_dm_enabled) {
       const isPreLast = warnCount === threshold - 1
       const dm = isPreLast
