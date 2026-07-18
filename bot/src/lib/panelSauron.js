@@ -6,29 +6,14 @@ const SAURON_CHANNEL_ID = '1512087471373029508'
 function buildSauronEmbed() {
   return new EmbedBuilder()
     .setColor(0x8B0000)
-    .setTitle('👁️ Panel Sauron — Administration Guerre')
-    .setDescription('Utilise les boutons ci-dessous pour gérer les embeds et résultats de guerre.')
+    .setTitle('👁️ Panel Sauron — Administration')
+    .setDescription('Panneau de contrôle unifié — guerre, rappels, résultats, messagerie DM, admin.')
     .addFields(
-      {
-        name: '━━━━━━  🔄 Ligne 1  ━━━━━━',
-        value: '🔄 Actualiser les embeds infos guerre (sans ping) — Guerre DR1, Guerre DR2, Raid Capital, JDC',
-        inline: false,
-      },
-      {
-        name: '━━━━━━  📣 Ligne 2  ━━━━━━',
-        value: '📣 Actualiser les rappels (avec ping membres Liés) — DR1, DR2, Raids, JDC',
-        inline: false,
-      },
-      {
-        name: '━━━━━━  📊 Lignes 3-4  ━━━━━━',
-        value: '📊 Poster manuellement les résultats dans le salon résultats',
-        inline: false,
-      },
-      {
-        name: '━━━━━━  📩 Ligne 5  ━━━━━━',
-        value: '📩 Envoyer des DMs ciblés aux membres (guerre, raid, JDC, personnalisé, global)',
-        inline: false,
-      },
+      { name: '━━━━━━  🔄 Ligne 1  ━━━━━━', value: '🔄 Actualiser les embeds infos guerre (sans ping) — DR1, DR2, Raids, JDC', inline: false },
+      { name: '━━━━━━  📣 Ligne 2  ━━━━━━', value: '📣 Actualiser les embeds rappels (avec ping membres Liés) — DR1, DR2, Raids, JDC', inline: false },
+      { name: '━━━━━━  📊 Ligne 3  ━━━━━━', value: '📊 Poster les résultats (GDC ou LDC auto-détecté) — DR1, DR2, Raids, JDC', inline: false },
+      { name: '━━━━━━  📩 Ligne 4  ━━━━━━', value: '📩 Envoyer des DMs ciblés — Guerre, Raids, JDC, Message perso, Message global', inline: false },
+      { name: '━━━━━━  ⚙️ Ligne 5  ━━━━━━', value: '⚙️ Actions admin — Actualisation Ligue, Actualisation Statut, Créer un événement Discord', inline: false },
     )
     .setFooter({ text: 'Donjon Rouge • Panel Sauron' })
     .setTimestamp()
@@ -39,39 +24,40 @@ function buildSauronComponents() {
     new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style)
 
   return [
-    // Ligne 1 — Actualiser infos en cours
+    // Ligne 1 — Actualiser embeds infos
     new ActionRowBuilder().addComponents(
       btn('🔄 Guerre DR1', 'sauron_refresh_war_dr1'),
       btn('🔄 Guerre DR2', 'sauron_refresh_war_dr2'),
-      btn('🔄 Raid Capital', 'sauron_refresh_raids'),
-      btn('🔄 Jeux des Clans', 'sauron_refresh_jdc'),
+      btn('🔄 Raids',      'sauron_refresh_raids'),
+      btn('🔄 JDC',        'sauron_refresh_jdc'),
     ),
     // Ligne 2 — Actualiser rappels
     new ActionRowBuilder().addComponents(
-      btn('📣 Rappel Guerre DR1', 'sauron_rappel_war_dr1', ButtonStyle.Primary),
-      btn('📣 Rappel Guerre DR2', 'sauron_rappel_war_dr2', ButtonStyle.Primary),
-      btn('📣 Rappel Raids',      'sauron_rappel_raids',   ButtonStyle.Primary),
-      btn('📣 Rappel JDC',        'sauron_rappel_jdc',     ButtonStyle.Primary),
+      btn('📣 Rapp. DR1',   'sauron_rappel_war_dr1', ButtonStyle.Primary),
+      btn('📣 Rapp. DR2',   'sauron_rappel_war_dr2', ButtonStyle.Primary),
+      btn('📣 Rapp. Raids', 'sauron_rappel_raids',   ButtonStyle.Primary),
+      btn('📣 Rapp. JDC',   'sauron_rappel_jdc',     ButtonStyle.Primary),
     ),
-    // Ligne 3 — Résultats (1/2)
+    // Ligne 3 — Résultats (GDC/LDC auto-détecté)
     new ActionRowBuilder().addComponents(
-      btn('📊 Résultats GDC DR1', 'sauron_resultats_gdc_dr1', ButtonStyle.Danger),
-      btn('📊 Résultats GDC DR2', 'sauron_resultats_gdc_dr2', ButtonStyle.Danger),
-      btn('📊 Résultats LDC DR1', 'sauron_resultats_ldc_dr1', ButtonStyle.Danger),
+      btn('📊 Résultats DR1',  'sauron_resultats_war_dr1',  ButtonStyle.Danger),
+      btn('📊 Résultats DR2',  'sauron_resultats_war_dr2',  ButtonStyle.Danger),
+      btn('📊 Résultats Raids', 'sauron_resultats_raids',   ButtonStyle.Danger),
+      btn('📊 Résultats JDC',  'sauron_resultats_jdc',      ButtonStyle.Danger),
     ),
-    // Ligne 4 — Résultats (2/2)
+    // Ligne 4 — Messagerie DM (5 boutons max)
     new ActionRowBuilder().addComponents(
-      btn('📊 Résultats LDC DR2', 'sauron_resultats_ldc_dr2', ButtonStyle.Danger),
-      btn('📊 Résultats Raids',   'sauron_resultats_raids',   ButtonStyle.Danger),
-      btn('📊 Résultats JDC',     'sauron_resultats_jdc',     ButtonStyle.Danger),
+      btn('📩 DM-Guerre', 'msg_rappel_guerre',      ButtonStyle.Secondary),
+      btn('📩 DM-Raids',  'msg_rappel_raid',         ButtonStyle.Secondary),
+      btn('📩 DM-JDC',    'messaging_jdc_reminder',  ButtonStyle.Secondary),
+      btn('✏️ DM-Perso',  'msg_custom',              ButtonStyle.Secondary),
+      btn('📢 DM-Global', 'msg_global',              ButtonStyle.Danger),
     ),
-    // Ligne 5 — Messagerie DM
+    // Ligne 5 — Admin
     new ActionRowBuilder().addComponents(
-      btn('📩 DM Guerre',         'msg_rappel_guerre',       ButtonStyle.Secondary),
-      btn('📩 DM Raid',           'msg_rappel_raid',         ButtonStyle.Secondary),
-      btn('📩 DM JDC',            'messaging_jdc_reminder',  ButtonStyle.Secondary),
-      btn('✏️ Message perso',     'msg_custom',              ButtonStyle.Secondary),
-      btn('📢 Message global',    'msg_global',              ButtonStyle.Danger),
+      btn('🔄 Ligue',           'admin_refresh_league', ButtonStyle.Secondary),
+      btn('🔄 Statut',          'admin_refresh_status', ButtonStyle.Secondary),
+      btn('📅 Créer événement', 'admin_create_event',   ButtonStyle.Success),
     ),
   ]
 }

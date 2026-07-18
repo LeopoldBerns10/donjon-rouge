@@ -208,17 +208,19 @@ async function handleSauronResultats(interaction, type) {
     const DR1_TAG = '#29292QPRC'
     const DR2_TAG = '#2RCGG9YR9'
 
-    if (type === 'gdc_dr1' || type === 'gdc_dr2') {
-      const key = type === 'gdc_dr1' ? 'dr1' : 'dr2'
-      const war = await apiGet(`/clan/${key}/war`)
-      embed = await buildResultatsGdc(war, key === 'dr1' ? 'DR1' : 'DR2')
-    } else if (type === 'ldc_dr1' || type === 'ldc_dr2') {
-      const key    = type === 'ldc_dr1' ? 'dr1' : 'dr2'
-      const ourTag = type === 'ldc_dr1' ? DR1_TAG : DR2_TAG
-      const ldc    = await apiGet(type === 'ldc_dr1' ? '/ldc/current' : '/ldc/dr2/current')
-      const last   = ldc?.rounds?.slice().reverse().find(r => r.war?.state === 'warEnded')
-      if (!last) { await interaction.editReply('❌ Aucun round terminé.'); return }
-      embed = await buildResultatsLdc(normalizeWar(last.war, ourTag), key === 'dr1' ? 'DR1' : 'DR2')
+    if (type === 'war_dr1' || type === 'war_dr2') {
+      const key    = type === 'war_dr1' ? 'dr1' : 'dr2'
+      const ourTag = type === 'war_dr1' ? DR1_TAG : DR2_TAG
+      const label  = type === 'war_dr1' ? 'DR1' : 'DR2'
+      const gdcWar = await apiGet(`/clan/${key}/war`).catch(() => null)
+      if (gdcWar?.state === 'warEnded') {
+        embed = await buildResultatsGdc(gdcWar, label)
+      } else {
+        const ldc  = await apiGet(key === 'dr1' ? '/ldc/current' : '/ldc/dr2/current').catch(() => null)
+        const last = ldc?.rounds?.slice().reverse().find(r => r.war?.state === 'warEnded')
+        if (!last) { await interaction.editReply('❌ Aucune guerre terminée récemment.'); return }
+        embed = await buildResultatsLdc(normalizeWar(last.war, ourTag), label)
+      }
     } else if (type === 'raids') {
       const data  = await apiGet('/clan/raids')
       const raid  = data?.items?.[0]
@@ -872,11 +874,9 @@ const BUTTON_HANDLERS = {
   sauron_rappel_war_dr2:     handleSauronRappelWarDr2,
   sauron_rappel_raids:       handleSauronRappelRaids,
   sauron_rappel_jdc:         handleSauronRappelJdc,
-  // ── Panel Sauron — Résultats ──────────────────────────────────
-  sauron_resultats_gdc_dr1:  (i) => handleSauronResultats(i, 'gdc_dr1'),
-  sauron_resultats_gdc_dr2:  (i) => handleSauronResultats(i, 'gdc_dr2'),
-  sauron_resultats_ldc_dr1:  (i) => handleSauronResultats(i, 'ldc_dr1'),
-  sauron_resultats_ldc_dr2:  (i) => handleSauronResultats(i, 'ldc_dr2'),
+  // ── Panel Sauron — Résultats (GDC/LDC auto-détecté) ─────────
+  sauron_resultats_war_dr1:  (i) => handleSauronResultats(i, 'war_dr1'),
+  sauron_resultats_war_dr2:  (i) => handleSauronResultats(i, 'war_dr2'),
   sauron_resultats_raids:    (i) => handleSauronResultats(i, 'raids'),
   sauron_resultats_jdc:      (i) => handleSauronResultats(i, 'jdc'),
 }

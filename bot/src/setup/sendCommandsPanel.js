@@ -62,7 +62,6 @@ async function sendCommandsPanel(client) {
           '`/setupreglement` — Recrée le règlement',
           '`/setupreglementpublic` — Recrée le règlement public',
           '`/setupticket` — Recrée le message tickets',
-          '`/setupmessaging` — Recrée le panel messagerie',
           '`/setupevents` — Recrée le panel événements',
         ].join('\n'),
         inline: false,

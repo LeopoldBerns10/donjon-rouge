@@ -95,21 +95,35 @@ async function buildWarEmbed(clanKey) {
     return `${icon} ${m.name} — ${atks}/${attacksPerMember}`
   })
 
-  const stateLabel = war.state === 'preparation' ? '🛡️ Préparation' : '⚔️ En cours'
   const ldcExtra   = isLdc && war._ldcDay ? ` • Jour ${war._ldcDay}` : ''
   const footerText = isLdc
     ? `Donjon Rouge • LDC ${label}${war._ldcSeason ? ` • Saison ${war._ldcSeason}` : ''}`
     : `Donjon Rouge • GDC ${label}`
 
-  return new EmbedBuilder()
+  const embed = new EmbedBuilder()
     .setColor(isLdc ? 0xFFD700 : (war.state === 'inWar' ? 0xFF6600 : 0x1565C0))
     .setTitle(title)
-    .addFields(
-      { name: '📊 État', value: `${stateLabel}${ldcExtra} vs **${oppName}**\n⭐ ${clanStars} vs ${oppStars} | ⚔️ ${atksUsed}/${totalAtks}${timeStr ? `\n${timeStr}` : ''}`, inline: false },
-      { name: '🏹 Membres', value: lines.join('\n').slice(0, 1024) || '—', inline: false },
-    )
     .setFooter({ text: footerText })
     .setTimestamp()
+
+  if (war.state === 'preparation') {
+    const ourSorted   = [...members].sort((a, b) => b.townhallLevel - a.townhallLevel)
+    const theirSorted = [...(war.opponent?.members || [])].sort((a, b) => b.townhallLevel - a.townhallLevel)
+    const ourLines    = ourSorted.map(m => `TH${m.townhallLevel} ${m.name}`)
+    const theirLines  = theirSorted.map(m => `TH${m.townhallLevel} ${m.name}`)
+    embed.addFields(
+      { name: '🛡️ Préparation', value: `vs **${oppName}**\n👥 ${members.length} vs ${theirSorted.length}${timeStr ? `\n${timeStr}` : ''}`, inline: false },
+      { name: `🏰 Nos guerriers (${members.length})`, value: ourLines.join('\n').slice(0, 1024) || '—', inline: true },
+      { name: `⚔️ Leurs guerriers (${theirSorted.length})`, value: theirLines.join('\n').slice(0, 1024) || '—', inline: true },
+    )
+  } else {
+    embed.addFields(
+      { name: `📊 En cours${ldcExtra}`, value: `vs **${oppName}**\n⭐ ${clanStars} vs ${oppStars} | ⚔️ ${atksUsed}/${totalAtks}${timeStr ? `\n${timeStr}` : ''}`, inline: false },
+      { name: '🏹 Membres', value: lines.join('\n').slice(0, 1024) || '—', inline: false },
+    )
+  }
+
+  return embed
 }
 
 // ─── Raids embed ──────────────────────────────────────────────────────────────
@@ -157,9 +171,9 @@ async function buildRaidsEmbed() {
   return new EmbedBuilder()
     .setColor(0x7B2FBE)
     .setTitle('💎 Raid Capital — DR1')
+    .setDescription(lines.join('\n').slice(0, 4096) || '—')
     .addFields(
       { name: '📊 Attaques', value: `⚔️ ${atksUsed} attaques utilisées`, inline: false },
-      { name: '🏹 Membres', value: lines.join('\n').slice(0, 4096) || '—', inline: false },
     )
     .setFooter({ text: 'Donjon Rouge • Raid Capital' })
     .setTimestamp()
