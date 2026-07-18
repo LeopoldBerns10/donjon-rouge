@@ -35,11 +35,16 @@ async function getConfig() {
   if (_config && Date.now() - _configTs < CONFIG_TTL) return _config
   try {
     const { data } = await supabase.from('mod_config').select('key, value')
+    console.log('[automod][getConfig] Supabase rows:', data?.length, '| raw:', JSON.stringify(data?.slice(0, 5)))
     if (data?.length) {
       const fresh = { ...DEFAULTS }
       for (const row of data) fresh[row.key] = row.value
       _config  = fresh
       _configTs = Date.now()
+      console.log('[automod][getConfig] automod_enabled =', JSON.stringify(fresh.automod_enabled), 'typeof:', typeof fresh.automod_enabled)
+      console.log('[automod][getConfig] exempt_roles isArray:', Array.isArray(fresh.exempt_roles), '| val:', JSON.stringify(fresh.exempt_roles))
+      console.log('[automod][getConfig] ignored_channels isArray:', Array.isArray(fresh.ignored_channels), '| val:', JSON.stringify(fresh.ignored_channels))
+      console.log('[automod][getConfig] banned_words_list isArray:', Array.isArray(fresh.banned_words_list), '| val:', JSON.stringify(fresh.banned_words_list))
     }
   } catch (e) {
     console.error('[automod] Erreur chargement config:', e.message)
@@ -235,20 +240,45 @@ async function checkAndModerate(message, client) {
   if (message.author.bot) return false
 
   const conf = await getConfig()
-  if (!conf.automod_enabled) return false
+  console.log('[automod] check | user:', message.author.id, '| channel:', message.channelId, '| automod_enabled:', JSON.stringify(conf.automod_enabled))
 
-  if ((conf.ignored_channels || []).includes(message.channelId)) return false
+  if (!conf.automod_enabled) {
+    console.log('[automod] BLOQUÉ — automod_enabled falsy:', JSON.stringify(conf.automod_enabled), typeof conf.automod_enabled)
+    return false
+  }
+
+  const ignoredChs = conf.ignored_channels || []
+  const inIgnored  = ignoredChs.includes(message.channelId)
+  console.log('[automod] ignored_channels isArray:', Array.isArray(ignoredChs), '| inIgnored:', inIgnored)
+  if (inIgnored) {
+    console.log('[automod] BLOQUÉ — channel ignoré:', message.channelId)
+    return false
+  }
 
   const member = message.member
-  if (!member) return false
+  if (!member) {
+    console.log('[automod] BLOQUÉ — pas de member (DM?)')
+    return false
+  }
 
-  if ((conf.exempt_members || []).includes(member.id)) return false
-  for (const roleId of (conf.exempt_roles || [])) {
-    if (member.roles.cache.has(roleId)) return false
+  if ((conf.exempt_members || []).includes(member.id)) {
+    console.log('[automod] BLOQUÉ — membre exempté directement:', member.id)
+    return false
+  }
+
+  const exemptRoles = conf.exempt_roles || []
+  console.log('[automod] exempt_roles isArray:', Array.isArray(exemptRoles), '| val:', JSON.stringify(exemptRoles))
+  for (const roleId of exemptRoles) {
+    if (member.roles.cache.has(roleId)) {
+      console.log('[automod] BLOQUÉ — rôle exempté:', roleId)
+      return false
+    }
   }
 
   const content = message.content || ''
   if (!content.trim()) return false
+
+  console.log('[automod] analyse | "' + content.slice(0, 50) + '"')
 
   // 1. Spam
   if (conf.spam_enabled) {
@@ -257,8 +287,10 @@ async function checkAndModerate(message, client) {
   }
 
   // 2. Mots interdits
-  if (conf.banned_words_enabled && (conf.banned_words_list || []).length > 0) {
-    const r = checkBannedWords(content, conf.banned_words_list)
+  const bwList = conf.banned_words_list || []
+  console.log('[automod] banned_words_enabled:', conf.banned_words_enabled, '| list isArray:', Array.isArray(bwList), '| list.length:', bwList.length, '| val:', JSON.stringify(bwList))
+  if (conf.banned_words_enabled && bwList.length > 0) {
+    const r = checkBannedWords(content, bwList)
     if (r) { await applyModeration(message, member, r, 'banned_word', conf, client); return true }
   }
 
@@ -280,6 +312,7 @@ async function checkAndModerate(message, client) {
     if (r) { await applyModeration(message, member, r, 'mentions', conf, client); return true }
   }
 
+  console.log('[automod] aucune infraction détectée')
   return false
 }
 
