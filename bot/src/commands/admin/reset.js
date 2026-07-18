@@ -1,14 +1,13 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js')
 const { isAdmin } = require('../../lib/isAdmin.js')
 const { ACCOUNT_CHANNEL_ID, REMINDER_CHANNEL_ID } = require('../../config/reminders.js')
-const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('../../config/warChannels.js')
 const { TICKET_CHANNEL_ID } = require('../../config/tickets.js')
 const { CHANNELS } = require('../../config/onboarding.js')
 const { getOrCreateAccountMessage } = require('../../accountMessage.js')
 const { resetStatus, forceRefresh } = require('../../scheduler.js')
 const { updateEventsMessage, resetEventsMessage, EVENTS_CHANNEL_ID } = require('../../setup/sendEventsPanel.js')
 const { sendCommandsPanel, COMMANDS_CHANNEL_ID } = require('../../setup/sendCommandsPanel.js')
-const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../../warMessages.js')
+const { updateWarEmbeds } = require('../../lib/warEmbeds.js')
 const { sendTicketMessage } = require('../../setup/sendTicketMessage.js')
 const { sendKaptcha } = require('../../setup/sendKaptcha.js')
 const { sendReglement } = require('../../setup/sendReglement.js')
@@ -44,23 +43,17 @@ module.exports = {
         await resetStatus()
         await forceRefresh(client)
 
-      } else if (channelId === DR1_WAR_CHANNEL) {
+      } else if (channelId === '1511988469918994545') {
         await bulkDeleteAll(channel)
-        await resetWarKeys(['dr1_war_msg1', 'dr1_war_msg2', 'dr1_war_msg3'])
-        activateWarChannels()
-        await updateWarChannels(client)
+        await updateWarEmbeds(client)
 
-      } else if (channelId === DR2_WAR_CHANNEL) {
+      } else if (channelId === '1511988535094153286') {
         await bulkDeleteAll(channel)
-        await resetWarKeys(['dr2_war_msg1', 'dr2_war_msg2', 'dr2_war_msg3'])
-        activateWarChannels()
-        await updateWarChannels(client)
+        await updateWarEmbeds(client)
 
-      } else if (channelId === RAID_CHANNEL) {
+      } else if (channelId === '1511988581135159376') {
         await bulkDeleteAll(channel)
-        await resetWarKeys(['raid_msg'])
-        activateWarChannels()
-        await updateWarChannels(client)
+        await updateWarEmbeds(client)
 
       } else if (channelId === TICKET_CHANNEL_ID) {
         await bulkDeleteAll(channel)

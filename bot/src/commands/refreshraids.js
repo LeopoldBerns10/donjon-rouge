@@ -1,13 +1,13 @@
 const { SlashCommandBuilder } = require('discord.js')
-const { isChefOrAdjoint, buildJdcEmbed, makeRefreshRow } = require('../lib/warEmbeds.js')
+const { isChefOrAdjoint, buildRaidsEmbed, makeRefreshRow } = require('../lib/warEmbeds.js')
 const { replaceEmbed } = require('../lib/eventChannels.js')
 
 const JDC_RAIDS_CHANNEL = '1511988581135159376'
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('refreshjdc')
-    .setDescription('Actualise l\'embed JDC'),
+    .setName('refreshraids')
+    .setDescription('Actualise l\'embed Raid Capital'),
 
   async execute(interaction) {
     if (!isChefOrAdjoint(interaction.member)) {
@@ -17,11 +17,11 @@ module.exports = {
     await interaction.deferReply({ ephemeral: true })
 
     try {
-      const embed = await buildJdcEmbed()
-      await replaceEmbed(interaction.client, JDC_RAIDS_CHANNEL, 'war_jdc_msg_id', embed, makeRefreshRow('refresh_jdc'))
-      await interaction.editReply('✅ Embed JDC actualisé.')
+      const embed = await buildRaidsEmbed()
+      await replaceEmbed(interaction.client, JDC_RAIDS_CHANNEL, 'war_raids_msg_id', embed, makeRefreshRow('refresh_raids'))
+      await interaction.editReply('✅ Embed Raid Capital actualisé.')
     } catch (e) {
-      console.error('[refreshjdc]', e)
+      console.error('[refreshraids]', e)
       await interaction.editReply('❌ Erreur lors du refresh.')
     }
   },

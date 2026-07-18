@@ -4,7 +4,6 @@ const { REMINDER_CHANNEL_ID, CLANS } = require('./config/reminders.js')
 const { log } = require('./lib/botLogger.js')
 const { updateEventsMessage } = require('./setup/sendEventsPanel.js')
 const { buildLdcRecapMessage, buildGdcRecapMessage, buildRaidRecapMessage, postExploit } = require('./lib/exploits.js')
-const { recordGdcParticipation } = require('./lib/participationStats.js')
 const { sendWeeklyStats } = require('./lib/weeklyStats.js')
 
 const DONJON_ROUGE_ROLE_ID = '611125112519000064'
@@ -40,7 +39,9 @@ async function takeMonthlySnapshot() {
 }
 const { isJdcActive, updateJdcEmbeds, checkJdcEnd, autoDetectJdc } = require('./lib/jdcTracker.js')
 const { startYoutubeScheduler } = require('./lib/youtubeTracker.js')
-const { updateRappelEmbeds } = require('./lib/rappelManager.js')
+const { updateWarEmbeds } = require('./lib/warEmbeds.js')
+const { updateRappelEmbeds } = require('./lib/rappelEmbeds.js')
+const { checkAndPostResultats } = require('./lib/resultatsEmbeds.js')
 const { checkBirthdays } = require('./lib/birthdayManager.js')
 const { checkExpiredPolls } = require('./lib/pollManager.js')
 const { ensureRaidEvent, ensureJdcEvent, ensureNextMonthEvents, checkEventAnnouncements, fetchSupercellEvents } = require('./lib/discordEvents.js')
@@ -399,12 +400,8 @@ async function checkExploits(client, warData) {
 
     if (isLdc && cwl?.season) {
       await postExploit(client, buildLdcRecapMessage(cwl, ourTag), `exploit_ldc_${cwl.season}`)
-      if (war.state === 'warEnded') {
-        await recordGdcParticipation(war, 'ldc').catch(e => console.error('[Participation] LDC:', e))
-      }
     } else if (war.endTime) {
       await postExploit(client, buildGdcRecapMessage(war, clanLabel), `exploit_war_${war.endTime}`)
-      await recordGdcParticipation(war).catch(e => console.error('[Participation] GDC:', e))
     }
   }
 
@@ -589,30 +586,25 @@ async function checkAndUpdate(client) {
 
   const warData = await fetchWarData()
   await checkExploits(client, warData).catch(e => console.error('[Scheduler] Exploits:', e))
+  await checkAndPostResultats(client, warData).catch(e => console.error('[Scheduler] Resultats:', e))
   await updateEventsMessage(client).catch(e => console.error('[Scheduler] Events:', e))
 
   // Sondages — vérification des sondages expirés à chaque tick
   await checkExpiredPolls(client).catch(e => console.error('[Scheduler] Polls:', e))
+
+  // Embeds guerre — mise à jour à chaque tick (sans ping)
+  await updateWarEmbeds(client).catch(e => console.error('[Scheduler] WarEmbeds:', e))
 
   // Calcul heure Paris en avance (utilisé pour les logs et les conditions)
   const parisNow  = new Date(Date.now() + 2 * 3600000)
   const parisHour = parisNow.getUTCHours()
   const parisDay  = parisNow.getUTCDate()
 
-  // Rappels v2 — embeds liste mis à jour à chaque tick
-  await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds:', e))
-  if (parisHour !== lastRappelEmbedLogHour) {
-    lastRappelEmbedLogHour = parisHour
-    const dr1State  = warData.wars?.dr1?.state ?? 'unknown'
-    const dr2State  = warData.wars?.dr2?.state ?? 'unknown'
-    const raidState = warData.currentRaid ? 'ongoing' : 'inactive'
-    log(client, 'SCHEDULER', `Embeds rappel mis à jour (DR1 ${dr1State}, DR2 ${dr2State}, Raid ${raidState})`).catch(() => {})
-  }
-
-  // Rappels v2 — refresh embeds à 10h et 20h (heure Paris = UTC+2)
   console.log('[Scheduler] Heure Paris:', parisHour)
+
+  // Embeds rappels — refresh à 10h et 20h heure Paris avec ping membres Liés
   if (parisHour === 10 || parisHour === 20) {
-    await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds 10h/20h:', e))
+    await updateRappelEmbeds(client).catch(e => console.error('[Scheduler] RappelEmbeds:', e))
   }
   if (parisHour === 3) {
     await checkLogsPurge(client).catch(e => console.error('[Scheduler] LogsPurge:', e))
@@ -702,23 +694,21 @@ function startScheduler(client) {
       isRunning = false
     }
   }
-  cleanupReminderChannel(client)
-    .catch(e => console.error('[Scheduler] cleanupReminderChannel:', e))
-    .finally(run)
+  run()
   setInterval(run, 30 * 60 * 1000)
   console.log('[Scheduler] Démarré — vérification toutes les 30 minutes')
   startYoutubeScheduler(client)
 }
 
 async function forceRefresh(client) {
-  await updateReminderMessages(client)
+  await updateWarEmbeds(client).catch(e => console.error('[forceRefresh] WarEmbeds:', e))
 }
 
 async function resetStatus() {
-  for (const key of ['reminder_dr1_msg', 'reminder_dr2_msg', 'reminder_raid_msg']) {
-    reminderMsgCache[key] = null
+  const oldKeys = ['reminder_dr1_msg', 'reminder_dr2_msg', 'reminder_raid_msg', 'rappel_embed_jdc_id', 'rappel_ping_dr1_id', 'rappel_ping_dr2_id']
+  for (const key of oldKeys) {
     await supabase.from('bot_config').delete().eq('key', key)
   }
 }
 
-module.exports = { startScheduler, forceRefresh, resetStatus, updateReminderMessages }
+module.exports = { startScheduler, forceRefresh, resetStatus }

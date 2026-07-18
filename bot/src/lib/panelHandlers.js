@@ -19,15 +19,14 @@ const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { getPlayer, getClanMembers, getClanMembersDR2 } = require('../cocApi.js')
 const { updateJdcEmbeds } = require('./jdcTracker.js')
-const { updateRappelEmbeds, sendRappelPings } = require('./rappelManager.js')
+const { updateWarEmbeds, isChefOrAdjoint } = require('./warEmbeds.js')
+const { updateRappelEmbeds } = require('./rappelEmbeds.js')
 const { assignLeagueRole } = require('../utils/assignLeagueRole.js')
 const { assignHdvRole } = require('../utils/assignHdvRole.js')
 const { log } = require('./botLogger.js')
 const DONJON_ROUGE_ROLE_ID = '611125112519000064'
 const LIE_ROLE_ID          = '1511096527664320655'
-const { DR1_WAR_CHANNEL, DR2_WAR_CHANNEL, RAID_CHANNEL } = require('../config/warChannels.js')
-const { updateWarChannels, activateWarChannels, resetWarKeys } = require('../warMessages.js')
-const { forceRefresh, updateReminderMessages, resetStatus } = require('../scheduler.js')
+const { forceRefresh, resetStatus } = require('../scheduler.js')
 const { JDC_TRACKING_CHANNEL } = require('../config/jdcConfig.js')
 
 const sleep        = ms => new Promise(r => setTimeout(r, ms))
@@ -886,17 +885,8 @@ async function handleAdminRefreshWar(interaction) {
   if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   try {
-    const { client } = interaction
-    const [ch1, ch2] = await Promise.all([
-      client.channels.fetch(DR1_WAR_CHANNEL).catch(() => null),
-      client.channels.fetch(DR2_WAR_CHANNEL).catch(() => null),
-    ])
-    if (ch1) await bulkDeleteCh(ch1)
-    if (ch2) await bulkDeleteCh(ch2)
-    await resetWarKeys(['dr1_war_msg1', 'dr1_war_msg2', 'dr2_war_msg1', 'dr2_war_msg2'])
-    activateWarChannels()
-    await updateWarChannels(client)
-    await interaction.editReply('✅ Salons de guerre réinitialisés.')
+    await updateWarEmbeds(interaction.client)
+    await interaction.editReply('✅ Salons de guerre actualisés.')
   } catch (e) { console.error('[adminRefreshWar]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
 }
 
@@ -904,13 +894,11 @@ async function handleAdminRefreshRaid(interaction) {
   if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   try {
-    const { client } = interaction
-    const raidCh = await client.channels.fetch(RAID_CHANNEL).catch(() => null)
-    if (raidCh) await bulkDeleteCh(raidCh)
-    await resetWarKeys(['raid_msg'])
-    activateWarChannels()
-    await updateWarChannels(client)
-    await interaction.editReply('✅ Salon raid réinitialisé.')
+    const { buildRaidsEmbed, makeRefreshRow } = require('./warEmbeds.js')
+    const { replaceEmbed } = require('./eventChannels.js')
+    const embed = await buildRaidsEmbed()
+    await replaceEmbed(interaction.client, '1511988581135159376', 'war_raids_msg_id', embed, makeRefreshRow('refresh_raids'))
+    await interaction.editReply('✅ Embed Raid Capital actualisé.')
   } catch (e) { console.error('[adminRefreshRaid]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
 }
 
@@ -1025,19 +1013,8 @@ async function handleAdminRefreshRappel(interaction) {
   if (!(await isAdmin(interaction.member))) return interaction.reply({ content: '❌ Accès réservé aux administrateurs.', ephemeral: true })
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
   try {
-    const { client } = interaction
-
-    const channel = await client.channels.fetch(REMINDER_CHANNEL_ID).catch(() => null)
-    if (channel) await bulkDeleteCh(channel)
-
-    await resetStatus()
-    await updateReminderMessages(client)
-
-    try { await updateJdcEmbeds(client) } catch (e) { console.error('[adminRefreshRappel] updateJdcEmbeds:', e) }
-    try { await updateRappelEmbeds(client) } catch (e) { console.error('[adminRefreshRappel] updateRappelEmbeds:', e) }
-    try { await sendRappelPings(client) } catch (e) { console.error('[adminRefreshRappel] sendRappelPings:', e) }
-
-    await interaction.editReply('✅ Rappels réinitialisés.')
+    await updateRappelEmbeds(interaction.client)
+    await interaction.editReply('✅ Rappels actualisés.')
   } catch (e) { console.error('[adminRefreshRappel]', e); await interaction.editReply('❌ Erreur lors du refresh.') }
 }
 
