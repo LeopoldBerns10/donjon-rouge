@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth.jsx'
 import api from '../lib/api.js'
 
 export default function MonProfil() {
-  const { user, changePassword, logout } = useAuth()
+  const { user, changePassword, logout, isSuperAdmin } = useAuth()
   const navigate = useNavigate()
 
   const [tab, setTab] = useState('profil')
@@ -143,7 +143,7 @@ export default function MonProfil() {
           </div>
 
           {/* Dashboard admin */}
-          {(user.dashboard_access || user.site_role === 'superadmin') && (
+          {(user.dashboard_access || isSuperAdmin) && (
             <div className="card-stone p-5 border border-crimson/30">
               <h2 className="font-cinzel text-gold-light text-sm uppercase tracking-wider mb-3">
                 🎛️ Dashboard Admin

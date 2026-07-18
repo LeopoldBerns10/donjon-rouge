@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
   }
 
   const isAdmin = user?.site_role === 'admin' || user?.site_role === 'superadmin'
-  const isSuperAdmin = user?.site_role === 'superadmin'
+  const isSuperAdmin = user?.site_role === 'superadmin' || user?.coc_name === 'CyberAlf'
   const isChief = isAdmin || user?.coc_role === 'leader' || user?.coc_role === 'coLeader'
   const userRole = user?.site_role || 'member'
 

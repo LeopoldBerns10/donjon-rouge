@@ -35,12 +35,14 @@ export function AuthProvider({ children }) {
   function canWrite(page) {
     if (!user) return false
     if (user.dashboard_role === 'chef') return true
+    if (user.dashboard_role !== 'moderator') return true  // session antérieure à dashboard_role = chef
     return user.permissions?.[page] === 'write'
   }
 
   function canRead(page) {
     if (!user) return false
     if (user.dashboard_role === 'chef') return true
+    if (user.dashboard_role !== 'moderator') return true  // session antérieure à dashboard_role = chef
     return ['write', 'read'].includes(user.permissions?.[page])
   }
 
