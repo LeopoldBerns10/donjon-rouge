@@ -153,9 +153,6 @@ async function buildRaidsEmbed() {
     allMembers = [...(r1?.items ?? []), ...(r2?.items ?? [])]
   } catch {}
 
-  let discordMap = {}
-  try { discordMap = await getDiscordIds(allMembers.map(m => m.tag)) } catch {}
-
   const raidMap  = new Map((raid.members || []).map(m => [m.tag, m]))
   const atksUsed = (raid.members || []).reduce((acc, m) => acc + (m.attacks ?? 0), 0)
 
@@ -164,8 +161,7 @@ async function buildRaidsEmbed() {
     const atks = rm?.attacks ?? 0
     const lim  = rm?.attackLimit ?? 5
     const icon = atks === 0 ? '❌' : atks < lim ? '⚡' : '✅'
-    const mention = discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
-    return `${icon} ${mention} — ${atks}/${lim}`
+    return `${icon} ${m.name} — ${atks}/${lim}`
   })
 
   return new EmbedBuilder()
@@ -192,13 +188,11 @@ async function buildJdcEmbed() {
       .setTimestamp()
   }
 
-  const allUnder   = await fetchJdcMembersUnder5000()
-  const discordMap = allUnder.length > 0 ? await getDiscordIds(allUnder.map(m => m.tag)) : {}
+  const allUnder = await fetchJdcMembersUnder5000()
 
   const lines = allUnder.map(m => {
-    const icon    = m.points === 0 ? '❌' : '⚡'
-    const mention = discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name
-    return `${icon} ${mention} — ${m.points.toLocaleString('fr-FR')} pts`
+    const icon = m.points === 0 ? '❌' : '⚡'
+    return `${icon} ${m.name} — ${m.points.toLocaleString('fr-FR')} pts`
   })
 
   return new EmbedBuilder()
