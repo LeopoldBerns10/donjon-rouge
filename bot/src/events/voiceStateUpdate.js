@@ -54,7 +54,7 @@ module.exports = {
           },
           {
             id: LIE_ROLE_ID,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak],
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.Connect, PermissionFlagsBits.Speak, PermissionFlagsBits.UseVAD],
           },
           {
             id: client.user.id,
