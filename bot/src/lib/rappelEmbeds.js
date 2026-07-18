@@ -28,74 +28,61 @@ function inactiveEmbed(title, footer) {
     .setTimestamp()
 }
 
-// ─── GDC rappel ───────────────────────────────────────────────────────────────
+// ─── Guerre rappel (GDC ou LDC, auto-détecté) ────────────────────────────────
 
-async function buildRappelGdcEmbed(clanKey) {
-  const label = clanKey === 'dr1' ? 'DR1' : 'DR2'
-  let war
-  try { war = await apiGet(`/clan/${clanKey}/war`) } catch { war = null }
+async function buildRappelWarEmbed(clanKey) {
+  const ourTag = clanKey === 'dr1' ? '#29292QPRC' : '#2RCGG9YR9'
+  const label  = clanKey === 'dr1' ? 'DR1' : 'DR2'
 
-  if (!war || war.state === 'notInWar' || war.state === 'warEnded' || war.state === 'preparation') {
-    return inactiveEmbed(`⚔️ Rappel GDC — ${label}`, `Donjon Rouge • GDC ${label}`)
+  let war   = null
+  let isLdc = false
+
+  try {
+    const gdcWar = await apiGet(`/clan/${clanKey}/war`)
+    if (gdcWar?.state === 'inWar') war = gdcWar
+  } catch {}
+
+  if (!war) {
+    const ldcPath = clanKey === 'dr1' ? '/ldc/current' : '/ldc/dr2/current'
+    try {
+      const ldc         = await apiGet(ldcPath)
+      const activeRound = ldc?.rounds?.find(r => r.war?.state === 'inWar')
+      if (activeRound) {
+        war   = normalizeWar(activeRound.war, ourTag)
+        isLdc = true
+      }
+    } catch {}
   }
 
-  const members = war.clan?.members || []
+  if (!war) {
+    return inactiveEmbed(`⚔️ Rappel Guerre — ${label}`, `Donjon Rouge • Guerre ${label}`)
+  }
+
+  const attacksPerMember = isLdc ? 1 : 2
+  const members          = war.clan?.members || []
+
   const late    = members.filter(m => (m.attacks?.length ?? 0) === 0)
-  const partial = members.filter(m => (m.attacks?.length ?? 0) === 1)
-  const done    = members.filter(m => (m.attacks?.length ?? 0) >= 2)
+  const partial = members.filter(m => { const a = m.attacks?.length ?? 0; return a > 0 && a < attacksPerMember })
+  const done    = members.filter(m => (m.attacks?.length ?? 0) >= attacksPerMember)
 
   const allTags    = [...late, ...partial].map(m => m.tag)
   const discordMap = allTags.length > 0 ? await getDiscordIds(allTags) : {}
 
   const lines = [
-    ...late.map(m    => `❌ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — 0/2`),
-    ...partial.map(m => `⚡ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — 1/2`),
-    ...done.map(m    => `✅ ${m.name} — 2/2`),
+    ...late.map(m    => `❌ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — 0/${attacksPerMember}`),
+    ...partial.map(m => `⚡ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — ${m.attacks?.length ?? 0}/${attacksPerMember}`),
+    ...done.map(m    => `✅ ${m.name} — ${attacksPerMember}/${attacksPerMember}`),
   ]
 
   const endTime   = war.endTime ? parseWarTime(war.endTime) : null
   const hoursLeft = endTime ? Math.max(0, Math.ceil((endTime - Date.now()) / 3600000)) : '?'
+  const title     = isLdc ? `🏆 Rappel LDC — ${label}` : `⚔️ Rappel GDC — ${label}`
 
   return new EmbedBuilder()
-    .setColor(late.length === 0 ? 0x2E7D32 : 0xFF6600)
-    .setTitle(`⚔️ Rappel GDC — ${label}`)
+    .setColor(late.length === 0 ? 0x2E7D32 : (isLdc ? 0xFFD700 : 0xFF6600))
+    .setTitle(title)
     .setDescription(`vs **${war.opponent?.name || '?'}** | ⏳ ${hoursLeft}h restantes\n\n${lines.join('\n')}`.slice(0, 4096))
-    .setFooter({ text: `Donjon Rouge • GDC ${label} • Aujourd'hui à ${parisTime()}` })
-    .setTimestamp()
-}
-
-// ─── LDC rappel ───────────────────────────────────────────────────────────────
-
-async function buildRappelLdcEmbed(clanKey) {
-  const ourTag = clanKey === 'dr1' ? '#29292QPRC' : '#2RCGG9YR9'
-  const label  = clanKey === 'dr1' ? 'DR1' : 'DR2'
-  const path   = clanKey === 'dr1' ? '/ldc/current' : '/ldc/dr2/current'
-
-  let ldc
-  try { ldc = await apiGet(path) } catch { ldc = null }
-
-  const activeRound = ldc?.rounds?.find(r => r.war?.state === 'inWar')
-  if (!activeRound) {
-    return inactiveEmbed(`🏆 Rappel LDC — ${label}`, `Donjon Rouge • LDC ${label}`)
-  }
-
-  const war     = normalizeWar(activeRound.war, ourTag)
-  const members = war.clan?.members || []
-  const late    = members.filter(m => (m.attacks?.length ?? 0) === 0)
-  const done    = members.filter(m => (m.attacks?.length ?? 0) >= 1)
-
-  const discordMap = late.length > 0 ? await getDiscordIds(late.map(m => m.tag)) : {}
-
-  const lines = [
-    ...late.map(m => `❌ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — 0/1`),
-    ...done.map(m => `✅ ${m.name} — 1/1`),
-  ]
-
-  return new EmbedBuilder()
-    .setColor(late.length === 0 ? 0x2E7D32 : 0xFFD700)
-    .setTitle(`🏆 Rappel LDC — ${label}`)
-    .setDescription(`vs **${war.opponent?.name || '?'}**\n\n${lines.join('\n')}`.slice(0, 4096))
-    .setFooter({ text: `Donjon Rouge • LDC ${label} • Aujourd'hui à ${parisTime()}` })
+    .setFooter({ text: `Donjon Rouge • ${isLdc ? 'LDC' : 'GDC'} ${label} • Aujourd'hui à ${parisTime()}` })
     .setTimestamp()
 }
 
@@ -119,15 +106,15 @@ async function buildRappelRaidsEmbed() {
 
   const raidMap = new Map((raid.members || []).map(m => [m.tag, m]))
 
-  const noAtk  = allMembers.filter(m => !raidMap.has(m.tag))
-  const partial = allMembers.filter(m => { const rm = raidMap.get(m.tag); return rm && (rm.attacks ?? 0) > 0 && (rm.attacks ?? 0) < (rm.attackLimit ?? 5) })
-  const done    = allMembers.filter(m => { const rm = raidMap.get(m.tag); return rm && (rm.attacks ?? 0) >= (rm.attackLimit ?? 5) })
+  const noAtk   = allMembers.filter(m => !raidMap.has(m.tag))
+  const partial  = allMembers.filter(m => { const rm = raidMap.get(m.tag); return rm && (rm.attacks ?? 0) > 0 && (rm.attacks ?? 0) < (rm.attackLimit ?? 5) })
+  const done     = allMembers.filter(m => { const rm = raidMap.get(m.tag); return rm && (rm.attacks ?? 0) >= (rm.attackLimit ?? 5) })
 
   const mentionTags = [...noAtk, ...partial].map(m => m.tag)
   const discordMap  = mentionTags.length > 0 ? await getDiscordIds(mentionTags) : {}
 
   const lines = [
-    ...noAtk.map(m  => `❌ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — 0/5`),
+    ...noAtk.map(m   => `❌ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — 0/5`),
     ...partial.map(m => { const rm = raidMap.get(m.tag); return `⚡ ${discordMap[m.tag] ? `<@${discordMap[m.tag]}>` : m.name} — ${rm.attacks}/${rm.attackLimit ?? 5}` }),
     ...done.map(m    => `✅ ${m.name} — ${raidMap.get(m.tag)?.attackLimit ?? 5}/${raidMap.get(m.tag)?.attackLimit ?? 5}`),
   ]
@@ -167,26 +154,23 @@ async function buildRappelJdcEmbed() {
     .setTimestamp()
 }
 
-// ─── Mise à jour des 6 embeds de rappel ──────────────────────────────────────
+// ─── Mise à jour des 4 embeds de rappel ──────────────────────────────────────
 
 async function updateRappelEmbeds(client) {
   const builds = await Promise.allSettled([
-    buildRappelGdcEmbed('dr1'),
-    buildRappelGdcEmbed('dr2'),
-    buildRappelLdcEmbed('dr1'),
-    buildRappelLdcEmbed('dr2'),
+    buildRappelWarEmbed('dr1'),
+    buildRappelWarEmbed('dr2'),
     buildRappelRaidsEmbed(),
     buildRappelJdcEmbed(),
   ])
 
-  const embeds = builds.map((r, i) => {
-    const titles = ['⚔️ Rappel GDC DR1', '⚔️ Rappel GDC DR2', '🏆 Rappel LDC DR1', '🏆 Rappel LDC DR2', '💎 Rappel Raid Capital', '🎖️ Rappel JDC']
-    if (r.status === 'fulfilled') return r.value
-    return inactiveEmbed(titles[i], `Donjon Rouge • ${titles[i]}`)
-  })
+  const titles = ['⚔️ Rappel Guerre DR1', '⚔️ Rappel Guerre DR2', '💎 Rappel Raid Capital', '🎖️ Rappel JDC']
+  const embeds = builds.map((r, i) =>
+    r.status === 'fulfilled' ? r.value : inactiveEmbed(titles[i], `Donjon Rouge • ${titles[i]}`)
+  )
 
-  const keys    = ['rappel_gdc_dr1_id', 'rappel_gdc_dr2_id', 'rappel_ldc_dr1_id', 'rappel_ldc_dr2_id', 'rappel_raids_id', 'rappel_jdc_id']
-  const btnIds  = ['rappel_refresh_gdc_dr1', 'rappel_refresh_gdc_dr2', 'rappel_refresh_ldc_dr1', 'rappel_refresh_ldc_dr2', 'rappel_refresh_raids', 'rappel_refresh_jdc']
+  const keys   = ['rappel_dr1_id', 'rappel_dr2_id', 'rappel_raids_id', 'rappel_jdc_id']
+  const btnIds = ['rappel_refresh_dr1', 'rappel_refresh_dr2', 'rappel_refresh_raids', 'rappel_refresh_jdc']
 
   await Promise.allSettled(
     embeds.map((embed, i) => replaceEmbed(client, RAPPEL_CHANNEL_ID, keys[i], embed, makeBtn(btnIds[i])))
@@ -194,8 +178,7 @@ async function updateRappelEmbeds(client) {
 }
 
 module.exports = {
-  buildRappelGdcEmbed,
-  buildRappelLdcEmbed,
+  buildRappelWarEmbed,
   buildRappelRaidsEmbed,
   buildRappelJdcEmbed,
   updateRappelEmbeds,

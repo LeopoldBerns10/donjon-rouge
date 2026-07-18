@@ -58,8 +58,8 @@ const { handleJdcRefresh, handleJdcReminderRefresh } = require('../lib/jdcTracke
 const { buildReglementEmbed, REGLEMENT_TEXT } = require('../setup/sendReglement.js')
 const { PUBLIC_CHANNEL_ID } = require('../setup/sendReglementPublic.js')
 const { forceRefresh } = require('../scheduler.js')
-const { buildGdcEmbed, buildLdcEmbed, buildRaidsEmbed, buildJdcEmbed, makeRefreshRow, isChefOrAdjoint } = require('../lib/warEmbeds.js')
-const { buildRappelGdcEmbed, buildRappelLdcEmbed, buildRappelRaidsEmbed, buildRappelJdcEmbed } = require('../lib/rappelEmbeds.js')
+const { buildWarEmbed, buildRaidsEmbed, buildJdcEmbed, makeRefreshRow, isChefOrAdjoint } = require('../lib/warEmbeds.js')
+const { buildRappelWarEmbed, buildRappelRaidsEmbed, buildRappelJdcEmbed } = require('../lib/rappelEmbeds.js')
 const { buildResultatsGdc, buildResultatsLdc, buildResultatsRaids, buildResultatsJdc, postResultats } = require('../lib/resultatsEmbeds.js')
 const { replaceEmbed } = require('../lib/eventChannels.js')
 const { apiGet, normalizeWar } = require('../cocApi.js')
@@ -130,32 +130,18 @@ function checkWarRole(interaction) {
   return true
 }
 
-async function handleRefreshGdcDr1(interaction) {
+async function handleRefreshWarDr1(interaction) {
   if (!checkWarRole(interaction)) return
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
-  await replaceEmbed(interaction.client, DR1_WAR_CH, 'war_gdc_dr1_msg_id', await buildGdcEmbed('dr1'), makeRefreshRow('refresh_gdc_dr1'))
-  await interaction.editReply('✅ GDC DR1 actualisé.')
+  await replaceEmbed(interaction.client, DR1_WAR_CH, 'war_dr1_msg_id', await buildWarEmbed('dr1'), makeRefreshRow('refresh_war_dr1'))
+  await interaction.editReply('✅ Guerre DR1 actualisé.')
 }
 
-async function handleRefreshGdcDr2(interaction) {
+async function handleRefreshWarDr2(interaction) {
   if (!checkWarRole(interaction)) return
   if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
-  await replaceEmbed(interaction.client, DR2_WAR_CH, 'war_gdc_dr2_msg_id', await buildGdcEmbed('dr2'), makeRefreshRow('refresh_gdc_dr2'))
-  await interaction.editReply('✅ GDC DR2 actualisé.')
-}
-
-async function handleRefreshLdcDr1(interaction) {
-  if (!checkWarRole(interaction)) return
-  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
-  await replaceEmbed(interaction.client, DR1_WAR_CH, 'war_ldc_dr1_msg_id', await buildLdcEmbed('dr1'), makeRefreshRow('refresh_ldc_dr1'))
-  await interaction.editReply('✅ LDC DR1 actualisé.')
-}
-
-async function handleRefreshLdcDr2(interaction) {
-  if (!checkWarRole(interaction)) return
-  if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: true })
-  await replaceEmbed(interaction.client, DR2_WAR_CH, 'war_ldc_dr2_msg_id', await buildLdcEmbed('dr2'), makeRefreshRow('refresh_ldc_dr2'))
-  await interaction.editReply('✅ LDC DR2 actualisé.')
+  await replaceEmbed(interaction.client, DR2_WAR_CH, 'war_dr2_msg_id', await buildWarEmbed('dr2'), makeRefreshRow('refresh_war_dr2'))
+  await interaction.editReply('✅ Guerre DR2 actualisé.')
 }
 
 async function handleRefreshRaids(interaction) {
@@ -193,31 +179,25 @@ function getRappelHandlers() {
   const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js')
   const mkBtn = (id) => [new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(id).setLabel('🔄 Actualiser').setStyle(ButtonStyle.Secondary))]
   _rappelHandlers = {
-    rappel_refresh_gdc_dr1: async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_gdc_dr1_id', await buildRappelGdcEmbed('dr1'), mkBtn('rappel_refresh_gdc_dr1')); await i.editReply('✅') },
-    rappel_refresh_gdc_dr2: async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_gdc_dr2_id', await buildRappelGdcEmbed('dr2'), mkBtn('rappel_refresh_gdc_dr2')); await i.editReply('✅') },
-    rappel_refresh_ldc_dr1: async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_ldc_dr1_id', await buildRappelLdcEmbed('dr1'), mkBtn('rappel_refresh_ldc_dr1')); await i.editReply('✅') },
-    rappel_refresh_ldc_dr2: async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_ldc_dr2_id', await buildRappelLdcEmbed('dr2'), mkBtn('rappel_refresh_ldc_dr2')); await i.editReply('✅') },
-    rappel_refresh_raids:   async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_raids_id', await buildRappelRaidsEmbed(), mkBtn('rappel_refresh_raids')); await i.editReply('✅') },
-    rappel_refresh_jdc:     async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_jdc_id', await buildRappelJdcEmbed(), mkBtn('rappel_refresh_jdc')); await i.editReply('✅') },
+    rappel_refresh_dr1:   async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_dr1_id', await buildRappelWarEmbed('dr1'), mkBtn('rappel_refresh_dr1')); await i.editReply('✅') },
+    rappel_refresh_dr2:   async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_dr2_id', await buildRappelWarEmbed('dr2'), mkBtn('rappel_refresh_dr2')); await i.editReply('✅') },
+    rappel_refresh_raids: async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_raids_id', await buildRappelRaidsEmbed(), mkBtn('rappel_refresh_raids')); await i.editReply('✅') },
+    rappel_refresh_jdc:   async (i) => { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); await replaceEmbed(i.client, RAPPEL_CH, 'rappel_jdc_id', await buildRappelJdcEmbed(), mkBtn('rappel_refresh_jdc')); await i.editReply('✅') },
   }
   return _rappelHandlers
 }
 
 // ─── Handlers boutons Sauron (PARTIE 4) ──────────────────────────────────────
 
-async function handleSauronRefreshGdcDr1(interaction) { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, DR1_WAR_CH, 'war_gdc_dr1_msg_id', await buildGdcEmbed('dr1'), makeRefreshRow('refresh_gdc_dr1')); await interaction.editReply('✅ GDC DR1 actualisé.') }
-async function handleSauronRefreshGdcDr2(interaction) { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, DR2_WAR_CH, 'war_gdc_dr2_msg_id', await buildGdcEmbed('dr2'), makeRefreshRow('refresh_gdc_dr2')); await interaction.editReply('✅ GDC DR2 actualisé.') }
-async function handleSauronRefreshLdcDr1(interaction) { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, DR1_WAR_CH, 'war_ldc_dr1_msg_id', await buildLdcEmbed('dr1'), makeRefreshRow('refresh_ldc_dr1')); await interaction.editReply('✅ LDC DR1 actualisé.') }
-async function handleSauronRefreshLdcDr2(interaction) { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, DR2_WAR_CH, 'war_ldc_dr2_msg_id', await buildLdcEmbed('dr2'), makeRefreshRow('refresh_ldc_dr2')); await interaction.editReply('✅ LDC DR2 actualisé.') }
+async function handleSauronRefreshWarDr1(interaction) { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, DR1_WAR_CH, 'war_dr1_msg_id', await buildWarEmbed('dr1'), makeRefreshRow('refresh_war_dr1')); await interaction.editReply('✅ Guerre DR1 actualisé.') }
+async function handleSauronRefreshWarDr2(interaction) { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, DR2_WAR_CH, 'war_dr2_msg_id', await buildWarEmbed('dr2'), makeRefreshRow('refresh_war_dr2')); await interaction.editReply('✅ Guerre DR2 actualisé.') }
 async function handleSauronRefreshRaids(interaction)  { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, RAIDS_JDC_CH, 'war_raids_msg_id', await buildRaidsEmbed(), makeRefreshRow('refresh_raids')); await interaction.editReply('✅ Raids actualisé.') }
 async function handleSauronRefreshJdc(interaction)    { if (!checkWarRole(interaction)) return; await interaction.deferReply({ ephemeral: true }); await replaceEmbed(interaction.client, RAIDS_JDC_CH, 'war_jdc_msg_id', await buildJdcEmbed(), makeRefreshRow('refresh_jdc')); await interaction.editReply('✅ JDC actualisé.') }
 
-async function handleSauronRappelGdcDr1(i) { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_gdc_dr1_id', await buildRappelGdcEmbed('dr1'), mkBtn('rappel_refresh_gdc_dr1')); await i.editReply('✅ Rappel GDC DR1 actualisé.') }
-async function handleSauronRappelGdcDr2(i) { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_gdc_dr2_id', await buildRappelGdcEmbed('dr2'), mkBtn('rappel_refresh_gdc_dr2')); await i.editReply('✅ Rappel GDC DR2 actualisé.') }
-async function handleSauronRappelLdcDr1(i) { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_ldc_dr1_id', await buildRappelLdcEmbed('dr1'), mkBtn('rappel_refresh_ldc_dr1')); await i.editReply('✅ Rappel LDC DR1 actualisé.') }
-async function handleSauronRappelLdcDr2(i) { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_ldc_dr2_id', await buildRappelLdcEmbed('dr2'), mkBtn('rappel_refresh_ldc_dr2')); await i.editReply('✅ Rappel LDC DR2 actualisé.') }
-async function handleSauronRappelRaids(i)   { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_raids_id', await buildRappelRaidsEmbed(), mkBtn('rappel_refresh_raids')); await i.editReply('✅ Rappel Raids actualisé.') }
-async function handleSauronRappelJdc(i)     { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_jdc_id', await buildRappelJdcEmbed(), mkBtn('rappel_refresh_jdc')); await i.editReply('✅ Rappel JDC actualisé.') }
+async function handleSauronRappelWarDr1(i) { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_dr1_id', await buildRappelWarEmbed('dr1'), mkBtn('rappel_refresh_dr1')); await i.editReply('✅ Rappel Guerre DR1 actualisé.') }
+async function handleSauronRappelWarDr2(i) { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_dr2_id', await buildRappelWarEmbed('dr2'), mkBtn('rappel_refresh_dr2')); await i.editReply('✅ Rappel Guerre DR2 actualisé.') }
+async function handleSauronRappelRaids(i)  { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_raids_id', await buildRappelRaidsEmbed(), mkBtn('rappel_refresh_raids')); await i.editReply('✅ Rappel Raids actualisé.') }
+async function handleSauronRappelJdc(i)    { if (!checkWarRole(i)) return; await i.deferReply({ ephemeral: true }); const { ActionRowBuilder: A, ButtonBuilder: B, ButtonStyle: S } = require('discord.js'); const mkBtn = (id) => [new A().addComponents(new B().setCustomId(id).setLabel('🔄 Actualiser').setStyle(S.Secondary))]; await replaceEmbed(i.client, RAPPEL_CH, 'rappel_jdc_id', await buildRappelJdcEmbed(), mkBtn('rappel_refresh_jdc')); await i.editReply('✅ Rappel JDC actualisé.') }
 
 async function handleSauronResultats(interaction, type) {
   if (!checkWarRole(interaction)) return
@@ -870,31 +850,23 @@ const BUTTON_HANDLERS = {
   youtube_add_follow:        handleYoutubeAddFollow,
   youtube_remove_follow:     handleYoutubeRemoveFollow,
   // ── Info embeds (boutons Actualiser sur les embeds en cours) ──
-  refresh_gdc_dr1:           handleRefreshGdcDr1,
-  refresh_gdc_dr2:           handleRefreshGdcDr2,
-  refresh_ldc_dr1:           handleRefreshLdcDr1,
-  refresh_ldc_dr2:           handleRefreshLdcDr2,
+  refresh_war_dr1:           handleRefreshWarDr1,
+  refresh_war_dr2:           handleRefreshWarDr2,
   refresh_raids:             handleRefreshRaids,
   refresh_jdc:               handleRefreshJdc,
   // ── Rappel embeds ────────────────────────────────────────────
-  rappel_refresh_gdc_dr1:    (i) => getRappelHandlers().rappel_refresh_gdc_dr1(i),
-  rappel_refresh_gdc_dr2:    (i) => getRappelHandlers().rappel_refresh_gdc_dr2(i),
-  rappel_refresh_ldc_dr1:    (i) => getRappelHandlers().rappel_refresh_ldc_dr1(i),
-  rappel_refresh_ldc_dr2:    (i) => getRappelHandlers().rappel_refresh_ldc_dr2(i),
+  rappel_refresh_dr1:        (i) => getRappelHandlers().rappel_refresh_dr1(i),
+  rappel_refresh_dr2:        (i) => getRappelHandlers().rappel_refresh_dr2(i),
   rappel_refresh_raids:      (i) => getRappelHandlers().rappel_refresh_raids(i),
   rappel_refresh_jdc:        (i) => getRappelHandlers().rappel_refresh_jdc(i),
   // ── Panel Sauron — Refresh infos ─────────────────────────────
-  sauron_refresh_gdc_dr1:    handleSauronRefreshGdcDr1,
-  sauron_refresh_gdc_dr2:    handleSauronRefreshGdcDr2,
-  sauron_refresh_ldc_dr1:    handleSauronRefreshLdcDr1,
-  sauron_refresh_ldc_dr2:    handleSauronRefreshLdcDr2,
+  sauron_refresh_war_dr1:    handleSauronRefreshWarDr1,
+  sauron_refresh_war_dr2:    handleSauronRefreshWarDr2,
   sauron_refresh_raids:      handleSauronRefreshRaids,
   sauron_refresh_jdc:        handleSauronRefreshJdc,
   // ── Panel Sauron — Rappels ────────────────────────────────────
-  sauron_rappel_gdc_dr1:     handleSauronRappelGdcDr1,
-  sauron_rappel_gdc_dr2:     handleSauronRappelGdcDr2,
-  sauron_rappel_ldc_dr1:     handleSauronRappelLdcDr1,
-  sauron_rappel_ldc_dr2:     handleSauronRappelLdcDr2,
+  sauron_rappel_war_dr1:     handleSauronRappelWarDr1,
+  sauron_rappel_war_dr2:     handleSauronRappelWarDr2,
   sauron_rappel_raids:       handleSauronRappelRaids,
   sauron_rappel_jdc:         handleSauronRappelJdc,
   // ── Panel Sauron — Résultats ──────────────────────────────────

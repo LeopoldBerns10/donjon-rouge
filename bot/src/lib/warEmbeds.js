@@ -2,7 +2,7 @@ const { EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('
 const { apiGet, parseWarTime, normalizeWar } = require('../cocApi.js')
 const { isJdcActive, fetchJdcMembersUnder5000 } = require('./jdcTracker.js')
 const supabase = require('../supabase.js')
-const { ensureEmbed, replaceEmbed } = require('./eventChannels.js')
+const { replaceEmbed } = require('./eventChannels.js')
 
 const DR1_TAG = '#29292QPRC'
 const DR2_TAG = '#2RCGG9YR9'
@@ -11,7 +11,7 @@ const DR1_WAR_CHANNEL   = '1511988469918994545'
 const DR2_WAR_CHANNEL   = '1511988535094153286'
 const JDC_RAIDS_CHANNEL = '1511988581135159376'
 
-const CHEF_ROLE_ID   = '611123759864348672'
+const CHEF_ROLE_ID    = '611123759864348672'
 const ADJOINT_ROLE_ID = '1297318759396278425'
 
 function isChefOrAdjoint(member) {
@@ -24,30 +24,53 @@ function makeRefreshRow(customId) {
   )]
 }
 
-// ─── GDC embed ────────────────────────────────────────────────────────────────
+// ─── Guerre embed (GDC ou LDC, auto-détecté) ─────────────────────────────────
 
-async function buildGdcEmbed(clanKey) {
-  const tag    = clanKey === 'dr1' ? DR1_TAG : DR2_TAG
-  const label  = clanKey === 'dr1' ? 'DR1' : 'DR2'
+async function buildWarEmbed(clanKey) {
+  const tag   = clanKey === 'dr1' ? DR1_TAG : DR2_TAG
+  const label = clanKey === 'dr1' ? 'DR1' : 'DR2'
 
-  let war
+  let war   = null
+  let isLdc = false
+
   try { war = await apiGet(`/clan/${clanKey}/war`) } catch { war = null }
+
+  const gdcInactive = !war || war.state === 'notInWar' || war.state === 'warEnded'
+
+  if (gdcInactive) {
+    const ldcPath = clanKey === 'dr1' ? '/ldc/current' : '/ldc/dr2/current'
+    try {
+      const ldc = await apiGet(ldcPath)
+      if (ldc?.rounds) {
+        const activeIdx = ldc.rounds.findIndex(r => r.war?.state === 'inWar' || r.war?.state === 'preparation')
+        if (activeIdx !== -1) {
+          const round = ldc.rounds[activeIdx]
+          war           = normalizeWar(round.war, tag)
+          war._ldcDay   = activeIdx + 1
+          war._ldcSeason = ldc.season
+          isLdc = true
+        }
+      }
+    } catch {}
+  }
 
   if (!war || war.state === 'notInWar' || war.state === 'warEnded') {
     return new EmbedBuilder()
       .setColor(0x555555)
-      .setTitle(`⚔️ Guerre de Clan — ${label}`)
+      .setTitle(`⚔️ Guerre — ${label}`)
       .setDescription('😴 Aucune guerre en cours')
-      .setFooter({ text: `Donjon Rouge • GDC ${label}` })
+      .setFooter({ text: `Donjon Rouge • Guerre ${label}` })
       .setTimestamp()
   }
 
-  const members    = war.clan?.members || []
-  const clanStars  = war.clan?.stars ?? 0
-  const oppStars   = war.opponent?.stars ?? 0
-  const atksUsed   = members.reduce((acc, m) => acc + (m.attacks?.length ?? 0), 0)
-  const totalAtks  = members.length * 2
-  const oppName    = war.opponent?.name || '?'
+  const attacksPerMember = isLdc ? 1 : 2
+  const title            = isLdc ? `🏆 LDC — ${label}` : `⚔️ GDC — ${label}`
+  const members          = war.clan?.members || []
+  const clanStars        = war.clan?.stars ?? 0
+  const oppStars         = war.opponent?.stars ?? 0
+  const atksUsed         = members.reduce((acc, m) => acc + (m.attacks?.length ?? 0), 0)
+  const totalAtks        = members.length * attacksPerMember
+  const oppName          = war.opponent?.name || '?'
 
   let timeStr = ''
   if (war.state === 'preparation' && war.startTime) {
@@ -68,87 +91,24 @@ async function buildGdcEmbed(clanKey) {
 
   const lines = sorted.map(m => {
     const atks = m.attacks?.length ?? 0
-    const icon = atks === 0 ? '❌' : atks < 2 ? '⚡' : '✅'
-    return `${icon} ${m.name} — ${atks}/2`
+    const icon = atks === 0 ? '❌' : atks < attacksPerMember ? '⚡' : '✅'
+    return `${icon} ${m.name} — ${atks}/${attacksPerMember}`
   })
 
   const stateLabel = war.state === 'preparation' ? '🛡️ Préparation' : '⚔️ En cours'
+  const ldcExtra   = isLdc && war._ldcDay ? ` • Jour ${war._ldcDay}` : ''
+  const footerText = isLdc
+    ? `Donjon Rouge • LDC ${label}${war._ldcSeason ? ` • Saison ${war._ldcSeason}` : ''}`
+    : `Donjon Rouge • GDC ${label}`
 
   return new EmbedBuilder()
-    .setColor(war.state === 'inWar' ? 0xFF6600 : 0x1565C0)
-    .setTitle(`⚔️ Guerre de Clan — ${label}`)
+    .setColor(isLdc ? 0xFFD700 : (war.state === 'inWar' ? 0xFF6600 : 0x1565C0))
+    .setTitle(title)
     .addFields(
-      { name: '📊 État', value: `${stateLabel} vs **${oppName}**\n⭐ ${clanStars} vs ${oppStars} | ⚔️ ${atksUsed}/${totalAtks}${timeStr ? `\n${timeStr}` : ''}`, inline: false },
+      { name: '📊 État', value: `${stateLabel}${ldcExtra} vs **${oppName}**\n⭐ ${clanStars} vs ${oppStars} | ⚔️ ${atksUsed}/${totalAtks}${timeStr ? `\n${timeStr}` : ''}`, inline: false },
       { name: '🏹 Membres', value: lines.join('\n').slice(0, 1024) || '—', inline: false },
     )
-    .setFooter({ text: `Donjon Rouge • GDC ${label}` })
-    .setTimestamp()
-}
-
-// ─── LDC embed ────────────────────────────────────────────────────────────────
-
-async function buildLdcEmbed(clanKey) {
-  const ourTag = clanKey === 'dr1' ? DR1_TAG : DR2_TAG
-  const label  = clanKey === 'dr1' ? 'DR1' : 'DR2'
-  const path   = clanKey === 'dr1' ? '/ldc/current' : '/ldc/dr2/current'
-
-  let ldc
-  try { ldc = await apiGet(path) } catch { ldc = null }
-
-  if (!ldc?.rounds) {
-    return new EmbedBuilder()
-      .setColor(0x555555)
-      .setTitle(`🏆 Ligue des Clans — ${label}`)
-      .setDescription('😴 Aucune LDC en cours')
-      .setFooter({ text: `Donjon Rouge • LDC ${label}` })
-      .setTimestamp()
-  }
-
-  const activeIdx = ldc.rounds.findIndex(r => r.war?.state === 'inWar' || r.war?.state === 'preparation')
-  if (activeIdx === -1) {
-    return new EmbedBuilder()
-      .setColor(0x555555)
-      .setTitle(`🏆 Ligue des Clans — ${label}`)
-      .setDescription(`😴 Saison ${ldc.season || '?'} — entre deux rounds`)
-      .setFooter({ text: `Donjon Rouge • LDC ${label}` })
-      .setTimestamp()
-  }
-
-  const round   = ldc.rounds[activeIdx]
-  const war     = normalizeWar(round.war, ourTag)
-  const members = war.clan?.members || []
-  const oppName = war.opponent?.name || '?'
-  const clanStars = war.clan?.stars ?? 0
-  const oppStars  = war.opponent?.stars ?? 0
-  const atksUsed  = members.reduce((acc, m) => acc + (m.attacks?.length ?? 0), 0)
-
-  let timeStr = ''
-  if (war.state === 'inWar' && war.endTime) {
-    const t = parseWarTime(war.endTime)
-    if (t) timeStr = `⏳ Fin dans ${Math.max(0, Math.ceil((t - Date.now()) / 3600000))}h`
-  }
-
-  const sorted = [...members].sort((a, b) => {
-    const aA = a.attacks?.length ?? 0
-    const bA = b.attacks?.length ?? 0
-    if (aA === 0 && bA !== 0) return -1
-    if (aA !== 0 && bA === 0) return 1
-    return b.townhallLevel - a.townhallLevel
-  })
-
-  const lines = sorted.map(m => {
-    const atks = m.attacks?.length ?? 0
-    return `${atks === 0 ? '❌' : '✅'} ${m.name} — ${atks}/1`
-  })
-
-  return new EmbedBuilder()
-    .setColor(0xFFD700)
-    .setTitle(`🏆 Ligue des Clans — ${label}`)
-    .addFields(
-      { name: `📊 Jour ${activeIdx + 1} vs ${oppName}`, value: `⭐ ${clanStars} vs ${oppStars} | ⚔️ ${atksUsed}/${members.length}${timeStr ? `\n${timeStr}` : ''}`, inline: false },
-      { name: '🏹 Membres', value: lines.join('\n').slice(0, 1024) || '—', inline: false },
-    )
-    .setFooter({ text: `Donjon Rouge • LDC ${label} • Saison ${ldc.season || '?'}` })
+    .setFooter({ text: footerText })
     .setTimestamp()
 }
 
@@ -217,7 +177,7 @@ async function buildJdcEmbed() {
       .setTimestamp()
   }
 
-  const allUnder = await fetchJdcMembersUnder5000()
+  const allUnder   = await fetchJdcMembersUnder5000()
   const discordMap = allUnder.length > 0 ? await getDiscordIds(allUnder.map(m => m.tag)) : {}
 
   const lines = allUnder.map(m => {
@@ -246,15 +206,13 @@ async function getDiscordIds(tags) {
   return map
 }
 
-// ─── Mise à jour des salons guerre ────────────────────────────────────────────
+// ─── Mise à jour des 4 embeds guerre ─────────────────────────────────────────
 
 async function updateWarEmbeds(client) {
   try {
     await Promise.all([
-      replaceEmbed(client, DR1_WAR_CHANNEL, 'war_gdc_dr1_msg_id', await buildGdcEmbed('dr1').catch(() => errEmbed('⚔️ Guerre de Clan — DR1')), makeRefreshRow('refresh_gdc_dr1')),
-      replaceEmbed(client, DR1_WAR_CHANNEL, 'war_ldc_dr1_msg_id', await buildLdcEmbed('dr1').catch(() => errEmbed('🏆 Ligue des Clans — DR1')), makeRefreshRow('refresh_ldc_dr1')),
-      replaceEmbed(client, DR2_WAR_CHANNEL, 'war_gdc_dr2_msg_id', await buildGdcEmbed('dr2').catch(() => errEmbed('⚔️ Guerre de Clan — DR2')), makeRefreshRow('refresh_gdc_dr2')),
-      replaceEmbed(client, DR2_WAR_CHANNEL, 'war_ldc_dr2_msg_id', await buildLdcEmbed('dr2').catch(() => errEmbed('🏆 Ligue des Clans — DR2')), makeRefreshRow('refresh_ldc_dr2')),
+      replaceEmbed(client, DR1_WAR_CHANNEL,   'war_dr1_msg_id',   await buildWarEmbed('dr1').catch(() => errEmbed('⚔️ Guerre — DR1')), makeRefreshRow('refresh_war_dr1')),
+      replaceEmbed(client, DR2_WAR_CHANNEL,   'war_dr2_msg_id',   await buildWarEmbed('dr2').catch(() => errEmbed('⚔️ Guerre — DR2')), makeRefreshRow('refresh_war_dr2')),
       replaceEmbed(client, JDC_RAIDS_CHANNEL, 'war_raids_msg_id', await buildRaidsEmbed().catch(() => errEmbed('💎 Raid Capital')), makeRefreshRow('refresh_raids')),
       replaceEmbed(client, JDC_RAIDS_CHANNEL, 'war_jdc_msg_id',   await buildJdcEmbed().catch(() => errEmbed('🎖️ Jeux des Clans')), makeRefreshRow('refresh_jdc')),
     ])
@@ -272,8 +230,7 @@ function errEmbed(title) {
 }
 
 module.exports = {
-  buildGdcEmbed,
-  buildLdcEmbed,
+  buildWarEmbed,
   buildRaidsEmbed,
   buildJdcEmbed,
   updateWarEmbeds,
